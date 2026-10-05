@@ -1,0 +1,2024 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen handcrafted synthetic transcript challenge. Times, fictional podcast/host groups, brands, commercial intent, and reference intervals are authored, not measured from recordings. This is not a real-podcast accuracy benchmark. Ambiguous cases have no definitive ad label and require review.",
+  "recorded_at": "2026-10-05T03:21:41.697870+00:00",
+  "dataset_sha256": "9bc08a5ade15ee3a78ec7f9d066ad8136cc60c3002f27f1561993a5627503266",
+  "dataset_hash_basis": "original fixture file bytes",
+  "provenance": {
+    "git_revision": "d1eed30d98530d358a1ed07590a23d72407d953c",
+    "git_dirty": true,
+    "python": "3.12.10",
+    "package_versions": {
+      "castwell": "0.3.0",
+      "requests": "2.34.2",
+      "llama-cpp-python": null
+    },
+    "source_sha256": {
+      "processing.py": "805594a57c2e7e89365b8b9329fc8392f07e9916de50f8ccfb8c722b2b5bfb85",
+      "evaluation.py": "29c2777c24939afbe82855723212b222d41c966d1a4258362a200e0d2b9e0332",
+      "jev.py": "e91582cfbfd793883f0f20f623091419d4703e9c9e67fdec69e14a432245efef"
+    }
+  },
+  "settings": {
+    "split": "dev",
+    "approval_threshold": 0.9,
+    "shadow_only": true,
+    "allow_remote": false,
+    "allow_paid_api": false,
+    "local_ai_inherited_credentials": false,
+    "local_ai_redirects": false,
+    "local_ai_environment_proxies_and_netrc": false,
+    "ai_window_chars": "18000",
+    "ai_context_segments": "12",
+    "ai_timeout_seconds": "180"
+  },
+  "metric_definitions": {
+    "primary": "Approved editorial seconds wrongly cut; lower is better. No audio is modified.",
+    "duration": "Union intersection of authored intervals; all remaining transcript time is non-ad time.",
+    "boundary": "Greedy one-to-one positive-overlap matching ranked by IoU, overlap, then indices; report absolute start/end errors. Unmatched spans have counts, no fabricated boundary error.",
+    "ambiguity": "category=ambiguous cases are excluded from accuracy denominators. ambiguous_safety reports union seconds/spans and case counts separately; approved selections are unsupported automatic cuts, not established editorial or ad errors. Failed cases remain explicit.",
+    "review_signal": "review_observed is any unapproved/requires_review cut for heuristic/local-ai, but Jev's explicit uncertainty/conflict signal. manual_review_cases separately counts cases containing unapproved cuts for every backend.",
+    "failure": "Errors are excluded from scored metrics, never counted as successful no-ad predictions; eligible totals include failed cases.",
+    "proposed": "All candidate intervals, including unapproved review suggestions.",
+    "approved": "Classifier-approved intervals with the production approval threshold frozen at 0.90. Jev's adapter never auto-approves.",
+    "threshold_shadow": "Hypothetical intervals at confidence >= 0.90, excluding explicit requires_review spans and Jev responses requesting review. Separate from actual approval; provider scores are not interchangeable.",
+    "confidence": "Reported confidence is not measured accuracy or a calibrated probability."
+  },
+  "backends": [
+    {
+      "config": {
+        "backend": "heuristic",
+        "model": "cue-rules",
+        "model_label": "Castwell heuristic",
+        "base_url": null
+      },
+      "cases": [
+        {
+          "id": "dev-01-straight",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "straightad",
+          "description": "Declared paid sponsor, product benefit, offer, and immediate editorial return. The entire sponsor block belongs in the cut.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000133
+        },
+        {
+          "id": "dev-02-humorous-paid",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "humorouspaidad",
+          "description": "The host jokes inside an explicitly paid read. Humor does not turn the paid product pitch into editorial parody.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 25.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 15.0,
+              "mean_boundary_error_seconds": 7.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.25,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 15.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000121
+        },
+        {
+          "id": "dev-03-unpaid-parody",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "unpaidparody",
+          "description": "A declared unpaid comedy sketch imitates sponsor language. No product is offered and the entire passage is editorial entertainment.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 8e-05
+        },
+        {
+          "id": "dev-04-quoted-editorial",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "quotededitorial",
+          "description": "A researcher quotes and critiques an old advertisement. The quotation is evidence in an editorial discussion, not a current offer.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.55,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 7.2e-05
+        },
+        {
+          "id": "dev-05-ordinary-brand",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "ordinarybrandmention",
+          "description": "Independent discussion of a fictional manufacturer, without a commercial pitch or sponsor arrangement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 4.8e-05
+        },
+        {
+          "id": "dev-06-self-promo",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "selfpromo",
+          "description": "The host sells a paid class. This is a commercial interruption even without an outside sponsor.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.3333333333333333,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 15.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 6.4e-05
+        },
+        {
+          "id": "dev-07-delayed-return",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "delayedreturnboundary",
+          "description": "The sponsor ends before an editorial fact. A later return marker must not pull the intervening editorial sentence into the ad.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 7.2e-05
+        },
+        {
+          "id": "dev-08-mixed-span",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-8 seconds, paid read at 8-17, editorial at 17-20. The supplied 5-20 segment has no word timestamps, so exact automatic boundaries are unsupported and review is required.",
+          "expected_intervals": [
+            {
+              "start": 8.0,
+              "end": 17.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.82,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 6.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 9.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 6.0,
+              "mean_boundary_error_seconds": 3.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 9.0,
+                  "intersection_over_union": 0.6,
+                  "start_error_seconds": 3.0,
+                  "end_error_seconds": 3.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 9.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 9.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 5.7e-05
+        },
+        {
+          "id": "dev-09-ambiguous",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "ambiguous",
+          "description": "The excerpt omits whether this recommendation is sponsored or independent. The author does not supply a definitive ad label; request review rather than authorize a cut.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 4.1e-05
+        }
+      ],
+      "summary": {
+        "attempted_cases": 9,
+        "successful_cases": 9,
+        "failed_cases": 0,
+        "ambiguous_cases": 1,
+        "accuracy_eligible_cases": 8,
+        "accuracy_scored_cases": 8,
+        "accuracy_failed_cases": 0,
+        "eligible_ad_seconds_including_failed_cases": 69.0,
+        "eligible_duration_seconds_including_failed_cases": 205.0,
+        "review_scored_cases": 9,
+        "review_expected_cases": 2,
+        "review_observed_cases": 4,
+        "manual_review_cases": 4,
+        "review_true_positive_cases": 1,
+        "review_false_positive_cases": 3,
+        "review_false_negative_cases": 1,
+        "ambiguous_safety": {
+          "attempted_cases": 1,
+          "successful_cases": 1,
+          "failed_cases": 0,
+          "eligible_duration_seconds_including_failed_cases": 25.0,
+          "scored_duration_seconds": 25.0,
+          "proposed": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "approved": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "threshold_shadow": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          }
+        },
+        "proposed": {
+          "editorial_seconds_wrongly_cut": 36.0,
+          "ad_seconds_missed": 25.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 44.0,
+          "selected_seconds": 80.0,
+          "boundary_absolute_error_seconds": 36.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 2,
+          "exact_match_rate": 0.25,
+          "mean_boundary_error_seconds": 3.6
+        },
+        "approved": {
+          "editorial_seconds_wrongly_cut": 20.0,
+          "ad_seconds_missed": 44.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 25.0,
+          "selected_seconds": 45.0,
+          "boundary_absolute_error_seconds": 5.0,
+          "matched_spans": 2,
+          "unmatched_predicted_spans": 1,
+          "unmatched_expected_spans": 3,
+          "exact_match_cases": 3,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": 1.25
+        },
+        "threshold_shadow": {
+          "editorial_seconds_wrongly_cut": 20.0,
+          "ad_seconds_missed": 44.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 25.0,
+          "selected_seconds": 45.0,
+          "boundary_absolute_error_seconds": 5.0,
+          "matched_spans": 2,
+          "unmatched_predicted_spans": 1,
+          "unmatched_expected_spans": 3,
+          "exact_match_cases": 3,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": 1.25
+        }
+      }
+    },
+    {
+      "config": {
+        "backend": "local-ai",
+        "model": "castwell-local",
+        "model_label": "Qwen2.5-7B-Instruct Q4_K_M, llama.cpp b11146 CUDA12.4, RTX3090Ti",
+        "base_url": "http://127.0.0.1:8081/v1"
+      },
+      "cases": [
+        {
+          "id": "dev-01-straight",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "straightad",
+          "description": "Declared paid sponsor, product benefit, offer, and immediate editorial return. The entire sponsor block belongs in the cut.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "The segment includes a clear sponsorship statement and a sales pitch with a discount offer and a call to action.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.843259
+        },
+        {
+          "id": "dev-02-humorous-paid",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "humorouspaidad",
+          "description": "The host jokes inside an explicitly paid read. Humor does not turn the paid product pitch into editorial parody.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 25.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 30.0,
+              "reason": "The segment includes a clear sponsorship acknowledgment and a direct call to action with a code offer.",
+              "confidence": 0.95,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 25.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 0.8,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 25.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 0.8,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 25.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 0.8,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 30.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 30.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 30.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.509956
+        },
+        {
+          "id": "dev-03-unpaid-parody",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "unpaidparody",
+          "description": "A declared unpaid comedy sketch imitates sponsor language. No product is offered and the entire passage is editorial entertainment.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The text explicitly mentions a sponsor and includes a call to action with a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            },
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.69,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.401146
+        },
+        {
+          "id": "dev-04-quoted-editorial",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "quotededitorial",
+          "description": "A researcher quotes and critiques an old advertisement. The quotation is evidence in an editorial discussion, not a current offer.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The text clearly states a sponsorship and includes a call to action with a code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.321641
+        },
+        {
+          "id": "dev-05-ordinary-brand",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "ordinarybrandmention",
+          "description": "Independent discussion of a fictional manufacturer, without a commercial pitch or sponsor arrangement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.063374
+        },
+        {
+          "id": "dev-06-self-promo",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "selfpromo",
+          "description": "The host sells a paid class. This is a commercial interruption even without an outside sponsor.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "The segment includes a clear call to action with a discount code and a specific timeframe for enrollment.",
+              "confidence": 0.95,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 0.75,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.497258
+        },
+        {
+          "id": "dev-07-delayed-return",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "delayedreturnboundary",
+          "description": "The sponsor ends before an editorial fact. A later return marker must not pull the intervening editorial sentence into the ad.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The segment includes a clear sponsorship and a call to action with a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            },
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.69,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.343805
+        },
+        {
+          "id": "dev-08-mixed-span",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-8 seconds, paid read at 8-17, editorial at 17-20. The supplied 5-20 segment has no word timestamps, so exact automatic boundaries are unsupported and review is required.",
+          "expected_intervals": [
+            {
+              "start": 8.0,
+              "end": 17.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "The segment includes a direct sponsorship mention and a call to action with a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 6.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 9.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 6.0,
+              "mean_boundary_error_seconds": 3.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 9.0,
+                  "intersection_over_union": 0.6,
+                  "start_error_seconds": 3.0,
+                  "end_error_seconds": 3.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 6.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 9.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 6.0,
+              "mean_boundary_error_seconds": 3.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 9.0,
+                  "intersection_over_union": 0.6,
+                  "start_error_seconds": 3.0,
+                  "end_error_seconds": 3.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 6.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 9.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 6.0,
+              "mean_boundary_error_seconds": 3.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 9.0,
+                  "intersection_over_union": 0.6,
+                  "start_error_seconds": 3.0,
+                  "end_error_seconds": 3.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.408393
+        },
+        {
+          "id": "dev-09-ambiguous",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "ambiguous",
+          "description": "The excerpt omits whether this recommendation is sponsored or independent. The author does not supply a definitive ad label; request review rather than authorize a cut.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.08078
+        }
+      ],
+      "summary": {
+        "attempted_cases": 9,
+        "successful_cases": 9,
+        "failed_cases": 0,
+        "ambiguous_cases": 1,
+        "accuracy_eligible_cases": 8,
+        "accuracy_scored_cases": 8,
+        "accuracy_failed_cases": 0,
+        "eligible_ad_seconds_including_failed_cases": 69.0,
+        "eligible_duration_seconds_including_failed_cases": 205.0,
+        "review_scored_cases": 9,
+        "review_expected_cases": 2,
+        "review_observed_cases": 2,
+        "manual_review_cases": 2,
+        "review_true_positive_cases": 0,
+        "review_false_positive_cases": 2,
+        "review_false_negative_cases": 2,
+        "ambiguous_safety": {
+          "attempted_cases": 1,
+          "successful_cases": 1,
+          "failed_cases": 0,
+          "eligible_duration_seconds_including_failed_cases": 25.0,
+          "scored_duration_seconds": 25.0,
+          "proposed": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "approved": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "threshold_shadow": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          }
+        },
+        "proposed": {
+          "editorial_seconds_wrongly_cut": 51.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 69.0,
+          "selected_seconds": 120.0,
+          "boundary_absolute_error_seconds": 26.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 1,
+          "exact_match_rate": 0.125,
+          "mean_boundary_error_seconds": 2.6
+        },
+        "approved": {
+          "editorial_seconds_wrongly_cut": 41.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 69.0,
+          "selected_seconds": 110.0,
+          "boundary_absolute_error_seconds": 21.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 2,
+          "exact_match_rate": 0.25,
+          "mean_boundary_error_seconds": 2.1
+        },
+        "threshold_shadow": {
+          "editorial_seconds_wrongly_cut": 41.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 69.0,
+          "selected_seconds": 110.0,
+          "boundary_absolute_error_seconds": 21.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 2,
+          "exact_match_rate": 0.25,
+          "mean_boundary_error_seconds": 2.1
+        }
+      }
+    }
+  ]
+}

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Run an optional private, CPU-based classifier compatible with Castwell.
+"""Run an optional private classifier compatible with Castwell.
 
-Install the ``local-ai`` extra, then explicitly choose an existing GGUF with
-``--model`` or download a pinned official Qwen 2.5 model with ``--download``.
-Downloads are verified against the publisher's SHA256 before the model is used.
-The server only listens on the loopback interface; it needs no API key.
+Choose an existing GGUF with ``--model`` or download a pinned official Qwen 2.5
+model with ``--download`` (requires huggingface-hub). Downloads are verified
+against the publisher's SHA256 before use. The server listens only on loopback
+and needs no API key. The default Python backend uses CPU inference and requires
+the ``local-ai`` extra. Use ``--backend native`` and ``--server-binary`` for an
+existing standalone llama.cpp server with GPU offloading and no Python inference
+dependencies.
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
+import shutil
 import sys
 
 MODEL_PROFILES = {
@@ -55,7 +59,7 @@ def download_model(cache_dir: Path, size: str = "7b") -> Path:
     try:
         from huggingface_hub import hf_hub_download
     except ImportError as exc:
-        raise RuntimeError("Install the local-ai extra first: pip install '.[local-ai]'") from exc
+        raise RuntimeError("Model downloads require huggingface-hub: pip install 'huggingface-hub>=0.34,<2'") from exc
     profile = MODEL_PROFILES[size]
     print(f"Downloading/verifying official Qwen 2.5 {size.upper()} (~{profile['size_gb']} GB).", file=sys.stderr)
     paths = []
@@ -71,16 +75,37 @@ def download_model(cache_dir: Path, size: str = "7b") -> Path:
 
 
 def server_command(model: Path, *, port: int = 8081, threads: int = 4,
-                   context: int = 8192) -> list[str]:
+                   context: int = 8192, backend: str | None = None,
+                   server_binary: Path | None = None, gpu_layers: int | None = None) -> list[str]:
+    backend = backend or ("native" if server_binary else "python")
+    if backend not in {"python", "native"}:
+        raise ValueError("Backend must be python or native.")
     if not model.is_file():
         raise ValueError(f"Model file does not exist: {model}")
     if not 1 <= port <= 65535 or threads < 1 or context < 2048:
-        raise ValueError("Port must be 1–65535, threads positive, and context at least 2048.")
+        raise ValueError("Port must be 1-65535, threads positive, and context at least 2048.")
+    if gpu_layers is not None and gpu_layers < -1:
+        raise ValueError("GPU layers must be -1 for all layers, zero for CPU, or positive.")
+    if backend == "native":
+        binary = server_binary or shutil.which("llama-server")
+        binary = Path(binary).expanduser() if binary else None
+        if not binary or not binary.is_file():
+            raise ValueError("Native llama-server was not found. Pass --server-binary /path/to/llama-server.")
+        layers = "all" if gpu_layers in (None, -1) else str(gpu_layers)
+        return [
+            str(binary.resolve()), "--model", str(model.resolve()),
+            "--alias", "castwell-local", "--host", "127.0.0.1", "--port", str(port),
+            "--threads", str(threads), "--threads-batch", str(threads),
+            "--ctx-size", str(context), "--n-gpu-layers", layers, "--parallel", "1",
+        ]
+    if server_binary is not None:
+        raise ValueError("--server-binary requires the native backend.")
     return [
         sys.executable, "-m", "llama_cpp.server", "--model", str(model.resolve()),
         "--model_alias", "castwell-local", "--host", "127.0.0.1", "--port", str(port),
         "--n_threads", str(threads), "--n_threads_batch", str(threads),
-        "--n_ctx", str(context), "--n_gpu_layers", "0", "--chat_format", "chatml",
+        "--n_ctx", str(context), "--n_gpu_layers", str(gpu_layers if gpu_layers is not None else 0),
+        "--chat_format", "chatml",
     ]
 
 
@@ -96,18 +121,27 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8081)
     parser.add_argument("--threads", type=int, default=min(4, os.cpu_count() or 1))
     parser.add_argument("--context", type=int, default=8192)
+    parser.add_argument("--backend", choices=("python", "native"),
+                        help="Default: python; supplying --server-binary selects native")
+    parser.add_argument("--server-binary", type=Path, help="Existing native llama-server executable")
+    parser.add_argument("--gpu-layers", type=int,
+                        help="Layers to offload: -1 for all, 0 for CPU; default native=all, python=0")
     args = parser.parse_args()
     try:
         model = download_model(args.cache_dir, args.size) if args.download else args.model.expanduser()
-        command = server_command(model, port=args.port, threads=args.threads, context=args.context)
-        try:
-            import llama_cpp.server  # noqa: F401
-        except ImportError as exc:
-            raise RuntimeError("Install the local-ai extra first: pip install '.[local-ai]'") from exc
+        backend = args.backend or ("native" if args.server_binary else "python")
+        command = server_command(model, port=args.port, threads=args.threads, context=args.context,
+                                 backend=backend, server_binary=args.server_binary,
+                                 gpu_layers=args.gpu_layers)
+        if backend == "python":
+            try:
+                import llama_cpp.server  # noqa: F401
+            except ImportError as exc:
+                raise RuntimeError("Install the local-ai extra first: pip install '.[local-ai]'") from exc
         print(f"Set CASTWELL_AI_BASE_URL=http://127.0.0.1:{args.port}/v1 and "
               "CASTWELL_AI_MODEL=castwell-local when starting Castwell.", file=sys.stderr)
         # Replace the launcher so termination reaches the server directly.
-        os.execv(sys.executable, command)
+        os.execv(command[0], command)
     except (ValueError, OSError, RuntimeError) as exc:
         parser.exit(1, f"{exc}\n")
     except KeyboardInterrupt:

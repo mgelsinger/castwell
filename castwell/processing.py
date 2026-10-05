@@ -374,15 +374,26 @@ def _classification_transcript(transcript: dict) -> dict:
     return dict(transcript, segments=units)
 
 
-def _classifier_request(url, headers, payload, should_cancel, timeout=180):
+def _classifier_request(url, headers, payload, should_cancel, timeout=180, *, allow_redirects=True, trust_env=True):
     """Retry only explicit transient HTTP failures, with a bounded backoff."""
     import requests
 
     for attempt in range(3):
         _check_cancel(should_cancel)
-        response = requests.post(url, headers=headers, json=payload, timeout=(10, timeout))
+        options = dict(headers=headers, json=payload, timeout=(10, timeout), allow_redirects=allow_redirects)
+        if trust_env:
+            response = requests.post(url, **options)
+        else:
+            # Shadow evaluation can isolate each call from proxy and netrc
+            # credentials without mutating process-wide environment settings.
+            with requests.Session() as session:
+                session.trust_env = False
+                response = session.post(url, **options)
         _check_cancel(should_cancel)
         status = getattr(response, "status_code", None)
+        if not allow_redirects and isinstance(status, int) and 300 <= status < 400:
+            response.close()
+            raise ProcessingError("Classifier redirect refused; no request was sent to the redirect destination.")
         if status not in {429, 500, 502, 503, 504} or attempt == 2:
             response.raise_for_status()
             return response
@@ -400,7 +411,8 @@ def _classifier_request(url, headers, payload, should_cancel, timeout=180):
 def _ai_ads(transcript: dict, base_url: str, model: str, key: str, *, threshold: float = .90,
             review_only: bool = False, progress: Optional[Callable] = None,
             should_cancel: Optional[Callable] = None, window_chars: int = 18000,
-            context_segments: int = 12, request_timeout: float = 180) -> list:
+            context_segments: int = 12, request_timeout: float = 180,
+            allow_redirects: bool = True, trust_env: bool = True) -> list:
     import requests
 
     parsed = urlparse(base_url)
@@ -454,7 +466,8 @@ def _ai_ads(transcript: dict, base_url: str, model: str, key: str, *, threshold:
                 {"id": item["id"], "text": item["text"]} for item in context]}, ensure_ascii=False)}]}
         try:
             response = _classifier_request(base_url.rstrip("/") + "/chat/completions", headers,
-                                           payload, should_cancel, request_timeout)
+                                           payload, should_cancel, request_timeout,
+                                           allow_redirects=allow_redirects, trust_env=trust_env)
             content = response.json()["choices"][0]["message"]["content"]
             if not isinstance(content, str):
                 raise ValueError("Classifier response content is not text")
@@ -533,7 +546,12 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     if not isinstance(base_url, str) or not isinstance(model, str):
         raise ValueError("AI endpoint and model must be strings")
     base_url, model = base_url.strip(), model.strip()
-    key = os.environ.get("CASTWELL_AI_KEY", "").strip()
+    key = config.get("ai_key", os.environ.get("CASTWELL_AI_KEY", ""))
+    allow_redirects = config.get("ai_allow_redirects", True)
+    trust_env = config.get("ai_trust_env", True)
+    if not isinstance(key, str) or not isinstance(allow_redirects, bool) or not isinstance(trust_env, bool):
+        raise ValueError("AI key must be text and transport flags must be booleans")
+    key = key.strip()
     baseline = _heuristic_ads(transcript)
     if detector != "heuristic" and (base_url or model or key or detector == "ai"):
         if not base_url or not model:
@@ -548,7 +566,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
             raise ProcessingError("AI window, context, and timeout settings must be valid bounded numbers.") from exc
         cuts = _ai_ads(transcript, base_url, model, key, threshold=threshold, review_only=review_only,
                        progress=progress, should_cancel=should_cancel, window_chars=window_chars,
-                       context_segments=context_segments, request_timeout=request_timeout)
+                       context_segments=context_segments, request_timeout=request_timeout,
+                       allow_redirects=allow_redirects, trust_env=trust_env)
         # An AI rejection cannot silently promote a cue-only guess to an
         # automatic removal. Retain unmatched explicit cues for human review.
         for cut in cuts:

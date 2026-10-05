@@ -1,0 +1,1278 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen handcrafted synthetic transcript challenge. Times, fictional podcast/host groups, brands, commercial intent, and reference intervals are authored, not measured from recordings. This is not a real-podcast accuracy benchmark. Ambiguous cases have no definitive ad label and require review.",
+  "cases": [
+    {
+      "id": "dev-01-straight",
+      "split": "dev",
+      "group": "harbor-notes--mara-vale",
+      "category": "straightad",
+      "description": "Declared paid sponsor, product benefit, offer, and immediate editorial return. The entire sponsor block belongs in the cut.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Today we are following the old walking paths along the harbor."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Luma Flask, which paid for this message."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Their insulated bottle keeps your tea warm through a long morning walk."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code HARBOR to save twenty percent on your first Luma Flask order."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to our walk. The stone steps lead toward the old lighthouse."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "dev-02-humorous-paid",
+      "split": "dev",
+      "group": "harbor-notes--mara-vale",
+      "category": "humorouspaidad",
+      "description": "The host jokes inside an explicitly paid read. Humor does not turn the paid product pitch into editorial parody.",
+      "transcript": {
+        "language": "en",
+        "duration": 30,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "The harbor ferry crosses this stretch twice each morning."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Harbor Tea paid for this advertisement, and apparently my kettle has hired an agent."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Its ginger blend is so comforting that my mug now refuses to take meetings."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "The joke is mine, but the offer is real: use code KETTLE for a free trial box."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Thanks to Harbor Tea for supporting this episode."
+          },
+          {
+            "id": 5,
+            "start": 25,
+            "end": 30,
+            "text": "Now back to the harbor. The ferry has just reached the southern dock."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 25
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "dev-03-unpaid-parody",
+      "split": "dev",
+      "group": "harbor-notes--mara-vale",
+      "category": "unpaidparody",
+      "description": "A declared unpaid comedy sketch imitates sponsor language. No product is offered and the entire passage is editorial entertainment.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "This is an unpaid comedy sketch about impossible travel products; the sponsor is imaginary."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Instant Mountain, the mountain that fits in your coat pocket."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code SUMMIT to receive a free avalanche with every mountain."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "There is no shop and nothing to buy; that was the punch line of our sketch."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the harbor story and its very real weather."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "dev-04-quoted-editorial",
+      "split": "dev",
+      "group": "workshop-window--eli-bracken",
+      "category": "quotededitorial",
+      "description": "A researcher quotes and critiques an old advertisement. The quotation is evidence in an editorial discussion, not a current offer.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We are researching the language used in old home appliance advertisements."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "The recording says, quote, this show is sponsored by Velvet Mixer."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "It continues, use code MIX for a free trial, end quote."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Our analysis concerns how that promise disguised a recurring subscription charge."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "We received no support from the company and are not recommending its products."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "dev-05-ordinary-brand",
+      "split": "dev",
+      "group": "workshop-window--eli-bracken",
+      "category": "ordinarybrandmention",
+      "description": "Independent discussion of a fictional manufacturer, without a commercial pitch or sponsor arrangement.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our guest repaired a Northbell radio that was manufactured forty years ago."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Northbell used a different capacitor in the second production run."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "That decision matters because the earlier component often fails after decades of storage."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Neither the guest nor the show has a financial relationship with Northbell."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Next we will compare the wiring in the two versions."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "dev-06-self-promo",
+      "split": "dev",
+      "group": "workshop-window--eli-bracken",
+      "category": "selfpromo",
+      "description": "The host sells a paid class. This is a commercial interruption even without an outside sponsor.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "The repair technique takes practice, and we will return to the wiring shortly."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "My paid weekend radio repair class is now open for enrollment."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "The class includes two live sessions, a workbook, and feedback on your own project."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code WORKSHOP to save thirty dollars when you enroll this week."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the circuit. This resistor connects to the ground terminal."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "dev-07-delayed-return",
+      "split": "dev",
+      "group": "garden-measure--nora-finch",
+      "category": "delayedreturnboundary",
+      "description": "The sponsor ends before an editorial fact. A later return marker must not pull the intervening editorial sentence into the ad.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We are looking at the roots of plants beside the river."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Reedlight Boots."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code ROOTS to save twenty percent on your first pair of Reedlight Boots."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Willow roots bind loose soil along the bank, reducing erosion after heavy rain."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to our conversation with the river ecologist."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 15
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "dev-08-mixed-span",
+      "split": "dev",
+      "group": "garden-measure--nora-finch",
+      "category": "mixedspan",
+      "description": "Authored timing: editorial at 5-8 seconds, paid read at 8-17, editorial at 17-20. The supplied 5-20 segment has no word timestamps, so exact automatic boundaries are unsupported and review is required.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We are continuing our conversation with this week's guest."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 20,
+            "text": "Willow roots stabilize riverbanks. This episode is sponsored by Fernlamp. Use code LEAF for a free trial of its garden light. Now back to the roots and their response to flooding."
+          },
+          {
+            "id": 2,
+            "start": 20,
+            "end": 25,
+            "text": "Our guest has brought several observations from the field."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 8,
+          "end": 17
+        }
+      ],
+      "expect_review": true
+    },
+    {
+      "id": "dev-09-ambiguous",
+      "split": "dev",
+      "group": "garden-measure--nora-finch",
+      "category": "ambiguous",
+      "description": "The excerpt omits whether this recommendation is sponsored or independent. The author does not supply a definitive ad label; request review rather than authorize a cut.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "A parcel from Cedar Spoon arrived at my house last week."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "I have been using their kitchen tools and have been pleased with how they feel."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "They asked what I thought, so I said I would mention the spoon on the show."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "I do not have the details of our arrangement in front of me."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "The handle is longer than the one I used before."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": true
+    },
+    {
+      "id": "eval-01-straight",
+      "split": "eval",
+      "group": "ridge-atlas--tessa-wren",
+      "category": "straightad",
+      "description": "Declared sponsor and full product read, with a closing thank-you before the return to editorial speech.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "The next trail crosses an exposed ridge above the tree line."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Mossline Raincoats."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Their lightweight shell packs into its own pocket and keeps wind off your shoulders."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code RIDGE for fifteen percent off. Thanks to Mossline for supporting the show."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the trail. At the saddle, the path turns east."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-02-humorous-paid",
+      "split": "eval",
+      "group": "ridge-atlas--tessa-wren",
+      "category": "humorouspaidad",
+      "description": "A humorous sponsor read explicitly discloses payment and ends with a real purchase offer. Preserve that commercial intent despite the jokes.",
+      "transcript": {
+        "language": "en",
+        "duration": 30,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our guest recorded the storm from a shelter beside the ridge."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Pebble Desk is paying for this advertisement, which is more work than my chair has done all week."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Their adjustable desk rises smoothly while I remain committed to sitting dramatically."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code PEBBLE for twenty dollars off your order; the offer works even if your chair is unemployed."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Thanks to Pebble Desk for sponsoring this conversation."
+          },
+          {
+            "id": 5,
+            "start": 25,
+            "end": 30,
+            "text": "Now back to the interview about mountain weather."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 25
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-03-unpaid-parody",
+      "split": "eval",
+      "group": "ridge-atlas--tessa-wren",
+      "category": "unpaidparody",
+      "description": "An explicitly unpaid satirical performance copies a sales script. The pretend offer is part of the episode, not an advertisement.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our comedy minute is unpaid satire, and every business in it is invented."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Rent a Cloud, delivering personalized rain directly above your picnic."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Order today and use code DRIZZLE for a free thunderstorm."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Please do not try to place an order; this imaginary service is the joke."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to our guest, who studies actual clouds."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-04-quoted-editorial",
+      "split": "eval",
+      "group": "archive-lantern--owen-reed",
+      "category": "quotededitorial",
+      "description": "Journalists replay and analyze commercial copy. The surrounding context makes the quoted sponsor language editorial material.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our investigation examines the promises in a grocery delivery campaign."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "The advertisement said, quote, this podcast is sponsored by MintCart."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "The next line was, use code MINT for a free trial of our delivery service, end quote."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Those words are evidence in our report on fees that customers disputed."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "MintCart has not funded this episode, and this is not a recommendation."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-05-ordinary-brand",
+      "split": "eval",
+      "group": "archive-lantern--owen-reed",
+      "category": "ordinarybrandmention",
+      "description": "A historical product comparison mentions a brand but contains no offer, endorsement payment, or call to purchase.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "The museum lent us two Cairn Camera bodies from the same decade."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "The earlier model has a brass shutter while the later one uses aluminum."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Our curator says the change was driven by a shortage of metal."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "We have no affiliation with Cairn Camera and neither camera is for sale here."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Listen to the difference between the two shutter mechanisms."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-06-self-promo",
+      "split": "eval",
+      "group": "archive-lantern--owen-reed",
+      "category": "selfpromo",
+      "description": "The host interrupts an interview to sell a paid workshop. Outside sponsorship language is unnecessary for a commercial label.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We will return to the potter and her firing process in a moment."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "I am selling places in my new weekend pottery workshop."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Your ticket includes clay, kiln time, and a small group lesson with me."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code CLAY to save forty dollars when you book before Monday."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the kiln. The final temperature depends on the glaze."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-07-delayed-return",
+      "split": "eval",
+      "group": "meadow-signal--ada-frost",
+      "category": "delayedreturnboundary",
+      "description": "Two editorial sentences follow the completed offer before a delayed return marker. Only the actual sponsor and offer belong in the cut.",
+      "transcript": {
+        "language": "en",
+        "duration": 30,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Grassland birds change their nesting habits with the seasons."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Thistle Blanket."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code MEADOW for a free trial of the Thistle Blanket picnic set."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Skylarks build their nests directly on the ground between clumps of grass."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "The chicks usually leave that nest before they are strong enough to fly."
+          },
+          {
+            "id": 5,
+            "start": 25,
+            "end": 30,
+            "text": "Now back to our conversation with the field biologist."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 15
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-08-mixed-span",
+      "split": "eval",
+      "group": "meadow-signal--ada-frost",
+      "category": "mixedspan",
+      "description": "Authored timing: editorial at 5-9 seconds, paid read at 9-20, editorial at 20-25. One unaligned 5-25 segment mixes all three portions and requires boundary review.",
+      "transcript": {
+        "language": "en",
+        "duration": 30,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We are continuing our conversation with this week's guest."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 25,
+            "text": "The nesting season begins earlier after a mild winter. This episode is sponsored by Juniper Thermos. Use code BIRD to save ten dollars on the insulated travel mug. Now back to the birds and the way their chicks develop."
+          },
+          {
+            "id": 2,
+            "start": 25,
+            "end": 30,
+            "text": "Our guest has brought several observations from the field."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 9,
+          "end": 20
+        }
+      ],
+      "expect_review": true
+    },
+    {
+      "id": "eval-09-ambiguous",
+      "split": "eval",
+      "group": "meadow-signal--ada-frost",
+      "category": "ambiguous",
+      "description": "A borrowed product receives favorable discussion, but the excerpt omits the arrangement and purpose. Do not force a commercial or editorial ground truth.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "My friend at Alder Pack lent me this backpack for our field trip."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "It held the recording equipment comfortably and I enjoyed using it."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "We agreed that I could talk about the trip on the podcast."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "The messages explaining the arrangement are not included in this clip."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "I will describe how the straps behaved on the steep part of the walk."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": true
+    },
+    {
+      "id": "eval-10-straight-preroll",
+      "split": "eval",
+      "group": "station-margins--leo-birch",
+      "category": "straightad",
+      "description": "A paid opening read starts at the beginning of the recording. The following show introduction must remain.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "This podcast is sponsored by Copperline Headphones."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Their folding headphones fit in a commuter bag and include a replaceable cable."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code STATION for twenty percent off your first order. Thanks to Copperline for sponsoring us."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Welcome back to Station Margins. Today we visit a former railway control room."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Our guide kept the station clocks running for nearly thirty years."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 0,
+          "end": 15
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-11-humorous-paid",
+      "split": "eval",
+      "group": "station-margins--leo-birch",
+      "category": "humorouspaidad",
+      "description": "The host mocks their own habits during a disclosed paid advertisement. It remains a genuine commercial read, including the sponsor thanks.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "This is a paid advertisement for Pocket Planet, our sponsor this week."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Their travel organizer keeps my cables tidy, a task previously assigned to a very confused sock."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code POCKET for a free trial. The sock has accepted early retirement."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Pocket Planet paid for this message, and we thank them for supporting the show."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the station clock and the engineer who repaired it."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 0,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-12-unpaid-parody",
+      "split": "eval",
+      "group": "station-margins--leo-birch",
+      "category": "unpaidparody",
+      "description": "A comedian performs a clearly labeled unpaid parody of advertising. Sponsor phrases and a pretend code must not override the disclosed context.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "I wrote an unpaid parody of technology adverts for this part of the comedy show."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Yesterday Phone, the phone that only receives calls from last Tuesday."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code TUESDAY for a free trial and a complimentary confusing voicemail."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Yesterday Phone is fictional; nobody paid us and there is no product to purchase."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the story of the station telephone exchange."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-13-quoted-editorial",
+      "split": "eval",
+      "group": "kitchen-observatory--mina-stone",
+      "category": "quotededitorial",
+      "description": "A consumer reporter quotes an old offer while documenting complaints. The sales language is evidence, not a live promotion.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our consumer report looks at the billing practices of Orchard Box."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Their old campaign said, quote, order today and get a free trial of the snack subscription, end quote."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "One listener read that offer aloud while explaining an unexpected renewal charge."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "We are criticizing the terms of that offer and have received no payment from the company."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "The next interview explains how the complaint was resolved."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-14-ordinary-brand",
+      "split": "eval",
+      "group": "kitchen-observatory--mina-stone",
+      "category": "ordinarybrandmention",
+      "description": "Consumer protection advice mentions cancellation and a free trial. Commercial cue words alone do not make it an advertisement.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Several listeners asked us about renewal charges from Hearth Basket."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "If you want to cancel your free trial, keep a copy of the confirmation message."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "We are not recommending the service and have no relationship with the company."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Check your bank statement after cancellation to see whether another charge appears."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "A listener will now explain how she disputed the payment."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "eval-15-self-promo",
+      "split": "eval",
+      "group": "kitchen-observatory--mina-stone",
+      "category": "selfpromo",
+      "description": "A paid membership pitch is commercial self-promotion, unlike an ordinary request to follow a free podcast.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Before the recipe, I have a short announcement about my paid membership."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Join my premium cooking club for eight dollars a month to get the extra lessons."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Members receive shopping lists and a live question session with me each month."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "Use code APRON for your first month free, then the regular monthly price applies."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to the recipe. We begin by warming the pan slowly."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 0,
+          "end": 20
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-16-delayed-return",
+      "split": "eval",
+      "group": "tidework-journal--sam-ash",
+      "category": "delayedreturnboundary",
+      "description": "The completed sponsor offer is immediately followed by genuine interview content. A return phrase after that content is not the ad boundary.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Our guest has spent the morning measuring the current near the pier."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "This episode is sponsored by Lantern Binoculars."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "Use code TIDE for fifteen percent off a new pair of Lantern Binoculars."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "The incoming tide carries fine sediment toward the sheltered side of the harbor."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "Now back to our guest and the measurements she collected."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 5,
+          "end": 15
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "eval-17-mixed-span",
+      "split": "eval",
+      "group": "tidework-journal--sam-ash",
+      "category": "mixedspan",
+      "description": "Authored timing: editorial at 5-10 seconds, commercial self-promotion at 10-18, editorial at 18-22. No word timings locate those internal boundaries; review is required.",
+      "transcript": {
+        "language": "en",
+        "duration": 27,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "We are continuing our conversation with this week's guest."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 22,
+            "text": "The water temperature changes quickly near the surface. My paid coastal photography course is now available; use code SHORE to save twenty dollars when you enroll. Now back to the current and the instruments used to measure it."
+          },
+          {
+            "id": 2,
+            "start": 22,
+            "end": 27,
+            "text": "Our guest has brought several observations from the field."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 10,
+          "end": 18
+        }
+      ],
+      "expect_review": true
+    },
+    {
+      "id": "eval-18-ambiguous",
+      "split": "eval",
+      "group": "tidework-journal--sam-ash",
+      "category": "ambiguous",
+      "description": "The excerpt contains a favorable product story but omits whether it is an independent experience or paid placement. Lack of sponsor evidence is unresolved, not proof of no ad.",
+      "transcript": {
+        "language": "en",
+        "duration": 25,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "I started using the Bramble Notebook during our last field season."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "The paper stayed readable after a little seawater reached the bag."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "You might remember that I spoke to someone from the company earlier this year."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "This excerpt does not include what we agreed or how this passage was introduced."
+          },
+          {
+            "id": 4,
+            "start": 20,
+            "end": 25,
+            "text": "I brought the notebook today to show our guest the drawings."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": true
+    }
+  ]
+}

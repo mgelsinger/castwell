@@ -33,6 +33,52 @@ def test_launcher_uses_loopback_and_handles_model_paths_with_spaces(tmp_path):
     assert command[command.index("--model_alias") + 1] == "castwell-local"
     assert command[command.index("--port") + 1] == "8123"
     assert command[command.index("--n_threads") + 1] == "2"
+    assert command[command.index("--n_gpu_layers") + 1] == "0"
+
+
+def test_native_launcher_uses_local_binary_and_loopback_gpu_defaults(tmp_path):
+    model = tmp_path / "my model.gguf"
+    binary = tmp_path / "my llama server.exe"
+    model.touch()
+    binary.touch()
+    command = local_ai.server_command(model, server_binary=binary, port=8123, threads=8)
+    assert command[0] == str(binary.resolve())
+    assert command[command.index("--model") + 1] == str(model.resolve())
+    assert command[command.index("--host") + 1] == "127.0.0.1"
+    assert command[command.index("--alias") + 1] == "castwell-local"
+    assert command[command.index("--port") + 1] == "8123"
+    assert command[command.index("--n-gpu-layers") + 1] == "all"
+    assert command[command.index("--ctx-size") + 1] == "8192"
+    assert command[command.index("--parallel") + 1] == "1"
+    assert command[command.index("--threads") + 1] == "8"
+
+
+def test_native_launcher_resolves_path_and_allows_cpu_mode(tmp_path, monkeypatch):
+    model = tmp_path / "model.gguf"
+    binary = tmp_path / "llama-server"
+    model.touch()
+    binary.touch()
+    monkeypatch.setattr(local_ai.shutil, "which", lambda name: str(binary))
+    command = local_ai.server_command(model, backend="native", gpu_layers=0)
+    assert command[0] == str(binary.resolve())
+    assert command[command.index("--n-gpu-layers") + 1] == "0"
+    monkeypatch.setattr(local_ai.shutil, "which", lambda name: None)
+    with pytest.raises(ValueError, match="not found"):
+        local_ai.server_command(model, backend="native")
+
+
+def test_native_main_does_not_require_python_llama_package(tmp_path, monkeypatch):
+    model = tmp_path / "model.gguf"
+    binary = tmp_path / "llama-server"
+    model.touch()
+    binary.touch()
+    monkeypatch.setitem(sys.modules, "llama_cpp", None)
+    monkeypatch.setattr(sys, "argv", ["local_ai.py", "--model", str(model), "--server-binary", str(binary)])
+    launched = []
+    monkeypatch.setattr(local_ai.os, "execv", lambda executable, arguments: launched.append((executable, arguments)))
+    assert local_ai.main() == 0
+    assert launched[0][0] == str(binary.resolve())
+    assert launched[0][1][0] == str(binary.resolve())
 
 
 def test_missing_model_and_invalid_resource_settings_fail_before_start(tmp_path):
@@ -40,7 +86,9 @@ def test_missing_model_and_invalid_resource_settings_fail_before_start(tmp_path)
     with pytest.raises(ValueError, match="does not exist"):
         local_ai.server_command(model)
     model.touch()
-    for settings in ({"port": 0}, {"port": 65536}, {"threads": 0}, {"context": 1}):
+    for settings in ({"port": 0}, {"port": 65536}, {"threads": 0}, {"context": 1},
+                     {"gpu_layers": -2}, {"backend": "unknown"},
+                     {"backend": "python", "server_binary": model}):
         with pytest.raises(ValueError):
             local_ai.server_command(model, **settings)
 

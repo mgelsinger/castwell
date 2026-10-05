@@ -4,7 +4,7 @@
 
 A personal podcast library that downloads episodes, creates searchable transcripts, finds likely advertisements, and exports a listening copy with your approved cuts. Originals stay available, and every cut can be reviewed or restored.
 
-[Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Configuration](#configuration-and-backups) | [Development](#development)
+[Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
 ![Castwell gallery with sample episodes and the mini player](docs/images/gallery.png)
 
@@ -98,7 +98,21 @@ Approved overlaps are merged. FFmpeg trims decoded audio and writes a separate 1
 
 ### Run the classifier locally
 
-An optional helper runs a CPU classifier using a pinned official **Qwen 2.5 Instruct** GGUF model. The default 7B download is approximately 4.7 GB; `--size 3b` selects a smaller, approximately 2.1 GB model. Downloads are pinned to repository revisions and checked against the publisher's SHA256 before loading. Allow several GB of free RAM in addition to the model files. The local classifier is separate from the Whisper speech model.
+An optional helper runs a classifier using a pinned official **Qwen 2.5 Instruct** GGUF model, with either native llama.cpp or a Python server. The default 7B download is approximately 4.7 GB; `--size 3b` selects a smaller, approximately 2.1 GB model. Downloads are pinned to repository revisions and checked against the publisher's SHA256 before loading. Allow several GB of free RAM in addition to the model files. The local classifier is separate from the Whisper speech model.
+
+For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Extract both into `.local/llama.cpp` so `llama-server.exe` and its DLLs are together. This path does not require Ollama or `llama-cpp-python`. Download the pinned model and start it with:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/local_ai.py --download --size 7b --cache-dir .local/models --backend native --server-binary .local/llama.cpp/llama-server.exe --threads 8
+```
+
+Model downloads need `huggingface-hub`, which is included with Castwell's transcription dependencies. After downloading, use the Windows launcher for subsequent starts:
+
+```powershell
+.\scripts\start_local_ai.ps1 -Background
+```
+
+The launcher binds to loopback, uses all available GPU layers by default, and records its process ID and logs under `.local/logs`. Omit `-Background` to keep the server in the current terminal, or use `-GpuLayers 0` for CPU inference. It refuses to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop the process ID returned by the launcher.
 
 On Linux, install a C/C++ build toolchain, then build the optional dependency. `llama-cpp-python` is pinned to `0.3.16`; limit compiler parallelism to avoid excessive memory use:
 
@@ -222,6 +236,16 @@ node --check castwell/static/app.js
 ```
 
 The core test suite can also run with only `.[dev]` plus system FFmpeg. Tests use local feed/audio fixtures, simulated speech output, and simulated classifier responses; they do not download model weights or call paid APIs. Audio integration tests actually decode and trim recordings. The suite covers migrations, subscription privacy, uploaded audio, cancellation/retry, cut revisions, word timing, exports, settings, and API behavior. CI runs on Python 3.10 and 3.12 and checks JavaScript syntax. Model accuracy requires separate representative listening checks.
+
+The [ad-read challenge](docs/ad-read-evaluation.md) compares local rules and contextual AI on a frozen set of 27 authored transcripts: genuine ads, humorous paid reads, unpaid parody, quotations, ordinary brand mentions, self-promotion, and uncertain boundaries. Development and evaluation groups are separate. Results include editorial seconds wrongly selected, missed commercial seconds, boundary errors, review decisions, latency, failures, and input/code hashes. It never edits audio or changes your library:
+
+```bash
+python scripts/compare_detectors.py --backend heuristic --backend local-ai --split dev --model-label "Qwen2.5-7B-Instruct Q4_K_M, llama.cpp b11146" --output development-comparison.json
+```
+
+The local model must already be running at `http://127.0.0.1:8081/v1`. Omit `--backend local-ai` for a fully offline rule baseline. Choose settings on development cases before running `--split eval`; these synthetic transcripts cannot establish accuracy on real podcasts or the benefit of vocal delivery. An optional Jev adapter is available only in this evaluation harness. It requires both `--allow-paid-api` and an explicitly named API-key environment variable; paid requests are disabled by default, and Jev proposals are always unapproved.
+
+The [recorded GPU comparison](docs/evaluations/README.md) found all 144 authored commercial seconds in the held-out set, but Qwen also approved 53 editorial seconds, compared with 45 for local rules. It handled the humorous paid reads and still mistook unpaid parody for advertising. This candidate is suitable for further review-based evaluation, not unattended removal. The report includes full per-case outputs, runtime/model hashes, and the failed examples.
 
 A repeatable browser check covers uploads, ad review, actual audio rendering/playback, restored edits, exports, subscriptions, and desktop/mobile layouts using isolated local fixtures:
 

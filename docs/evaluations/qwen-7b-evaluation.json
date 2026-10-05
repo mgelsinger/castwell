@@ -1,0 +1,3876 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen handcrafted synthetic transcript challenge. Times, fictional podcast/host groups, brands, commercial intent, and reference intervals are authored, not measured from recordings. This is not a real-podcast accuracy benchmark. Ambiguous cases have no definitive ad label and require review.",
+  "recorded_at": "2026-10-05T03:22:29.435125+00:00",
+  "dataset_sha256": "9bc08a5ade15ee3a78ec7f9d066ad8136cc60c3002f27f1561993a5627503266",
+  "dataset_hash_basis": "original fixture file bytes",
+  "provenance": {
+    "git_revision": "d1eed30d98530d358a1ed07590a23d72407d953c",
+    "git_dirty": true,
+    "python": "3.12.10",
+    "package_versions": {
+      "castwell": "0.3.0",
+      "requests": "2.34.2",
+      "llama-cpp-python": null
+    },
+    "source_sha256": {
+      "processing.py": "805594a57c2e7e89365b8b9329fc8392f07e9916de50f8ccfb8c722b2b5bfb85",
+      "evaluation.py": "29c2777c24939afbe82855723212b222d41c966d1a4258362a200e0d2b9e0332",
+      "jev.py": "e91582cfbfd793883f0f20f623091419d4703e9c9e67fdec69e14a432245efef"
+    }
+  },
+  "settings": {
+    "split": "eval",
+    "approval_threshold": 0.9,
+    "shadow_only": true,
+    "allow_remote": false,
+    "allow_paid_api": false,
+    "local_ai_inherited_credentials": false,
+    "local_ai_redirects": false,
+    "local_ai_environment_proxies_and_netrc": false,
+    "ai_window_chars": "18000",
+    "ai_context_segments": "12",
+    "ai_timeout_seconds": "180"
+  },
+  "metric_definitions": {
+    "primary": "Approved editorial seconds wrongly cut; lower is better. No audio is modified.",
+    "duration": "Union intersection of authored intervals; all remaining transcript time is non-ad time.",
+    "boundary": "Greedy one-to-one positive-overlap matching ranked by IoU, overlap, then indices; report absolute start/end errors. Unmatched spans have counts, no fabricated boundary error.",
+    "ambiguity": "category=ambiguous cases are excluded from accuracy denominators. ambiguous_safety reports union seconds/spans and case counts separately; approved selections are unsupported automatic cuts, not established editorial or ad errors. Failed cases remain explicit.",
+    "review_signal": "review_observed is any unapproved/requires_review cut for heuristic/local-ai, but Jev's explicit uncertainty/conflict signal. manual_review_cases separately counts cases containing unapproved cuts for every backend.",
+    "failure": "Errors are excluded from scored metrics, never counted as successful no-ad predictions; eligible totals include failed cases.",
+    "proposed": "All candidate intervals, including unapproved review suggestions.",
+    "approved": "Classifier-approved intervals with the production approval threshold frozen at 0.90. Jev's adapter never auto-approves.",
+    "threshold_shadow": "Hypothetical intervals at confidence >= 0.90, excluding explicit requires_review spans and Jev responses requesting review. Separate from actual approval; provider scores are not interchangeable.",
+    "confidence": "Reported confidence is not measured accuracy or a calibrated probability."
+  },
+  "backends": [
+    {
+      "config": {
+        "backend": "heuristic",
+        "model": "cue-rules",
+        "model_label": "Castwell heuristic",
+        "base_url": null
+      },
+      "cases": [
+        {
+          "id": "eval-01-straight",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "straightad",
+          "description": "Declared sponsor and full product read, with a closing thank-you before the return to editorial speech.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000137
+        },
+        {
+          "id": "eval-02-humorous-paid",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "humorouspaidad",
+          "description": "A humorous sponsor read explicitly discloses payment and ends with a real purchase offer. Preserve that commercial intent despite the jokes.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 25.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            },
+            {
+              "start": 20.0,
+              "end": 25.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.5,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 15.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 9.2e-05
+        },
+        {
+          "id": "eval-03-unpaid-parody",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "unpaidparody",
+          "description": "An explicitly unpaid satirical performance copies a sales script. The pretend offer is part of the episode, not an advertisement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 7.2e-05
+        },
+        {
+          "id": "eval-04-quoted-editorial",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "quotededitorial",
+          "description": "Journalists replay and analyze commercial copy. The surrounding context makes the quoted sponsor language editorial material.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.55,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 7.4e-05
+        },
+        {
+          "id": "eval-05-ordinary-brand",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "ordinarybrandmention",
+          "description": "A historical product comparison mentions a brand but contains no offer, endorsement payment, or call to purchase.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 4.9e-05
+        },
+        {
+          "id": "eval-06-self-promo",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "selfpromo",
+          "description": "The host interrupts an interview to sell a paid workshop. Outside sponsorship language is unnecessary for a commercial label.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.3333333333333333,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 15.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 6.2e-05
+        },
+        {
+          "id": "eval-07-delayed-return",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "delayedreturnboundary",
+          "description": "Two editorial sentences follow the completed offer before a delayed return marker. Only the actual sponsor and offer belong in the cut.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.5,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 10.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.5,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 10.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.5,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 10.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 8e-05
+        },
+        {
+          "id": "eval-08-mixed-span",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-9 seconds, paid read at 9-20, editorial at 20-25. One unaligned 5-25 segment mixes all three portions and requires boundary review.",
+          "expected_intervals": [
+            {
+              "start": 9.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.82,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 11.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 11.0,
+                  "intersection_over_union": 0.55,
+                  "start_error_seconds": 4.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 11.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 11.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 5.9e-05
+        },
+        {
+          "id": "eval-09-ambiguous",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "ambiguous",
+          "description": "A borrowed product receives favorable discussion, but the excerpt omits the arrangement and purpose. Do not force a commercial or editorial ground truth.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 4.1e-05
+        },
+        {
+          "id": "eval-10-straight-preroll",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "straightad",
+          "description": "A paid opening read starts at the beginning of the recording. The following show introduction must remain.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 0.0,
+              "end": 5.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            },
+            {
+              "start": 10.0,
+              "end": 15.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 5.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.3333333333333333,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 10.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.3333333333333333,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.3333333333333333,
+                  "start_error_seconds": 10.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 0.0,
+                "end": 5.0
+              },
+              {
+                "start": 10.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 10.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 10.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 9.2e-05
+        },
+        {
+          "id": "eval-11-humorous-paid",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "humorouspaidad",
+          "description": "The host mocks their own habits during a disclosed paid advertisement. It remains a genuine commercial read, including the sponsor thanks.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 0.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000187
+        },
+        {
+          "id": "eval-12-unpaid-parody",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "unpaidparody",
+          "description": "A comedian performs a clearly labeled unpaid parody of advertising. Sponsor phrases and a pretend code must not override the disclosed context.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000277
+        },
+        {
+          "id": "eval-13-quoted-editorial",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "quotededitorial",
+          "description": "A consumer reporter quotes an old offer while documenting complaints. The sales language is evidence, not a live promotion.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 10.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.55,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 10.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000124
+        },
+        {
+          "id": "eval-14-ordinary-brand",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "ordinarybrandmention",
+          "description": "Consumer protection advice mentions cancellation and a free trial. Commercial cue words alone do not make it an advertisement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 10.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 10.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000111
+        },
+        {
+          "id": "eval-15-self-promo",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "selfpromo",
+          "description": "A paid membership pitch is commercial self-promotion, unlike an ordinary request to follow a free podcast.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 5.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 15.0,
+              "mean_boundary_error_seconds": 7.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 5.0,
+                  "intersection_over_union": 0.25,
+                  "start_error_seconds": 15.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 15.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000166
+        },
+        {
+          "id": "eval-16-delayed-return",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "delayedreturnboundary",
+          "description": "The completed sponsor offer is immediately followed by genuine interview content. A return phrase after that content is not the ad boundary.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "Explicit sponsorship, a purchase call to action, and a return to the episode",
+              "confidence": 0.94,
+              "approved": true,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.000115
+        },
+        {
+          "id": "eval-17-mixed-span",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-10 seconds, commercial self-promotion at 10-18, editorial at 18-22. No word timings locate those internal boundaries; review is required.",
+          "expected_intervals": [
+            {
+              "start": 10.0,
+              "end": 18.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 27.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 22.0,
+              "reason": "Possible promotional speech; verify the content and cut boundaries",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 8.0,
+              "selected_seconds": 17.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 8.0,
+                  "intersection_over_union": 0.47058823529411764,
+                  "start_error_seconds": 5.0,
+                  "end_error_seconds": 4.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 8.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 8.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 22.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 9.2e-05
+        },
+        {
+          "id": "eval-18-ambiguous",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "ambiguous",
+          "description": "The excerpt contains a favorable product story but omits whether it is an independent experience or paid placement. Lack of sponsor evidence is unresolved, not proof of no ad.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 6.6e-05
+        }
+      ],
+      "summary": {
+        "attempted_cases": 18,
+        "successful_cases": 18,
+        "failed_cases": 0,
+        "ambiguous_cases": 2,
+        "accuracy_eligible_cases": 16,
+        "accuracy_scored_cases": 16,
+        "accuracy_failed_cases": 0,
+        "eligible_ad_seconds_including_failed_cases": 144.0,
+        "eligible_duration_seconds_including_failed_cases": 417.0,
+        "review_scored_cases": 18,
+        "review_expected_cases": 4,
+        "review_observed_cases": 9,
+        "manual_review_cases": 9,
+        "review_true_positive_cases": 2,
+        "review_false_positive_cases": 7,
+        "review_false_negative_cases": 2,
+        "ambiguous_safety": {
+          "attempted_cases": 2,
+          "successful_cases": 2,
+          "failed_cases": 0,
+          "eligible_duration_seconds_including_failed_cases": 50.0,
+          "scored_duration_seconds": 50.0,
+          "proposed": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "approved": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "threshold_shadow": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          }
+        },
+        "proposed": {
+          "editorial_seconds_wrongly_cut": 83.0,
+          "ad_seconds_missed": 40.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 104.0,
+          "selected_seconds": 187.0,
+          "boundary_absolute_error_seconds": 78.0,
+          "matched_spans": 10,
+          "unmatched_predicted_spans": 6,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 3,
+          "exact_match_rate": 0.1875,
+          "mean_boundary_error_seconds": 3.9
+        },
+        "approved": {
+          "editorial_seconds_wrongly_cut": 45.0,
+          "ad_seconds_missed": 84.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 60.0,
+          "selected_seconds": 105.0,
+          "boundary_absolute_error_seconds": 25.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 5,
+          "exact_match_cases": 6,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": 2.5
+        },
+        "threshold_shadow": {
+          "editorial_seconds_wrongly_cut": 45.0,
+          "ad_seconds_missed": 84.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 60.0,
+          "selected_seconds": 105.0,
+          "boundary_absolute_error_seconds": 25.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 2,
+          "unmatched_expected_spans": 5,
+          "exact_match_cases": 6,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": 2.5
+        }
+      }
+    },
+    {
+      "config": {
+        "backend": "local-ai",
+        "model": "castwell-local",
+        "model_label": "Qwen2.5-7B-Instruct Q4_K_M, llama.cpp b11146 CUDA12.4, RTX3090Ti",
+        "base_url": "http://127.0.0.1:8081/v1"
+      },
+      "cases": [
+        {
+          "id": "eval-01-straight",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "straightad",
+          "description": "Declared sponsor and full product read, with a closing thank-you before the return to editorial speech.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "The text explicitly mentions the episode being sponsored by Mossline Raincoats and provides a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.792224
+        },
+        {
+          "id": "eval-02-humorous-paid",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "humorouspaidad",
+          "description": "A humorous sponsor read explicitly discloses payment and ends with a real purchase offer. Preserve that commercial intent despite the jokes.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 25.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "The segment includes a clear sponsorship acknowledgment and a sales pitch with a discount offer.",
+              "confidence": 0.95,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.472661
+        },
+        {
+          "id": "eval-03-unpaid-parody",
+          "split": "eval",
+          "group": "ridge-atlas--tessa-wren",
+          "category": "unpaidparody",
+          "description": "An explicitly unpaid satirical performance copies a sales script. The pretend offer is part of the episode, not an advertisement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The segment directly mentions a sponsor, Rent a Cloud, and offers a discount with a code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            },
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.69,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.425787
+        },
+        {
+          "id": "eval-04-quoted-editorial",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "quotededitorial",
+          "description": "Journalists replay and analyze commercial copy. The surrounding context makes the quoted sponsor language editorial material.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The text clearly states that the podcast is sponsored by MintCart and provides a code for a free trial, which is a direct commercial pitch.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 10.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.424711
+        },
+        {
+          "id": "eval-05-ordinary-brand",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "ordinarybrandmention",
+          "description": "A historical product comparison mentions a brand but contains no offer, endorsement payment, or call to purchase.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.065232
+        },
+        {
+          "id": "eval-06-self-promo",
+          "split": "eval",
+          "group": "archive-lantern--owen-reed",
+          "category": "selfpromo",
+          "description": "The host interrupts an interview to sell a paid workshop. Outside sponsorship language is unnecessary for a commercial label.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "The host directly pitches a pottery workshop with benefits and a discount code.",
+              "confidence": 0.95,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.453971
+        },
+        {
+          "id": "eval-07-delayed-return",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "delayedreturnboundary",
+          "description": "Two editorial sentences follow the completed offer before a delayed return marker. Only the actual sponsor and offer belong in the cut.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The segment directly states that the episode is sponsored by Thistle Blanket and provides a code for a free trial.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            },
+            {
+              "start": 15.0,
+              "end": 25.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.69,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 10.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 10.0,
+              "mean_boundary_error_seconds": 5.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.5,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 10.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 20.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.45557
+        },
+        {
+          "id": "eval-08-mixed-span",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-9 seconds, paid read at 9-20, editorial at 20-25. One unaligned 5-25 segment mixes all three portions and requires boundary review.",
+          "expected_intervals": [
+            {
+              "start": 9.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "reason": "The segment includes a clear sponsorship acknowledgment and a call to action with a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 11.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 11.0,
+                  "intersection_over_union": 0.55,
+                  "start_error_seconds": 4.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 11.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 11.0,
+                  "intersection_over_union": 0.55,
+                  "start_error_seconds": 4.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 11.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 11.0,
+              "selected_seconds": 20.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 11.0,
+                  "intersection_over_union": 0.55,
+                  "start_error_seconds": 4.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.37337
+        },
+        {
+          "id": "eval-09-ambiguous",
+          "split": "eval",
+          "group": "meadow-signal--ada-frost",
+          "category": "ambiguous",
+          "description": "A borrowed product receives favorable discussion, but the excerpt omits the arrangement and purpose. Do not force a commercial or editorial ground truth.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.081277
+        },
+        {
+          "id": "eval-10-straight-preroll",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "straightad",
+          "description": "A paid opening read starts at the beginning of the recording. The following show introduction must remain.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 0.0,
+              "end": 15.0,
+              "reason": "The segment directly promotes Copperline Headphones with a discount offer and a thank-you to the sponsor.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 0.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 0.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 0.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.439009
+        },
+        {
+          "id": "eval-11-humorous-paid",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "humorouspaidad",
+          "description": "The host mocks their own habits during a disclosed paid advertisement. It remains a genuine commercial read, including the sponsor thanks.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 0.0,
+              "end": 20.0,
+              "reason": "The segment includes a clear commercial pitch with a sponsor code and a direct thank you to the sponsor.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.476556
+        },
+        {
+          "id": "eval-12-unpaid-parody",
+          "split": "eval",
+          "group": "station-margins--leo-birch",
+          "category": "unpaidparody",
+          "description": "A comedian performs a clearly labeled unpaid parody of advertising. Sponsor phrases and a pretend code must not override the disclosed context.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "reason": "The segment includes a clear sponsorship and a call to action with a discount offer.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 15.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.44296
+        },
+        {
+          "id": "eval-13-quoted-editorial",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "quotededitorial",
+          "description": "A consumer reporter quotes an old offer while documenting complaints. The sales language is evidence, not a live promotion.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 10.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.55,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 10.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.065366
+        },
+        {
+          "id": "eval-14-ordinary-brand",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "ordinarybrandmention",
+          "description": "Consumer protection advice mentions cancellation and a free trial. Commercial cue words alone do not make it an advertisement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 10.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.65,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 5.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 1,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 10.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.063981
+        },
+        {
+          "id": "eval-15-self-promo",
+          "split": "eval",
+          "group": "kitchen-observatory--mina-stone",
+          "category": "selfpromo",
+          "description": "A paid membership pitch is commercial self-promotion, unlike an ordinary request to follow a free podcast.",
+          "expected_intervals": [
+            {
+              "start": 0.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 0.0,
+              "end": 20.0,
+              "reason": "The host directly promotes a paid membership with a clear call to action and discount offer.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 5.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 0.0,
+                "end": 20.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.451311
+        },
+        {
+          "id": "eval-16-delayed-return",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "delayedreturnboundary",
+          "description": "The completed sponsor offer is immediately followed by genuine interview content. A return phrase after that content is not the ad boundary.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 15.0,
+              "reason": "The segment directly states that the episode is sponsored by Lantern Binoculars and provides a discount code.",
+              "confidence": 1.0,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            },
+            {
+              "start": 15.0,
+              "end": 20.0,
+              "reason": "Commercial cue not confirmed by contextual analysis; review before removing",
+              "confidence": 0.69,
+              "approved": false,
+              "source": "heuristic",
+              "requires_review": true,
+              "sources": [
+                "heuristic"
+              ]
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 10.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 15.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.450063
+        },
+        {
+          "id": "eval-17-mixed-span",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-10 seconds, commercial self-promotion at 10-18, editorial at 18-22. No word timings locate those internal boundaries; review is required.",
+          "expected_intervals": [
+            {
+              "start": 10.0,
+              "end": 18.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 27.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 22.0,
+              "reason": "The host directly mentions a paid course and provides a discount code within the segment.",
+              "confidence": 0.95,
+              "approved": true,
+              "source": "ai",
+              "sources": [
+                "ai",
+                "heuristic"
+              ]
+            }
+          ],
+          "review": false,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 8.0,
+              "selected_seconds": 17.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 8.0,
+                  "intersection_over_union": 0.47058823529411764,
+                  "start_error_seconds": 5.0,
+                  "end_error_seconds": 4.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 8.0,
+              "selected_seconds": 17.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 8.0,
+                  "intersection_over_union": 0.47058823529411764,
+                  "start_error_seconds": 5.0,
+                  "end_error_seconds": 4.0
+                }
+              ]
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 9.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 8.0,
+              "total_editorial_seconds": 19.0,
+              "ad_seconds_selected": 8.0,
+              "selected_seconds": 17.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 9.0,
+              "mean_boundary_error_seconds": 4.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 8.0,
+                  "intersection_over_union": 0.47058823529411764,
+                  "start_error_seconds": 5.0,
+                  "end_error_seconds": 4.0
+                }
+              ]
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 22.0
+              }
+            ],
+            "approved": [
+              {
+                "start": 5.0,
+                "end": 22.0
+              }
+            ],
+            "threshold_shadow": [
+              {
+                "start": 5.0,
+                "end": 22.0
+              }
+            ]
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.328938
+        },
+        {
+          "id": "eval-18-ambiguous",
+          "split": "eval",
+          "group": "tidework-journal--sam-ash",
+          "category": "ambiguous",
+          "description": "The excerpt contains a favorable product story but omits whether it is an independent experience or paid placement. Lack of sponsor evidence is unresolved, not proof of no ad.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [],
+          "review": false,
+          "metrics": null,
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {},
+          "provider_metadata": {},
+          "seconds": 0.085983
+        }
+      ],
+      "summary": {
+        "attempted_cases": 18,
+        "successful_cases": 18,
+        "failed_cases": 0,
+        "ambiguous_cases": 2,
+        "accuracy_eligible_cases": 16,
+        "accuracy_scored_cases": 16,
+        "accuracy_failed_cases": 0,
+        "eligible_ad_seconds_including_failed_cases": 144.0,
+        "eligible_duration_seconds_including_failed_cases": 417.0,
+        "review_scored_cases": 18,
+        "review_expected_cases": 4,
+        "review_observed_cases": 5,
+        "manual_review_cases": 5,
+        "review_true_positive_cases": 0,
+        "review_false_positive_cases": 5,
+        "review_false_negative_cases": 4,
+        "ambiguous_safety": {
+          "attempted_cases": 2,
+          "successful_cases": 2,
+          "failed_cases": 0,
+          "eligible_duration_seconds_including_failed_cases": 50.0,
+          "scored_duration_seconds": 50.0,
+          "proposed": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "approved": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "threshold_shadow": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          }
+        },
+        "proposed": {
+          "editorial_seconds_wrongly_cut": 83.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 144.0,
+          "selected_seconds": 227.0,
+          "boundary_absolute_error_seconds": 33.0,
+          "matched_spans": 10,
+          "unmatched_predicted_spans": 5,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 7,
+          "exact_match_rate": 0.4375,
+          "mean_boundary_error_seconds": 1.65
+        },
+        "approved": {
+          "editorial_seconds_wrongly_cut": 53.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 144.0,
+          "selected_seconds": 197.0,
+          "boundary_absolute_error_seconds": 18.0,
+          "matched_spans": 10,
+          "unmatched_predicted_spans": 3,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 11,
+          "exact_match_rate": 0.6875,
+          "mean_boundary_error_seconds": 0.9
+        },
+        "threshold_shadow": {
+          "editorial_seconds_wrongly_cut": 53.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 144.0,
+          "total_editorial_seconds": 273.0,
+          "ad_seconds_selected": 144.0,
+          "selected_seconds": 197.0,
+          "boundary_absolute_error_seconds": 18.0,
+          "matched_spans": 10,
+          "unmatched_predicted_spans": 3,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 11,
+          "exact_match_rate": 0.6875,
+          "mean_boundary_error_seconds": 0.9
+        }
+      }
+    }
+  ]
+}

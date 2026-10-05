@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "frozen_at_utc": "2026-10-05T03:22:29.292998+00:00",
+  "dataset_sha256": "9bc08a5ade15ee3a78ec7f9d066ad8136cc60c3002f27f1561993a5627503266",
+  "scope": "Frozen after development, before evaluation. No prompt, threshold, model, or policy tuning from holdout predictions.",
+  "decision": "Evaluate the existing local classifier unchanged; do not promote automatic removal after development over-cutting.",
+  "native": {
+    "release": "b11146",
+    "version": "0.5.0-dev (build 11146, commit 7fe450e19)",
+    "release_url": "https://github.com/ggml-org/llama.cpp/releases/tag/b11146",
+    "assets": [
+      {
+        "name": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6"
+      },
+      {
+        "name": "llama-b11146-bin-win-cuda-12.4-x64.zip",
+        "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-cuda-12.4-x64.zip",
+        "sha256": "3c806a6ceccc3dae1c743ceb1a1fb2cce5b76f40bfbd4c6b7b8afb6ef45a5807"
+      }
+    ]
+  },
+  "model": {
+    "repository": "Qwen/Qwen2.5-7B-Instruct-GGUF",
+    "revision": "bb5d59e06d9551d752d08b292a50eb208b07ab1f",
+    "quantization": "Q4_K_M",
+    "files": [
+      {
+        "name": "qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf",
+        "size": 3993201344,
+        "sha256": "dfce12e3862a5283ccfb88221b48480e58745165de856439950d0f22590580db",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/bb5d59e06d9551d752d08b292a50eb208b07ab1f/qwen2.5-7b-instruct-q4_k_m-00001-of-00002.gguf"
+      },
+      {
+        "name": "qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf",
+        "size": 689872288,
+        "sha256": "539cf93f78e887edea1c04e2d7d8cdaca9d01dae9c9025bcb8accbe29df3d72a",
+        "url": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/bb5d59e06d9551d752d08b292a50eb208b07ab1f/qwen2.5-7b-instruct-q4_k_m-00002-of-00002.gguf"
+      }
+    ]
+  },
+  "hardware": {
+    "name": "NVIDIA GeForce RTX 3090 Ti",
+    "vram_mib": 24563,
+    "driver": "610.47"
+  },
+  "launch": {
+    "host": "127.0.0.1",
+    "port": 8081,
+    "model_alias": "castwell-local",
+    "gpu_layers": "all",
+    "threads": 8,
+    "context": 8192,
+    "parallel": 1
+  },
+  "classifier": {
+    "temperature": 0,
+    "approval_threshold": 0.9,
+    "window_chars": 18000,
+    "context_segments": 12,
+    "timeout_seconds": 180,
+    "pipeline": "Existing Castwell contextual classifier plus review-only fallback cue suggestions"
+  },
+  "source_sha256": {
+    "processing.py": "805594a57c2e7e89365b8b9329fc8392f07e9916de50f8ccfb8c722b2b5bfb85",
+    "evaluation.py": "29c2777c24939afbe82855723212b222d41c966d1a4258362a200e0d2b9e0332",
+    "jev.py": "e91582cfbfd793883f0f20f623091419d4703e9c9e67fdec69e14a432245efef"
+  },
+  "paid_api_calls": 0
+}
