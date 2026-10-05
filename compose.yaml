@@ -1,0 +1,30 @@
+services:
+  castwell:
+    build: .
+    image: castwell:local
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      CASTWELL_DATA_DIR: /data
+      CASTWELL_ALLOWED_HOSTS: ${CASTWELL_ALLOWED_HOSTS:-}
+      CASTWELL_MODEL_CACHE: /models
+      CASTWELL_TRANSCRIPTION_MODEL: ${CASTWELL_TRANSCRIPTION_MODEL:-}
+      CASTWELL_AI_BASE_URL: ${CASTWELL_AI_BASE_URL:-}
+      CASTWELL_AI_MODEL: ${CASTWELL_AI_MODEL:-}
+      CASTWELL_AI_KEY: ${CASTWELL_AI_KEY:-}
+      CASTWELL_AI_WINDOW_CHARS: ${CASTWELL_AI_WINDOW_CHARS:-18000}
+      CASTWELL_AI_CONTEXT_SEGMENTS: ${CASTWELL_AI_CONTEXT_SEGMENTS:-12}
+    volumes:
+      - castwell-data:/data
+      - castwell-models:/models
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 30s
+
+volumes:
+  castwell-data:
+  castwell-models:

@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!pyproject.toml
+!README.md
+!castwell/
+!castwell/**
+castwell/**/__pycache__/
+castwell/**/*.pyc

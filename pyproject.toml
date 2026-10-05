@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "castwell"
+version = "0.3.0"
+description = "A podcast library with local transcripts and reviewable advertisement removal"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "feedparser>=6.0,<7",
+  "requests>=2.31,<3",
+  "tqdm>=4.66,<5",
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.30,<1",
+  "python-multipart>=0.0.20,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/mgelsinger/castwell"
+Repository = "https://github.com/mgelsinger/castwell"
+Issues = "https://github.com/mgelsinger/castwell/issues"
+
+[project.optional-dependencies]
+transcription = ["faster-whisper>=1.1,<2", "av>=14,<17"]
+local-ai = ["llama-cpp-python[server]==0.3.16", "huggingface-hub>=0.34,<2"]
+dev = ["pytest>=8,<10", "httpx>=0.27,<1", "playwright>=1.49,<2"]
+
+[project.scripts]
+castwell = "castwell.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["castwell*"]
+
+[tool.setuptools.package-data]
+castwell = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
