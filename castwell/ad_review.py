@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from .processing import ProcessingError
 
-POLICY_VERSION = "intent-boundary-v5"
+POLICY_VERSION = "intent-boundary-v6"
 LABELS = ("commercial", "editorial", "mixed", "uncertain")
 
 
@@ -46,12 +46,14 @@ Return JSON only, conforming to the supplied schema. No invented IDs, text, or t
 
 _LEAD_IN = "\nA contiguous problem statement, personal anecdote, or rhetorical setup belongs to an actual commercial read when its point is completed by the sponsor product or service in the following context. Evaluate that relationship even if the setup itself contains no sponsor name. Unrelated show introductions, genuine discussion, and unpaid parody remain editorial.\n"
 
+_QUALIFICATION = "\nDistinguish the product's persuasive setup from program navigation. Announcing a break, promising to resume discussion, or introducing a guest is editorial unless that unit itself sells or endorses something.\nA supplied product, possible collaboration, or undisclosed arrangement alone does not establish an actual commercial read. When the excerpt leaves whether this mention is paid, obligated, or a sales pitch unresolved, label uncertain; do not infer missing terms.\n"
+
 _INTENT = _COMMON + """
 Your task is commercial INTENT. Establish what the speakers are doing in this scene before labeling lines.
 For instance, a comedy sketch selling an impossible service is not an actual offer just because it mimics
 an ad. Conversely, a host teasing a real paying sponsor and then giving its offer is a commercial read.
 Use the editorial framing both before and after the quoted or performed passage.
-""" + _LEAD_IN
+""" + _LEAD_IN + _QUALIFICATION
 
 _BOUNDARY = _COMMON + """
 Your task is to independently audit EDIT BOUNDARIES. Imagine deleting each target unit in its entirety.
@@ -60,7 +62,7 @@ A later 'back to the show' marker does not make preceding editorial sentences co
 and resumed conversation belong to editorial speech. Never join separate ads across an editorial unit.
 Preserve unpaid parody and quotations. Reassess actual intent using all context, not commercial keywords.
 If deleting the entire unit would remove meaningful editorial material with an actual pitch, label mixed.
-""" + _LEAD_IN
+""" + _LEAD_IN + _QUALIFICATION
 
 
 def _review_units(segments):

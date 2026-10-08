@@ -122,7 +122,7 @@ def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)
     assert source == original
-    assert cuts[0]['policy_version'] == 'intent-boundary-v5'
+    assert cuts[0]['policy_version'] == 'intent-boundary-v6'
     assert len(evidence) > 160
     assert len(cuts[0]['verification']) == 2
     for record in cuts[0]['verification']:
