@@ -1,6 +1,6 @@
 # Archived local ad-read comparison, October 4, 2026
 
-**Archive notice, October 8, 2026:** this page preserves the earlier Qwen 2.5 7B results. See the [October 8 readiness report](../readiness-2026-10-08.md) for the dense v7 candidate with full results pending, completed v6 and earlier results, and the four-show protocol. Both the original 27 cases and the subsequent 33-case challenge are now development/regression material; their original `eval` labels do not make later runs held out.
+**Archive notice, October 8, 2026:** this page preserves the earlier Qwen 2.5 7B results. See the [October 8 readiness report](../readiness-2026-10-08.md) for the dense v8 response replay, its remaining errors, completed v7/v6 and earlier results, and the four-show protocol. Both the original 27 cases and the subsequent 33-case challenge are now development/regression material; their original `eval` labels do not make later runs held out.
 
 The native llama.cpp setup works on the RTX 3090 Ti. The tested Qwen 2.5 7B classifier is **not ready for unattended cuts**: it found more commercial speech and also approved more editorial speech for removal. No audio or library settings were changed by this comparison, and no paid API requests were made.
 

@@ -43,11 +43,11 @@ foreach ($asset in $assets) {
 }
 ```
 
-After preparing the runtime, choose one model profile. The latest frozen experiment is [Qwen3.5-27B dense](#qwen35-27b-dense-v7-candidate), with full detection results pending. The smaller and earlier profiles remain below for reproducibility.
+After preparing the runtime, choose one model profile. The latest evaluated candidate is [Qwen3.5-27B dense](#qwen35-27b-dense-v8-candidate), with a v8 exact-response replay on known recordings and use recommended only with manual review. The smaller and earlier profiles remain below for reproducibility.
 
-## Qwen3.5-27B dense v7 candidate
+## Qwen3.5-27B dense v8 candidate
 
-This candidate uses the third-party [Unsloth Qwen3.5-27B GGUF](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), based on [Qwen3.5-27B](https://huggingface.co/Qwen/Qwen3.5-27B). It downloads Q4_K_M directly, with no local requantization. The repository identifies the base model and Apache 2.0 license; the publisher's complete conversion process has not been independently reproduced. The [v7 candidate record](evaluations/2026-10-08-qwen35-dense-v7-candidate.json) fixes the model, source, prompts and request profile before full inference. Full results are pending; focused development probes do not establish accuracy.
+This candidate uses the third-party [Unsloth Qwen3.5-27B GGUF](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), based on [Qwen3.5-27B](https://huggingface.co/Qwen/Qwen3.5-27B). It downloads Q4_K_M directly, with no local requantization. The repository identifies the base model and Apache 2.0 license; the publisher's complete conversion process has not been independently reproduced. The [v8 candidate record](evaluations/2026-10-08-qwen35-dense-v8-candidate.json) fixes the selection policy, model and request profile. Its known-recording results replay the complete [v7 inference](evaluations/2026-10-08-real-qwen35-dense-v7.json), matching every request exactly and making zero new model calls. The [readiness report](readiness-2026-10-08.md) documents the remaining false proposals and missed speech; these results do not support unattended removal. The narrow eight-case challenge completed with correct simulated approvals but 23.5 editorial seconds in review proposals. The consumed 33-case regression proposed all 306.8 commercial seconds plus 49 editorial seconds; its simulated approvals left 34 commercial seconds unselected in coarse mixed passages. Neither synthetic result establishes general recording accuracy.
 
 | Pinned artifact | Identity |
 | --- | --- |
@@ -77,7 +77,7 @@ The observed RTX 3090 Ti load offloaded all 65 layers, using 15,272.77 MiB for C
 
 **Enable the client profile separately.** After starting Castwell, open **Settings > Contextual AI connection**, turn on **Use local Qwen3.5 reasoning**, and keep **Require my approval for every cut** enabled. The persisted `ai_reasoning` preference defaults to false and has no environment override. It is supported by the verified detector, not the legacy policy. Both evaluation CLIs require `--backend verified-ai --ai-reasoning` to select the same profile.
 
-The v7 client sends temperature 1.0, top-p 0.95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1.0 and seed 42. It explicitly enables thinking with a 1,024-token reasoning budget, `deepseek` reasoning format and a 4,096-token output cap. These request fields override the frozen server's nonthinking defaults. The new launcher's default, without `-NoThinking`, enables reasoning for clients that omit a choice; Castwell always sends its own choice. A server startup alone therefore does not enable reasoning in the app. Reports record the actual request profile, and another profile needs its own evaluation.
+The v7 and v8 clients send temperature 1.0, top-p 0.95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1.0 and seed 42. Each request explicitly enables thinking with a 1,024-token reasoning budget, `deepseek` reasoning format and a 4,096-token output cap. These request fields override the frozen server's nonthinking defaults. The new launcher's default, without `-NoThinking`, enables reasoning for clients that omit a choice; Castwell always sends its own choice. A server startup alone therefore does not enable reasoning in the app. Reports record the actual request profile, and another profile needs its own evaluation.
 
 The dense model generated roughly 42 tokens per second during local probes. Ten focused development requests took 490.375 seconds versus approximately 200 seconds for the earlier 35B-A3B model. These selected-request timings exclude model preparation and full episode processing, and do not prove better classification. See the [readiness report](readiness-2026-10-08.md) for completed results and remaining limitations.
 
@@ -178,7 +178,7 @@ Recheck downloaded weights without network access:
 The comparison harness is separate from the app's processing queue and only writes reports. With Qwen running:
 
 ```powershell
-.venv\Scripts\python.exe scripts\compare_detectors.py --backend verified-ai --ai-reasoning --split dev --model-label 'Qwen3.5-27B Unsloth Q4_K_M; llama.cpp b11146; all GPU layers; intent-boundary-v7; reasoning1024' --output .local\evaluations\qwen35-dense-development.json
+.venv\Scripts\python.exe scripts\compare_detectors.py --backend verified-ai --ai-reasoning --split dev --model-label 'Qwen3.5-27B Unsloth Q4_K_M; llama.cpp b11146; all GPU layers; intent-boundary-v8; reasoning1024' --output .local\evaluations\qwen35-dense-development.json
 ```
 
 Stop Qwen, start Kev, then run:

@@ -122,7 +122,7 @@ def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)
     assert source == original
-    assert cuts[0]['policy_version'] == 'intent-boundary-v7'
+    assert cuts[0]['policy_version'] == 'intent-boundary-v8'
     assert len(evidence) > 160
     assert len(cuts[0]['verification']) == 2
     for record in cuts[0]['verification']:
@@ -154,11 +154,70 @@ def test_disagreement_mixed_and_uncertain_units_never_auto_approve(intent, bound
     assert cuts[0]['requires_review'] is True
 
 
-def test_low_confidence_editorial_judgment_remains_a_review_proposal():
-    with patch('castwell.processing._classifier_request', side_effect=Provider('editorial', confidence=.6)):
-        cuts = classify(transcript('The scene leaves its commercial relationship unresolved.'))
-    assert cuts[0]['label'] == 'uncertain'
-    assert cuts[0]['approved'] is False
+@pytest.mark.parametrize('intent_score,boundary_score', [(.95, .8), (.8, .95), (0, 0)])
+@pytest.mark.parametrize('threshold', [.5, .9, 1])
+@pytest.mark.parametrize('review_only', [True, False])
+def test_editorial_agreement_is_independent_of_approval_threshold(intent_score, boundary_score, threshold, review_only):
+    def scores(stage, rows, body):
+        for row in rows['decisions']:
+            row['confidence'] = intent_score if stage == 'intent' else boundary_score
+    provider = Provider('editorial', mutate=scores)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(transcript('An editorial source credit.'), config={
+            'auto_approve_threshold': threshold, 'review_only': review_only})
+    assert cuts == []
+    assert len(provider.calls) == 2
+
+
+@pytest.mark.parametrize('score', [0, 1])
+@pytest.mark.parametrize('threshold', [.5, 1])
+def test_explicit_uncertainty_remains_a_review_suggestion_at_any_score(score, threshold):
+    provider = Provider('uncertain', confidence=score)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(transcript('The commercial relationship is unresolved.'), config={
+            'auto_approve_threshold': threshold, 'review_only': False})
+    assert len(cuts) == 1 and cuts[0]['label'] == 'uncertain'
+    assert cuts[0]['requires_review'] and not cuts[0]['approved']
+
+
+@pytest.mark.parametrize('threshold,review_only,approved', [(.8, False, True), (.9, False, False), (.8, True, False)])
+def test_approval_threshold_still_controls_two_commercial_judgments(threshold, review_only, approved):
+    with patch('castwell.processing._classifier_request', side_effect=Provider('commercial', confidence=.8)):
+        cuts = classify(transcript('An actual commercial read.'), config={
+            'auto_approve_threshold': threshold, 'review_only': review_only})
+    assert len(cuts) == 1 and cuts[0]['label'] == 'commercial'
+    assert cuts[0]['approved'] is approved
+    assert cuts[0]['requires_review'] is (threshold > .8)
+
+
+def test_approval_threshold_does_not_change_inference_requests():
+    low, high = Provider('editorial', confidence=.8), Provider('editorial', confidence=.8)
+    source = transcript('An editorial source credit.')
+    with patch('castwell.processing._classifier_request', side_effect=low):
+        assert classify(source, config={'auto_approve_threshold': .5}) == []
+    with patch('castwell.processing._classifier_request', side_effect=high):
+        assert classify(source, config={'auto_approve_threshold': 1}) == []
+    assert low.calls == high.calls
+
+
+def test_low_score_editorial_child_keeps_coarse_commercial_parent_mixed():
+    provider = Provider(lambda _, identifier: 'commercial' if identifier == 0 else 'editorial', confidence=.8)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(transcript('An actual commercial read. Editorial discussion resumes.'))
+    assert len(cuts) == 1 and (cuts[0]['start'], cuts[0]['end']) == (0, 2)
+    assert cuts[0]['label'] == 'mixed' and cuts[0]['requires_review'] and not cuts[0]['approved']
+    assert len(cuts[0]['verification']) == 2
+    assert cuts[0]['verification'][1]['intent']['label'] == 'editorial'
+    assert cuts[0]['verification'][1]['boundary']['label'] == 'editorial'
+
+
+def test_low_score_editorial_gap_keeps_commercial_reads_separate():
+    provider = Provider(lambda _, identifier: 'editorial' if identifier == 1 else 'commercial', confidence=.8)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(transcript('Commercial one.', 'Editorial discussion.', 'Commercial two.'), config={
+            'auto_approve_threshold': .5, 'review_only': False})
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 6)]
+    assert all(cut['approved'] for cut in cuts)
 
 
 def aligned_transcript(probability=.99):

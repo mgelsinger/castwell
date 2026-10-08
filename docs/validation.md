@@ -2,6 +2,12 @@
 
 These checks establish working application flows; they do not establish universal advertisement detection.
 
+## October 8 v8 checks
+
+The v8 Windows checkout passed **465 tests and 121 subtests** in 27.21 seconds. The application was restarted with the v8 policy, reasoning enabled and approval required for every cut. The final 0.4.0 wheel passed isolated import and CLI-help checks with policy `intent-boundary-v8`; all 17 packaged source/assets match the checkout, the locked README is in its metadata, and private recordings, libraries and models are excluded. The 121,862-byte wheel has SHA256 `8b7747a51152b3e3cd551809653ddda0f0d7f1be520d7c1445b93f18dbf8d964`. This identifies the local validation artifact, not a reproducible-build guarantee. The [Checks workflow](https://github.com/mgelsinger/castwell/actions/workflows/ci.yml) runs Python 3.10/3.12 tests, JavaScript syntax checks and Chromium desktop/mobile smoke tests. Its result should be checked for the exact Git revision being installed. Detection evidence is reported separately in the [readiness report](readiness-2026-10-08.md); test counts do not establish classifier accuracy.
+
+The v8 Chromium smoke test passed in **26.8 seconds**, and JavaScript syntax validation passed. The UI suppresses machine-precision float tails for display while preserving stored cut boundaries. The regression verifies that selection and saving retain exact noisy values and detector metadata, boundaries with meaningful additional precision remain unchanged, and a manual edit clears approval while retaining the original detected bounds and evidence. A separate read-only check of real samples with 36 and 46 suggestions passed on desktop and a 390-pixel mobile viewport, with no database changes, writes, playback or browser errors. Screenshots containing real transcripts remain private. Frozen detector sources and fixtures were unchanged by this UI polish.
+
 ## October 8 v7 application checks
 
 The v7 Windows checkout passed **436 tests and 121 subtests** on Python 3.12 in 27.94 seconds. The Chromium smoke check passed in 25.4 seconds, including persistence of the optional reasoning setting, raw detector-score labels, review and bulk selection, manual-boundary provenance, desktop/mobile layouts, and actual FFmpeg exports. The first browser attempt required the test to expand the advanced settings disclosure before interacting with its checkbox; after that test correction, the complete check passed. One existing upstream Starlette/httpx warning remains.
@@ -10,7 +16,7 @@ The README's ad-review screenshot, GIF and MP4 were refreshed from this interfac
 
 An isolated PEP 517 wheel build, isolated import and CLI-help check passed. All 17 packaged source/assets matched the checkout, with no private library or model files included. That preliminary wheel predates the final documentation edits, so its hash is not presented as the final publication artifact. A `--no-build-isolation` attempt lacked setuptools in the main environment; the normal isolated build supplied its build dependencies successfully.
 
-These software checks do not establish detection accuracy. Full dense v7 model results remain pending in the [readiness report](readiness-2026-10-08.md). Earlier fixed validation records follow.
+These software checks do not establish detection accuracy. The complete dense v7 inference and v8 selection replay are reported in the [readiness report](readiness-2026-10-08.md). Earlier fixed validation records follow.
 
 ## October 8 v6 review workflow
 

@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from .processing import ProcessingError
 
-POLICY_VERSION = "intent-boundary-v7"
+POLICY_VERSION = "intent-boundary-v8"
 LABELS = ("commercial", "editorial", "mixed", "uncertain")
 
 
@@ -269,7 +269,7 @@ def classify_verified(transcript, *, base_url, model, key="", threshold=.90, rev
             confidence = min(intent["confidence"], boundary["confidence"])
             audit[identifier] = {"segment_id": identifier, "parent_segment_id": segment["parent_segment_id"],
                                  "intent": intent, "boundary": boundary}
-            if labels == {"editorial"} and confidence >= threshold:
+            if labels == {"editorial"}:
                 decisions[identifier] = None
                 continue
             low_alignment = bool(segment.get("asr_recovered")) or any(

@@ -444,6 +444,39 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             verification = [{"segment_id": 1, "parent_segment_id": 1,
                              "intent": {"label": "commercial", "confidence": .96, "reason": "Fixture intent evidence"},
                              "boundary": {"label": "commercial", "confidence": .95, "reason": "Fixture boundary evidence"}}]
+            noisy = {"start": 4.440000000000003, "end": 19.619999999999997, "approved": False,
+                     "source": "ai", "confidence": .95, "reason": "Floating point display fixture",
+                     "requires_review": False, "label": "commercial", "policy_version": "smoke-fixture-v1",
+                     "verification": verification}
+            precise = dict(noisy, start=20.1234567890123, end=21.2345678901234, reason="Precise imported boundary")
+            seeded = page.request.post(f"/api/episodes/{playback_id}/cuts", data={"cuts": [noisy, precise]})
+            assert seeded.ok, seeded.text()
+            page.goto(base, wait_until="networkidle")
+            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#tab-cuts").click()
+            expect(page.get_by_label("Cut 1 start in seconds", exact=True)).to_have_value("4.44")
+            expect(page.get_by_label("Cut 1 end in seconds", exact=True)).to_have_value("19.62")
+            expect(page.get_by_label("Cut 2 start in seconds", exact=True)).to_have_value("20.1234567890123")
+            expect(page.get_by_label("Cut 2 end in seconds", exact=True)).to_have_value("21.2345678901234")
+            page.locator("#select-all-cuts").click()
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            assert episode(page, playback_id)["cuts"] == [dict(noisy, approved=True), dict(precise, approved=True)]
+            page.get_by_label("Cut 1 start in seconds", exact=True).fill("4.5")
+            expect(page.locator("#cut-list .cut-row").nth(0).locator("input[type=checkbox]")).not_to_be_checked()
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            precision_cuts = episode(page, playback_id)["cuts"]
+            assert precision_cuts[0]["start"] == 4.5 and precision_cuts[0]["end"] == noisy["end"]
+            assert precision_cuts[0]["approved"] is False and precision_cuts[0]["requires_review"] is True
+            assert precision_cuts[0]["detected_bounds"] == {"start": noisy["start"], "end": noisy["end"]}
+            assert precision_cuts[0]["manual_adjustment"]["verification_scope"] == "original_detected_bounds"
+            assert precision_cuts[0]["verification"] == verification
+            assert precision_cuts[1] == dict(precise, approved=True)
+            page.locator("#cut-selection-controls").scroll_into_view_if_needed()
+            if artifacts:
+                page.screenshot(path=str(artifacts / "mobile-boundary-precision.png"), full_page=False)
+
             detected = {
                 "start": 6, "end": 14, "approved": False, "source": "ai", "confidence": .95,
                 "reason": "Verified fixture", "requires_review": False, "label": "commercial",

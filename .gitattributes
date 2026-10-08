@@ -11,3 +11,4 @@
 /castwell/transcript_quality.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /castwell/recording_evaluation.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /scripts/evaluate_recordings.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/scripts/compare_detectors.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

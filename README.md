@@ -98,7 +98,9 @@ Approved overlaps are merged. FFmpeg trims decoded audio and writes a separate 1
 
 ### Run the classifier locally
 
-The newest frozen candidate is **Qwen3.5-27B dense**, using a pinned 16.7 GB Unsloth Q4_K_M file and native llama.cpp. It adds bounded reasoning to the two-pass detector. **Full v7 detection results are pending**; model size and successful setup do not establish reliable ad removal. Earlier candidates made consequential errors, documented in the [results and limitations](docs/readiness-2026-10-08.md). The classifier is separate from the Whisper speech model.
+The current evaluated candidate uses **Qwen3.5-27B dense**, a pinned 16.7 GB Unsloth Q4_K_M file, bounded reasoning and native llama.cpp. Its v8 selection policy is intended for use with manual review. The classifier is separate from the Whisper speech model.
+
+On five previously inspected excerpts, proposals covered **408.96 of 410.24 annotated commercial word-seconds**, missed **1.28**, and also selected **11.68 protected word-seconds**. The full labeled rutabaga parody stayed outside the proposals. These are provisional ASR-based measurements without human listening verification. V8 replayed all 60 exact requests against saved v7 responses, with **zero new model calls**. The separate [eight-case synthetic test](docs/evaluations/2026-10-08-source-credit8-qwen35-dense-v8.json) and [33-case regression](docs/evaluations/2026-10-08-regression33-qwen35-dense-v8.json) also completed with actual local inference. These narrow tests do not establish reliable unattended removal. See [results, replay provenance and limitations](docs/readiness-2026-10-08.md).
 
 For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Follow the [archive verification instructions](docs/local-models.md#prepare-native-llamacpp) and extract both into `.local/llama.cpp`. This path does not require Ollama or `llama-cpp-python`. Download and verify the pinned dense model, then start the frozen server profile:
 
@@ -113,9 +115,9 @@ This profile loaded all 65 layers on an RTX 3090 Ti with 24 GB VRAM, leaving abo
 .\scripts\start_castwell.ps1 -Background
 ```
 
-In **Settings > Contextual AI connection**, enable **Use local Qwen3.5 reasoning** and keep **Require my approval for every cut** enabled. The saved `ai_reasoning` setting defaults to false. The evaluated profile explicitly enables reasoning per request with a 1,024-token budget and 4,096-token output cap, even though the frozen server was started with `-NoThinking`. Omitting that launcher switch changes the server default; it does not override the app's setting. See [the exact profile and provenance](docs/local-models.md#qwen35-27b-dense-v7-candidate).
+In **Settings > Contextual AI connection**, enable **Use local Qwen3.5 reasoning** and keep **Require my approval for every cut** enabled. The saved `ai_reasoning` setting defaults to false. The evaluated profile explicitly enables reasoning per request with a 1,024-token budget and 4,096-token output cap, even though the frozen server was started with `-NoThinking`. Omitting that launcher switch changes the server default; it does not override the app's setting. See [the exact profile and provenance](docs/local-models.md#qwen35-27b-dense-v8-candidate).
 
-Dense inference is slower on this machine: about 42 generated tokens per second, with ten focused development requests taking 490 seconds versus approximately 200 seconds for the earlier 35B-A3B model. This is a runtime observation on selected requests, not a full-episode benchmark or evidence of better detection.
+The original dense run took **59.02 minutes of classifier time for approximately 50 minutes of excerpts** on an RTX 3090 Ti. Download, transcription, model startup and rendering are additional. The v8 replay took 23.953 seconds to reprocess saved responses; it is not a faster inference result. About 42 generated tokens per second was observed in focused development requests.
 
 The launchers bind to loopback and record process IDs and logs under `.local/logs`. Omit `-Background` to keep a server in the current terminal. They refuse to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop its process; for the Python app on Windows, the HTTP listener can be a child of the recorded launcher PID.
 
@@ -140,7 +142,7 @@ Keep that terminal running. In Castwell Settings, save these values and use **Te
 | API base URL | `http://127.0.0.1:8081/v1` |
 | Model name | `castwell-local` |
 | Detection method | Contextual AI or Automatic |
-| Use local Qwen3.5 reasoning | On for the dense v7 profile; off for the earlier nonthinking profiles |
+| Use local Qwen3.5 reasoning | On for the dense v8 profile; off for the earlier nonthinking profiles |
 | Require my approval for every cut | On |
 
 The helper listens only on `127.0.0.1` and needs no API key. `--port`, `--threads`, and `--context` adjust the server; the default context is 8192 tokens. Use `python scripts/local_ai.py --help` for options. To use an existing Qwen-compatible GGUF file instead, run `python scripts/local_ai.py --model /path/to/model.gguf`; for a split model, point to its first shard and keep the other shard beside it. Checksum verification is automatic for the pinned `--download` models; verify the provenance of a custom file yourself.

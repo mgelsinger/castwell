@@ -69,6 +69,13 @@
     return `/media/${encodeURIComponent(id)}/${variant}${version ? `?v=${encodeURIComponent(version)}` : ''}`;
   }
   function seconds(value) { const n = Number(value); return Number.isFinite(n) ? Math.max(0, n) : 0; }
+  function boundaryText(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '';
+    const rounded = Number(n.toFixed(6));
+    // Hide floating-point tails near a microsecond without changing stored cuts.
+    return Math.abs(n - rounded) <= Number.EPSILON * Math.max(1, Math.abs(n)) * 4 ? String(rounded) : String(n);
+  }
   function clock(value) {
     const n = Math.floor(seconds(value));
     return n >= 3600 ? `${Math.floor(n / 3600)}:${String(Math.floor(n % 3600 / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}` : `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
@@ -632,14 +639,14 @@
         const timeLabel = el('label', '', `${key === 'start' ? 'Start' : 'End'} · seconds`);
         const input = el('input');
         input.type = 'number'; input.min = '0'; input.step = '0.01'; input.required = true;
-        input.value = Number.isFinite(Number(cut[key])) ? Number(cut[key]) : '';
+        input.value = boundaryText(cut[key]);
         input.setAttribute('aria-label', `Cut ${index + 1} ${key} in seconds`);
         input.addEventListener('input', () => changeBoundary(key, input.value === '' ? null : Number(input.value)));
         const setTime = el('button', 'set-playhead', 'Use playhead');
         setTime.type = 'button';
         setTime.setAttribute('aria-label', `Set cut ${index + 1} ${key} to playhead`);
         setTime.disabled = !state.detail?.has_audio;
-        setTime.addEventListener('click', () => { changeBoundary(key, Number(playhead().toFixed(2))); input.value = cut[key]; });
+        setTime.addEventListener('click', () => { changeBoundary(key, Number(playhead().toFixed(2))); input.value = boundaryText(cut[key]); });
         timeLabel.append(input, setTime); times.append(timeLabel);
       }
       const preview = el('button', 'button subtle');
