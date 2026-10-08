@@ -1,0 +1,516 @@
+{
+  "schema_version": 1,
+  "scope": "Eight independently authored fictional transcript cases focused on editorial source credits and URLs, website humor, commercial offers, sponsored reporting, and parody. This narrow fresh authored challenge is not representative recording evidence, human-listening gold, or a broad generalization benchmark. No classifier was run during authoring. All cases are reserved for evaluation after the next candidate freeze.",
+  "cases": [
+    {
+      "id": "source-credit-01",
+      "split": "eval",
+      "group": "fictional-source-credit-host-01",
+      "category": "editorialsourcecredit",
+      "description": "A host supplies an archival source address to support a numerical correction.",
+      "transcript": {
+        "language": "en",
+        "duration": 24,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 6,
+            "text": "Aster: Our account of the marsh count comes from the public census sheets."
+          },
+          {
+            "id": 1,
+            "start": 6,
+            "end": 12,
+            "text": "The tables are archived at fenledger.invalid/surveys, including each surveyor's corrections."
+          },
+          {
+            "id": 2,
+            "start": 12,
+            "end": 18,
+            "text": "I am giving the address so listeners can inspect the evidence behind our totals."
+          },
+          {
+            "id": 3,
+            "start": 18,
+            "end": 24,
+            "text": "Page nineteen lists seven nests; the typeset summary accidentally says seventeen."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-02",
+      "split": "eval",
+      "group": "fictional-source-credit-host-02",
+      "category": "websitejoke",
+      "description": "An invented website is the punch line of ordinary discussion, without an actual offer.",
+      "transcript": {
+        "language": "en",
+        "duration": 20,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 5,
+            "text": "Belen: I wish there were a website that could explain why my spare socks keep vanishing."
+          },
+          {
+            "id": 1,
+            "start": 5,
+            "end": 10,
+            "text": "Perhaps solemn-sock-court.invalid could issue a summons to the dryer."
+          },
+          {
+            "id": 2,
+            "start": 10,
+            "end": 15,
+            "text": "That address is a joke we just invented; nobody runs it, and there is nothing to buy."
+          },
+          {
+            "id": 3,
+            "start": 15,
+            "end": 20,
+            "text": "The real question is why the laundry filter collects fibers from both socks."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-03",
+      "split": "eval",
+      "group": "fictional-source-credit-host-03",
+      "category": "sponsorurloffer",
+      "description": "A paid URL offer and return to editorial material share one segment with explicit word alignment.",
+      "transcript": {
+        "language": "en",
+        "duration": 24,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 4,
+            "text": "Rina: The repair invoice has two columns, one for labor and one for parts."
+          },
+          {
+            "id": 1,
+            "start": 4,
+            "end": 20,
+            "text": "This is a paid message from Maplecask Repairs. Reserve a tuneup at maplecask.invalid and enter HINGE for twelve percent off. Back to the archive: the 1906 invoice uses a different currency.",
+            "words": [
+              {
+                "word": "This",
+                "start": 4,
+                "end": 4.5,
+                "probability": 0.99
+              },
+              {
+                "word": " is",
+                "start": 4.5,
+                "end": 5.0,
+                "probability": 0.99
+              },
+              {
+                "word": " a",
+                "start": 5.0,
+                "end": 5.5,
+                "probability": 0.99
+              },
+              {
+                "word": " paid",
+                "start": 5.5,
+                "end": 6.0,
+                "probability": 0.99
+              },
+              {
+                "word": " message",
+                "start": 6.0,
+                "end": 6.5,
+                "probability": 0.99
+              },
+              {
+                "word": " from",
+                "start": 6.5,
+                "end": 7.0,
+                "probability": 0.99
+              },
+              {
+                "word": " Maplecask",
+                "start": 7.0,
+                "end": 7.5,
+                "probability": 0.99
+              },
+              {
+                "word": " Repairs.",
+                "start": 7.5,
+                "end": 8.0,
+                "probability": 0.99
+              },
+              {
+                "word": " Reserve",
+                "start": 8.0,
+                "end": 8.5,
+                "probability": 0.99
+              },
+              {
+                "word": " a",
+                "start": 8.5,
+                "end": 9.0,
+                "probability": 0.99
+              },
+              {
+                "word": " tuneup",
+                "start": 9.0,
+                "end": 9.5,
+                "probability": 0.99
+              },
+              {
+                "word": " at",
+                "start": 9.5,
+                "end": 10.0,
+                "probability": 0.99
+              },
+              {
+                "word": " maplecask.invalid",
+                "start": 10.0,
+                "end": 10.5,
+                "probability": 0.99
+              },
+              {
+                "word": " and",
+                "start": 10.5,
+                "end": 11.0,
+                "probability": 0.99
+              },
+              {
+                "word": " enter",
+                "start": 11.0,
+                "end": 11.5,
+                "probability": 0.99
+              },
+              {
+                "word": " HINGE",
+                "start": 11.5,
+                "end": 12.0,
+                "probability": 0.99
+              },
+              {
+                "word": " for",
+                "start": 12.0,
+                "end": 12.5,
+                "probability": 0.99
+              },
+              {
+                "word": " twelve",
+                "start": 12.5,
+                "end": 13.0,
+                "probability": 0.99
+              },
+              {
+                "word": " percent",
+                "start": 13.0,
+                "end": 13.5,
+                "probability": 0.99
+              },
+              {
+                "word": " off.",
+                "start": 13.5,
+                "end": 14,
+                "probability": 0.99
+              },
+              {
+                "word": " Back",
+                "start": 14,
+                "end": 14.545455,
+                "probability": 0.99
+              },
+              {
+                "word": " to",
+                "start": 14.545455,
+                "end": 15.090909,
+                "probability": 0.99
+              },
+              {
+                "word": " the",
+                "start": 15.090909,
+                "end": 15.636364,
+                "probability": 0.99
+              },
+              {
+                "word": " archive:",
+                "start": 15.636364,
+                "end": 16.181818,
+                "probability": 0.99
+              },
+              {
+                "word": " the",
+                "start": 16.181818,
+                "end": 16.727273,
+                "probability": 0.99
+              },
+              {
+                "word": " 1906",
+                "start": 16.727273,
+                "end": 17.272727,
+                "probability": 0.99
+              },
+              {
+                "word": " invoice",
+                "start": 17.272727,
+                "end": 17.818182,
+                "probability": 0.99
+              },
+              {
+                "word": " uses",
+                "start": 17.818182,
+                "end": 18.363636,
+                "probability": 0.99
+              },
+              {
+                "word": " a",
+                "start": 18.363636,
+                "end": 18.909091,
+                "probability": 0.99
+              },
+              {
+                "word": " different",
+                "start": 18.909091,
+                "end": 19.454545,
+                "probability": 0.99
+              },
+              {
+                "word": " currency.",
+                "start": 19.454545,
+                "end": 20,
+                "probability": 0.99
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "start": 20,
+            "end": 24,
+            "text": "Rina: Converting the amounts requires the town's old exchange ledger."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-04",
+      "split": "eval",
+      "group": "fictional-source-credit-host-04",
+      "category": "paideventnarrative",
+      "description": "An explicitly paid event notice uses narrative performance details before ticket price and booking instructions.",
+      "transcript": {
+        "language": "en",
+        "duration": 40,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 6,
+            "text": "Evo: We have finished the account of the bridge inspection; a booking notice follows."
+          },
+          {
+            "id": 1,
+            "start": 6,
+            "end": 15,
+            "text": "I walked the moonlit reservoir path with a lantern last winter, and our paid Lantern Walk is returning on Saturday."
+          },
+          {
+            "id": 2,
+            "start": 15,
+            "end": 23,
+            "text": "At the third stop our actors perform the old gatekeeper's story beside the water."
+          },
+          {
+            "id": 3,
+            "start": 23,
+            "end": 30,
+            "text": "Tickets cost eighteen crowns; reserve a place at reedlantern.invalid/tickets. Gate admission is included."
+          },
+          {
+            "id": 4,
+            "start": 30,
+            "end": 40,
+            "text": "That ends the booking notice. Back to the bridge report: the engineer replaced four bolts, and the public footpath remained open."
+          }
+        ]
+      },
+      "expected_intervals": [
+        {
+          "start": 6,
+          "end": 30
+        }
+      ],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-05",
+      "split": "eval",
+      "group": "fictional-source-credit-host-05",
+      "category": "sponsoredreporting",
+      "description": "A production funding disclosure accompanies independent critical reporting without a purchase pitch.",
+      "transcript": {
+        "language": "en",
+        "duration": 30.0,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0.0,
+            "end": 7.5,
+            "text": "Dorian: Riverglass Instruments paid for this episode's production, which the editors control."
+          },
+          {
+            "id": 1,
+            "start": 7.5,
+            "end": 15.0,
+            "text": "Our investigation found that their meter drifted in freezing weather, despite the brochure's durability claim."
+          },
+          {
+            "id": 2,
+            "start": 15.0,
+            "end": 22.5,
+            "text": "We compared its readings with the municipal laboratory and asked the company why the discrepancy was not disclosed."
+          },
+          {
+            "id": 3,
+            "start": 22.5,
+            "end": 30.0,
+            "text": "Their response is printed beside the laboratory record in the episode notes, along with our test method."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-06",
+      "split": "eval",
+      "group": "fictional-source-credit-host-06",
+      "category": "quotedsourceadcopy",
+      "description": "A reporting segment quotes sales copy as legal evidence and identifies the source document by URL.",
+      "transcript": {
+        "language": "en",
+        "duration": 28,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 7,
+            "text": "Esme: The appeal ruling reproduces a streetcar advertisement as evidence of misleading claims."
+          },
+          {
+            "id": 1,
+            "start": 7,
+            "end": 14,
+            "text": "\"One sip makes your thoughts twice as quick; ask for Brilliant Fern tonic today,\" the advertisement promised."
+          },
+          {
+            "id": 2,
+            "start": 14,
+            "end": 21,
+            "text": "That is a quotation from exhibit four in the ruling, which is indexed at civicfable.invalid/cases/62."
+          },
+          {
+            "id": 3,
+            "start": 21,
+            "end": 28,
+            "text": "The court rejected the promise because the merchant had no study and could not define what twice as quick meant."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-07",
+      "split": "eval",
+      "group": "fictional-source-credit-host-07",
+      "category": "productmanual",
+      "description": "Troubleshooting explains a product error code and cites its manual without recommending a purchase.",
+      "transcript": {
+        "language": "en",
+        "duration": 24,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 6,
+            "text": "Faron: The Larkspindle recorder's error code U7 means its memory card is locked."
+          },
+          {
+            "id": 1,
+            "start": 6,
+            "end": 12,
+            "text": "The service manual at larkspindle.invalid/support says to slide the tab away from the notch, then reconnect power."
+          },
+          {
+            "id": 2,
+            "start": 12,
+            "end": 18,
+            "text": "We tried that procedure, but the contacts were corroded and the device still could not record."
+          },
+          {
+            "id": 3,
+            "start": 18,
+            "end": 24,
+            "text": "Cleaning those contacts solved the fault; the code was a symptom rather than the cause."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    },
+    {
+      "id": "source-credit-08",
+      "split": "eval",
+      "group": "fictional-source-credit-host-08",
+      "category": "unpaidparody",
+      "description": "An explicitly unpaid comedy sketch uses an impossible service, fake price, and fictional website.",
+      "transcript": {
+        "language": "en",
+        "duration": 24,
+        "segments": [
+          {
+            "id": 0,
+            "start": 0,
+            "end": 6,
+            "text": "Gia: Here is our unpaid sketch about a salesman who rents people an extra yesterday."
+          },
+          {
+            "id": 1,
+            "start": 6,
+            "end": 12,
+            "text": "For three imaginary acorns, Yesterday Annex gives you a spare Monday to finish all the things you forgot."
+          },
+          {
+            "id": 2,
+            "start": 12,
+            "end": 18,
+            "text": "Visit yesterday-annex.invalid and pay before time exists; our imaginary accountants promise not to notice."
+          },
+          {
+            "id": 3,
+            "start": 18,
+            "end": 24,
+            "text": "End of sketch. The impossibility of that invoice is the joke, which brings us back to how calendars were standardized."
+          }
+        ]
+      },
+      "expected_intervals": [],
+      "expect_review": false
+    }
+  ]
+}
