@@ -1,5 +1,7 @@
 # Castwell readiness, October 8, 2026
 
+> Historical reference notice: this report preserves its original v3 labels and numbers. A later, explicitly disclosed Skeptoid reference correction reclassifies a 1.28-second editorial return marker. Rescoring the unchanged v8 proposals gives 408.96 of 408.96 annotated ad-word seconds selected and 11.68 protected-word seconds proposed. This is a label correction, not a model improvement or new inference. See the [round2 correction and comparison](local-model-round2-2026-10-08.md#reference-correction-reported-separately).
+
 **Use Castwell with manual review. The current v8 candidate does not establish reliable unattended ad removal.** Its dense Qwen3.5-27B proposals cover 408.96 of 410.24 annotated commercial word-seconds across five known excerpts, miss 1.28, and also select 11.68 protected word-seconds. The full 46.48-second rutabaga parody is preserved. All cuts remain unapproved until selected by the user.
 
 These are provisional ASR-based labels and timestamps, without human listening verification. Word-time excludes missing ASR and silence between words; it is not complete acoustic ad recall. The approximately fifty-minute convenience sample includes four shows and two excerpts from one episode. It has been inspected during development and is not a fresh holdout.

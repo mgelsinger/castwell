@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "status": "operational_failure",
+  "accuracy_result": null,
+  "scope": "Incomplete local NF4 attempt on five consumed recording excerpts and two consumed synthetic sets. No full clip or case completed successfully; partial HTTP responses are not accuracy evidence.",
+  "candidate": {
+    "model": "jaredpalmer/kev-27b",
+    "revision": "af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf",
+    "model_alias": "kev27-nf4-experiment",
+    "plan_sha256": "452077bdfa99b0c515902d159680d3af7a1f6651bc30574f9b165ec009f22dfe",
+    "pre_run_runtime_sha256": "3deb11e6fda34592ea7ee102f13f372452f689f9a80892b3b031a3fc4eef8c59",
+    "quantization": "bitsandbytes 0.50.2 NF4, double quantization, BF16 compute, SDPA, direct GPU load",
+    "head": "Original FP32 pointer head",
+    "head_sha256": "7968f17b03479c1ef9d1c0f3ab8a15e31ecb441cf40691b07ee945ab554d45ad",
+    "calibrated_temperature": 1.319507910772894,
+    "calibration_note": "Original head calibration retained; not validated after NF4 quantization.",
+    "loader_sha256": "ee7af61df5b827ed3838b51dbcbde38cbf5f0c39c81c49d0d5bd653ec07496c0",
+    "dependency_wheel_sha256": "c697963c8fda3dcd0d7ebd9b5211ae4067feef7cd06e0350d4e816a434fe683d"
+  },
+  "execution": {
+    "whole_run_elapsed_seconds": 441.531,
+    "finished_at_utc": "2026-10-08T18:42:01.957380+00:00",
+    "attempt_counter": 59,
+    "actual_http_requests": 15,
+    "http200_responses": 13,
+    "read_timeouts": 2,
+    "blocked_attempts_without_http": 44,
+    "timeout_seconds_each": [
+      60.015,
+      60.016
+    ],
+    "planned_reference_request_count": 98,
+    "alias_only_comparison_complete": false,
+    "failure_mechanism": "Two HTTP read timeouts failed the first two clips. Skipped windows then diverged from the strictly indexed baseline, and the guard blocked 44 later attempts before HTTP. The completion counter counts both sent and blocked attempts.",
+    "owned_runtime_stopped": true
+  },
+  "eligible_population": {
+    "recordings": {
+      "total_clips": 5,
+      "successful_clips": 0,
+      "failed_clips": 5,
+      "unfinished_clips": 0,
+      "original_continuous_seconds": {
+        "commercial": 467.44,
+        "protected": 2370.47
+      },
+      "word_seconds": {
+        "original_v3": {
+          "commercial": 410.24,
+          "protected": 1995.07
+        },
+        "corrected_skeptoid_v4": {
+          "commercial": 408.96,
+          "protected": 1996.35
+        }
+      },
+      "successful_candidate_metrics": null,
+      "successful_verified_metrics": null,
+      "successful_approved_metrics": null
+    },
+    "synthetic33": {
+      "total_cases": 33,
+      "successful_cases": 0,
+      "failed_cases": 33,
+      "eligible_scored_cases": 30,
+      "ambiguous_cases": 3,
+      "eligible_ad_seconds": 306.8,
+      "eligible_editorial_seconds": 501.4,
+      "accuracy_metrics": null
+    },
+    "synthetic8": {
+      "total_cases": 8,
+      "successful_cases": 0,
+      "failed_cases": 8,
+      "eligible_ad_seconds": 34,
+      "eligible_editorial_seconds": 180,
+      "accuracy_metrics": null
+    }
+  },
+  "comparison_limits": [
+    "All 15 transmitted payloads matched the indexed current-source 4B control after normalizing only the explicit model alias. The full 98-request comparison did not complete.",
+    "Checkpoint, backbone, head, calibration and NF4 loader differ from the 4B/9B arms; this cannot isolate parameter count or quantization effects.",
+    "ASR-based reference times are provisional, not listening gold. Corrected reference eligibility is a separate post-prediction reference correction, not a model improvement.",
+    "This failure concerns the tested NF4 configuration, not all quantized or offloaded runtimes. No paid API was used."
+  ],
+  "independent_audit": {
+    "status": "passed",
+    "method": "Exact offline adapter replay plus exact reconstruction of alias-only sequential guard failures. Network disabled.",
+    "new_inference_requests": 0,
+    "all_fake_responses_closed": true,
+    "frozen_guarded_files_verified": 268,
+    "model_provenance_note": "Runner verified every full-weight artifact before calls. This audit independently rehashes frozen guards, loader, dependency wheel and head; it does not repeat the large backbone hash pass.",
+    "capture_audit_sha256": "575082c5c6935864bc37f0255b8ebb688920698ce13261c9019cbac0ce2537a9",
+    "recording_audit_sha256": "90e192fa69818d2af91223757ddd34339df48741fe9fdd8a587628b6a3d29ef8",
+    "synthetic33_audit_sha256": "b95c7190d422408b524cae9eccb7a16b3eeab6d5b1498c521c74b919144720d1",
+    "synthetic8_audit_sha256": "28f6da95ecffc584bd167a5abdc6bcaf32d6f77a8614a0bbf6599d9f2950c06e",
+    "original_word_audit_sha256": "64e88d3eecf3eb8eee07aa4bad4c2830d42eacf77f312f5ca895e188e11a1cea",
+    "corrected_word_audit_sha256": "f793ed4a2e52658b5e9a7b1f4d81832d0afc481b00b86675463bfdb8d0a2a78d"
+  },
+  "source_artifact_sha256": {
+    "plan.json": "452077bdfa99b0c515902d159680d3af7a1f6651bc30574f9b165ec009f22dfe",
+    "completion.json": "2c87fe162f33fe6bac4b31be9c82a772d0c9df3d61ad443137f954f2aad561fc",
+    "recordings-private.json": "6c467d3cdcb8285204930d33917d8136c227d88ff2c049a3536681bd3bbbb28f",
+    "recordings-public.json": "f832b110789f4c910b81155bc3e5f96194557cccd0d27d998877122684f27767",
+    "ad_read_holdout_v2.json": "8ff83b74f71cf7557001950abbd5a458c507e83c430bfaeec3b6a35e09599406",
+    "ad_read_source_credit_v1.json": "55bf707b18f2134588910c7d673c3c7558202b1de666489f5b1dda030630601f",
+    "request-accounting-note.json": "a709c5de9a2eadf70cc062689f229b472dde099bb75042281c1bfd2ee88e570d"
+  }
+}

@@ -2,7 +2,7 @@
 
 This setup runs speech recognition and classification on your own machine. Model downloads are public and free; no hosted inference, API key, Ollama, or Modal deployment is needed. The application and model servers bind to `127.0.0.1`.
 
-The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The newest Qwen3.5-27B dense candidate uses an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
+The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The retained Qwen3.5-27B dense profile uses an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
 
 ## Application environment
 
@@ -43,11 +43,13 @@ foreach ($asset in $assets) {
 }
 ```
 
-After preparing the runtime, choose one model profile. The latest evaluated candidate is [Qwen3.5-27B dense](#qwen35-27b-dense-v8-candidate), with a v8 exact-response replay on known recordings and use recommended only with manual review. The smaller and earlier profiles remain below for reproducibility.
+After preparing the runtime, choose one model profile. The retained profile is [Qwen3.5-27B dense](#qwen35-27b-dense-v8-candidate), recommended only with manual review. The [completed local comparison](local-model-round2-2026-10-08.md) rejected both role-first alternatives; these setup commands and the production v8 policy remain unchanged. The smaller and earlier profiles remain below for reproducibility.
 
 ## Qwen3.5-27B dense v8 candidate
 
-This candidate uses the third-party [Unsloth Qwen3.5-27B GGUF](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), based on [Qwen3.5-27B](https://huggingface.co/Qwen/Qwen3.5-27B). It downloads Q4_K_M directly, with no local requantization. The repository identifies the base model and Apache 2.0 license; the publisher's complete conversion process has not been independently reproduced. The [v8 candidate record](evaluations/2026-10-08-qwen35-dense-v8-candidate.json) fixes the selection policy, model and request profile. Its known-recording results replay the complete [v7 inference](evaluations/2026-10-08-real-qwen35-dense-v7.json), matching every request exactly and making zero new model calls. The [readiness report](readiness-2026-10-08.md) documents the remaining false proposals and missed speech; these results do not support unattended removal. The narrow eight-case challenge completed with correct simulated approvals but 23.5 editorial seconds in review proposals. The consumed 33-case regression proposed all 306.8 commercial seconds plus 49 editorial seconds; its simulated approvals left 34 commercial seconds unselected in coarse mixed passages. Neither synthetic result establishes general recording accuracy.
+Known-recording v8 proposals remain 408.96 of 410.24 annotated ad-word seconds under original labels. The later correction of a 1.28-second editorial reference error gives 408.96 of 408.96, while 11.68 protected-word seconds remain proposed. This changes labels, not predictions. Actual fresh inference proposes all 32.72 primary ad-word seconds plus 16.30 protected-word seconds. See the [reference correction and fresh results](local-model-round2-2026-10-08.md); this setup is not an unattended-removal guarantee.
+
+This candidate uses the third-party [Unsloth Qwen3.5-27B GGUF](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), based on [Qwen3.5-27B](https://huggingface.co/Qwen/Qwen3.5-27B). It downloads Q4_K_M directly, with no local requantization. The repository identifies the base model and Apache 2.0 license; the publisher's complete conversion process has not been independently reproduced. The [v8 candidate record](evaluations/2026-10-08-qwen35-dense-v8-candidate.json) fixes the selection policy, model and request profile. Its known-recording results replay the complete [v7 inference](evaluations/2026-10-08-real-qwen35-dense-v7.json), matching every request exactly and making zero new model calls. The [historical readiness report](readiness-2026-10-08.md) preserves the original results; these results do not support unattended removal. The narrow eight-case challenge completed with correct simulated approvals but 23.5 editorial seconds in review proposals. The consumed 33-case regression proposed all 306.8 commercial seconds plus 49 editorial seconds; its simulated approvals left 34 commercial seconds unselected in coarse mixed passages. Neither synthetic result establishes general recording accuracy.
 
 | Pinned artifact | Identity |
 | --- | --- |
@@ -151,7 +153,7 @@ py -3.12 scripts\setup_kev_local.py
 .\scripts\start_kev_local.ps1
 ```
 
-The setup helper pins:
+The default 4B setup pins:
 
 | Component | Revision/version |
 | --- | --- |
@@ -161,17 +163,27 @@ The setup helper pins:
 | PyTorch | `2.8.0+cu128`, official CUDA 12.8 wheel |
 | Transformers | `5.19.0` |
 
-Exact Windows package versions are in [`scripts/kev_requirements.txt`](../scripts/kev_requirements.txt). The helper verifies SHA256 hashes for the adapter, pointer head, both base-weight shards, and tokenizers, then records paths and provenance in `.local/kev-model-provenance.json`. It preserves an existing source checkout if its revision or local changes differ from the pinned version. Allow roughly 20 GB for its environment and weights, plus installer cache space.
+Exact Windows package versions are in [`scripts/kev_requirements.txt`](../scripts/kev_requirements.txt). The helper verifies SHA256 hashes for every pinned loader file, including weights, the adapter and pointer head, tokenizer files, configuration and chat template. The default 4B setup records paths and provenance in `.local/kev-model-provenance.json`. It preserves an existing source checkout if its revision or local changes differ from the pinned version. Allow roughly 20 GB for its environment and weights, plus installer cache space.
 
 The Kev launcher uses only cached weights in offline mode. It binds to `http://127.0.0.1:8083/v1/systemone`, model `kev-latest`, with BF16 Torch CUDA and SDPA. Optional fused Triton kernels and CUDA graphs are disabled for the tested Windows fallback. Prefix caching is limited to one state and 8,192 cached tokens. No Linux VM or cloud deployment is involved.
 
 Kev emits decisions rather than generated text. For a Noul question, `noul` is the probability of true. For Choice questions, use the named entry in `probabilities`. Its `confidence` field is the normalized margin above a uniform distribution, `(p_max - 1/K) / (1 - 1/K)`, and is not the selected category's probability. General-purpose calibration does not establish accuracy or calibration on podcast ads.
 
-Recheck downloaded weights without network access:
+Recheck all pinned loader files offline, without installing packages, downloading files or rewriting existing provenance:
 
 ```powershell
 .local\kev-venv\Scripts\python.exe scripts\setup_kev_local.py --verify-only
 ```
+
+For the optional 9B comparison model, stop any running Qwen or Kev server before launching it:
+
+```powershell
+py -3.12 scripts\setup_kev_local.py --size 9b
+.local\kev-venv\Scripts\python.exe scripts\setup_kev_local.py --verify-only --size 9b
+.\scripts\start_kev_local.ps1 -Size 9b
+```
+
+Both sizes share the configured Hugging Face cache root, by default `.local/models/huggingface/hub`, with distinct pinned snapshots. Preparing 9B preserves the cached 4B model and uses its own `.local/kev9-model-provenance.json`; offline verification does not rewrite either manifest. The isolated environment is shared. The [completed comparison](local-model-round2-2026-10-08.md) does not recommend 9B over the retained Qwen workflow. Kev is available through the comparison CLI, not the main application's classifier settings.
 
 ## Compare without changing audio
 
@@ -181,10 +193,12 @@ The comparison harness is separate from the app's processing queue and only writ
 .venv\Scripts\python.exe scripts\compare_detectors.py --backend verified-ai --ai-reasoning --split dev --model-label 'Qwen3.5-27B Unsloth Q4_K_M; llama.cpp b11146; all GPU layers; intent-boundary-v8; reasoning1024' --output .local\evaluations\qwen35-dense-development.json
 ```
 
-Stop Qwen, start Kev, then run:
+With the default Kev 4B server running, use:
 
 ```powershell
 .venv\Scripts\python.exe scripts\compare_detectors.py --backend kev --split dev --kev-model-label 'Kev4B 6cfce5c2; Torch2.8 cu128 BF16 unfused' --output .local\evaluations\kev-development.json
 ```
+
+For 9B, change `--kev-model-label` to `Kev9B db029f08; Torch2.8 cu128 BF16 unfused` and choose a separate output path.
 
 Use development cases to adjust prompts and thresholds. Freeze the full configuration before evaluating a fresh held-out set. Recording evaluations additionally need the exact `--model-file` and `--candidate-config` so their artifact and request-profile identities are checked. These transcript fixtures do not replace end-to-end testing of speech recognition, timing boundaries, and listening quality. See [the evaluation notes](ad-read-evaluation.md) for commands, results and limitations.

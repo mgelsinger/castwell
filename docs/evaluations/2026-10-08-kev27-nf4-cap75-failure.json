@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "status": "operational_failure_with_partial_completed_clips",
+  "full_suite_accuracy": null,
+  "partial_accuracy_published": false,
+  "scope": "Five consumed recording excerpts and two consumed synthetic sets. Two clips completed; three clips and all 41 synthetic cases failed. No complete-suite quality score or model ranking is established.",
+  "candidate": {
+    "model": "jaredpalmer/kev-27b",
+    "revision": "af0e6d551bdc2cc724f3e9d7a8bee1cd4fb8f7bf",
+    "alias": "kev27-nf4-experiment",
+    "plan_sha256": "675f13f1be8c67ef79f3f8705becd5e118859b821d0b74ed184271d387182784",
+    "runtime_sha256": "6ed18aee52eb7b2148b3879a6b6db853416497d32aa71b67a6948d3f24a776b1",
+    "quantization": "bitsandbytes 0.50.2 NF4 double quantization, BF16 compute",
+    "rows_per_pass_budget": 8192,
+    "allocator_fraction": 0.75,
+    "loader_sha256": "4bd476548ee25bd47ab481ef662251419eca924c6ed053b0824ca83ab8ad29f1",
+    "calibrated_temperature": 1.319507910772894,
+    "calibration_note": "Original FP32 pointer head and calibration retained; calibration was not validated after NF4 quantization.",
+    "comparison_note": "Every transmitted request matched current-source 4B after only model alias normalization. Checkpoint, head, calibration and runtime differ; this is not an isolated parameter-count or quantization comparison."
+  },
+  "execution": {
+    "whole_run_elapsed_seconds": 445.109,
+    "finished_at_utc": "2026-10-08T18:58:34.707044+00:00",
+    "planned_reference_requests": 98,
+    "actual_http_requests": 39,
+    "http200_responses": 37,
+    "http500_allocator_oom_request": 35,
+    "cleanup_aborted_request": 39,
+    "subsequent_blocked_attempts_without_http": 42,
+    "total_attempts_reconstructed": 81,
+    "full_request_equivalence_check_complete": false,
+    "explanation": "Request 35 returned non-JSON HTTP 500 after allocator OOM. JSON decoding failed before HTTP status was stored in that raw record; server logs establish the status. Requests 36-38 completed before failure inspection. Owned-server shutdown aborted request 39. The frozen process guard blocked the next 42 attempts before HTTP.",
+    "owned_processes_remaining_after_cleanup": 0
+  },
+  "completion": {
+    "recordings": {
+      "total_clips": 5,
+      "successful_clips": 2,
+      "failed_clips": 3,
+      "unfinished_clips": 0
+    },
+    "completed_clip_ids": [
+      "stdwytk-2026-08-27.first-10m.reference-v3.json",
+      "sysk-2026-10-07.first-10m.reference-v3.json"
+    ],
+    "failed_clip_ids": [
+      "skeptoid-2026-10-06.first-10m.reference-v3.json",
+      "doac-2026-09-25.first-10m.reference-v3.json",
+      "doac-2026-09-25.last-10m.reference-v3.json"
+    ],
+    "synthetic33": {
+      "total_cases": 33,
+      "successful_cases": 0,
+      "failed_cases": 33,
+      "accuracy": null
+    },
+    "synthetic8": {
+      "total_cases": 8,
+      "successful_cases": 0,
+      "failed_cases": 8,
+      "accuracy": null
+    }
+  },
+  "eligible_reference_word_seconds": {
+    "original_v3": {
+      "eligible_all_clips": {
+        "commercial": 410.24,
+        "protected": 1995.07
+      },
+      "completed_clips": {
+        "commercial": 242.16,
+        "protected": 677.1
+      },
+      "failed_clips": {
+        "commercial": 168.08,
+        "protected": 1317.97
+      }
+    },
+    "corrected_skeptoid_v4": {
+      "eligible_all_clips": {
+        "commercial": 408.96,
+        "protected": 1996.35
+      },
+      "completed_clips": {
+        "commercial": 242.16,
+        "protected": 677.1
+      },
+      "failed_clips": {
+        "commercial": 166.8,
+        "protected": 1319.25
+      }
+    }
+  },
+  "reference_limits": "Provisional ASR word intervals, not listening gold. Corrected Skeptoid eligibility is an explicit post-prediction reference correction; it does not change predictions. Successful and failed population denominators remain separate.",
+  "memory_observations": {
+    "source": "nvidia-smi sampled every approximately two seconds",
+    "samples": 216,
+    "minimum_free_mib": 2928,
+    "peak_used_mib": 21386,
+    "total_mib_values": [
+      24564
+    ],
+    "note": "Sampled physical free memory differs from CUDA mem_get_info, and neither implies allocator-cap headroom. Sampling does not establish instantaneous minimum.",
+    "allocator_failure_note": "The traceback reports an attempted 36 MiB allocation above a 17.99 GiB allocator allowance. Physically sampled free memory does not mean that this allocation was allowed."
+  },
+  "independent_audit": {
+    "status": "passed",
+    "method": "Exact offline adapter reconstruction, all transmitted payloads match indexed 4B payloads after only explicit model alias normalization. Process absence blocks later calls. Network disabled.",
+    "new_inference_requests": 0,
+    "all_fake_responses_closed": true,
+    "guarded_files_rehashed": 287,
+    "complete_checkpoint_files_rehashed": 23,
+    "complete_checkpoint_bytes_rehashed": 51302772968,
+    "capture_audit_sha256": "c8d9e449ddbe12cbb3277ef47dfbeeabcedbf357bd2ca43a9b10f603fcc527b4",
+    "recording_audit_sha256": "6e1df5f99a19d30012689f12fd673abe63d95a91fb3b449ac95a09227c3d6438",
+    "synthetic33_audit_sha256": "4b2c2a52c9e65d9c264ff0fa7489c5768959a79f2655d5c92cea0e019024e77d",
+    "synthetic8_audit_sha256": "67d77ee29ec00710fde2c6c15aa17db96389f4700f8184beb9132124093141c0",
+    "original_word_audit_sha256": "1cb2ba55fca636b43524f9ba8d8b2d447283003b19352b697bf0078fee7d2472",
+    "corrected_word_audit_sha256": "cb5e83c82ca831ea7273ec1b84aaa67fa362bb121f155f04aee672ab8d6ba1e2"
+  },
+  "evidence_sha256": {
+    "plan.json": "675f13f1be8c67ef79f3f8705becd5e118859b821d0b74ed184271d387182784",
+    "completion.json": "8423ca1c6de7f7d342127dd3fffb3a25d36e828d3834e7825d5e0f86f84b85db",
+    "failure-accounting-note.json": "cef590a7e76e6ac50498b8826fe37b3b29709063c12a24abb4309db218611660",
+    "physical-memory.jsonl": "ad2f3de39bb815ee5050442521dacf917205f3f684082fbbcfb962c1aa57d910",
+    "recordings-private.json": "63687712b4b9826c14bf92289d6174f5bd474b9f08a87907c290afba118eeba6",
+    "recordings-public.json": "377b62a7cb839895623e16d91fe42220ebc1689c8e947f6b9d304ce04115cafc",
+    "ad_read_holdout_v2.json": "dc9b1d760f5bcc471a4b8c8d41e0aabe64ce8f17d6131df0834448d8b5454a17",
+    "ad_read_source_credit_v1.json": "7ea14b1607f66dec9d06c4380550c60a267450b2d0185b676427ba32c85a770d",
+    "provenance.json": "6ed18aee52eb7b2148b3879a6b6db853416497d32aa71b67a6948d3f24a776b1",
+    "server.stdout.log": "c5d4b8e3a0154d400e343250fcaad56f6279c5a7720e6489ab9db2c7bf76f661",
+    "server.stderr.log": "660a7639c224e2219fcbfea13a4442448af209d43b18ac33277b9813d0e5ca8f",
+    "active-load.json": "c8fab1bae9e0c409e357325eb477d428c3417d9fcefbbf145017b1be536692d4",
+    "launch.json": "62fd495f18f497d3c6141faef07b58308283fd00735778626dbfe8f3541bd433",
+    "failure-cleanup.json": "9af82d93db0cc2135c8ea154cd81c796850d799801041d919984918e180b87a9"
+  }
+}
