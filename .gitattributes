@@ -1,7 +1,7 @@
 # Preserve the exact frozen input bytes, including their original line endings.
 /tests/fixtures/ad_read_challenge.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tests/fixtures/ad_read_holdout_v2.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
-/docs/evaluations/*.json text eol=lf
+/docs/evaluations/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Evaluation manifests hash working-tree bytes; preserve them across checkouts.
 /castwell/ad_review.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /castwell/processing.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
