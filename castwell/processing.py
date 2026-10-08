@@ -353,37 +353,76 @@ when there are no ads. Do not include non-ad segments just to join separate adve
 """
 
 
-def _classification_transcript(transcript: dict) -> dict:
+def _classification_transcript(transcript: dict, *, max_chars: int = 800) -> dict:
     """Offer sentence boundaries when word alignment makes precise cuts possible.
 
-    Whisper's display segments often mix an ad with adjacent editorial speech.
-    Internal sentence units let the classifier select only the commercial part;
-    their ids are never written back into the user's original transcript.
+    Display segments can split a sentence or mix an ad with editorial speech.
+    Join unfinished sentences only across touching segment and word boundaries.
+    These internal units never replace the user's display transcript.
     """
     if not any(segment.get("words") for segment in transcript["segments"]):
         return transcript
-    units = []
+    if isinstance(max_chars, bool) or not isinstance(max_chars, int) or max_chars < 1:
+        raise ValueError("Sentence character limit must be a positive integer")
+    max_chars = min(max_chars, 800)
+    units, current = [], []
+    recovered, previous = False, None
+
+    def emit():
+        nonlocal current, recovered
+        if not current:
+            return True
+        if current[-1]["end"] <= current[0]["start"]:
+            return False
+        units.append({"id": len(units), "start": current[0]["start"], "end": current[-1]["end"],
+                      "text": _words_text(current), "words": current,
+                      **({"asr_recovered": True} if recovered else {})})
+        current, recovered = [], False
+        return True
+
+    def touching(left, right):
+        return math.isclose(left, right, rel_tol=0, abs_tol=1e-9)
+
     for segment in transcript["segments"]:
         words = segment.get("words") or []
-        groups, current = [], []
-        for word in words:
-            current.append(word)
-            token = word["word"].strip()
-            sentence_end = re.search(r"[.!?。！？][\"'”’)]*$", token) and not re.fullmatch(
-                r"(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc)\.", token, re.I)
-            if sentence_end:
-                groups.append(current)
-                current = []
-        if current:
-            groups.append(current)
-        before = len(units)
-        for group in groups:
-            if group[-1]["end"] > group[0]["start"]:
-                units.append({"id": len(units), "start": group[0]["start"], "end": group[-1]["end"],
-                              "text": _words_text(group), "words": group,
-                              **({"asr_recovered": True} if segment.get("asr_recovered") else {})})
-        if len(units) == before:
+        if not words or words[-1]["end"] <= words[0]["start"]:
+            emit()
             units.append(dict(segment, id=len(units)))
+            previous = None
+            continue
+        joins = (previous is not None and touching(previous["end"], segment["start"])
+                 and touching(previous["words"][-1]["end"], words[0]["start"]))
+        if current and not joins:
+            emit()
+        # A zero-duration sentence cannot receive invented timing or lose words.
+        # Roll back this segment and keep its original span as a separate unit.
+        saved_count, saved_current, saved_recovered = len(units), list(current), recovered
+        invalid_alignment = False
+        for word in words:
+            if len(word["word"].strip()) > max_chars or word["end"] - word["start"] > 30:
+                raise ValueError("A transcript word exceeds sentence bounds; supply finer word alignment")
+            if current and (len(current) >= 100 or len(_words_text(current + [word])) > max_chars
+                            or word["end"] - current[0]["start"] > 30):
+                if not emit():
+                    invalid_alignment = True
+                    break
+            current.append(word)
+            recovered = recovered or bool(segment.get("asr_recovered"))
+            token = word["word"].strip()
+            sentence_end = re.search(r"[.!?。！？][\"'”’」』)]*$", token) and not re.fullmatch(
+                r"(?:Mr|Mrs|Ms|Dr|Prof|St|vs|etc)\.", token, re.I)
+            if sentence_end and not emit():
+                invalid_alignment = True
+                break
+        if invalid_alignment or (current and current[-1]["end"] <= current[0]["start"]):
+            del units[saved_count:]
+            current, recovered = saved_current, saved_recovered
+            emit()
+            units.append(dict(segment, id=len(units)))
+            previous = None
+        else:
+            previous = segment
+    emit()
     return dict(transcript, segments=units)
 
 
@@ -544,7 +583,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     error, never a successful no-ad result.
     """
     _check_cancel(should_cancel)
-    transcript = _classification_transcript(validate_transcript(transcript))
+    source_transcript = validate_transcript(transcript)
+    transcript = _classification_transcript(source_transcript)
     if detector not in {"auto", "ai", "heuristic"}:
         raise ValueError("Detector must be auto, ai, or heuristic")
     if config is not None and not isinstance(config, dict):
@@ -580,6 +620,9 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
                 raise ValueError("Classifier limits outside supported range")
         except ValueError as exc:
             raise ProcessingError("AI window, context, and timeout settings must be valid bounded numbers.") from exc
+        if window_chars < 800:
+            transcript = _classification_transcript(source_transcript, max_chars=window_chars)
+            baseline = _heuristic_ads(transcript)
         if ai_policy == "verified":
             from .ad_review import classify_verified
             return classify_verified(transcript, base_url=base_url, model=model, key=key,

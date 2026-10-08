@@ -54,13 +54,12 @@ class Provider:
         context = json.loads(payload['messages'][1]['content'])
         stage = 'intent' if 'commercial INTENT' in payload['messages'][0]['content'] else 'boundaries'
         self.calls.append((stage, context, payload, headers, kwargs))
-        source = {row['id']: row['text'] for row in context['context']}
         decisions = []
         for identifier in context['target_ids']:
             label = self.labels(stage, identifier) if callable(self.labels) else self.labels
             decisions.append({'id': identifier, 'label': label, 'confidence': self.confidence,
                               'reason': 'The full scene establishes this role.',
-                              'evidence_id': identifier, 'evidence': source[identifier][:160]})
+                              'evidence_id': identifier})
         answer = {'decisions': decisions}
         body = {'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps(answer)}}]}
         if self.mutate:
@@ -108,6 +107,39 @@ def test_two_commercial_judgments_approve_only_after_review_mode_opt_out():
     assert len(approved[0]['verification']) == 1
     assert review[0]['approved'] is False
     assert review[0]['requires_review'] is False
+
+
+def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
+    evidence = 'Offer TERMS:\n' + ('Choose  Café credit with the weekly plan; ' * 6) + 'Offer ends tonight'
+    source = transcript('A short sponsor introduction.', evidence)
+    original = deepcopy(source)
+
+    def choose_surrounding_source(stage, answer, body):
+        for row in answer['decisions']:
+            row['evidence_id'] = 1
+
+    provider = Provider('commercial', mutate=choose_surrounding_source)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source)
+    assert source == original
+    assert cuts[0]['policy_version'] == 'intent-boundary-v5'
+    assert len(evidence) > 160
+    assert len(cuts[0]['verification']) == 2
+    for record in cuts[0]['verification']:
+        for stage in ('intent', 'boundary'):
+            assert record[stage]['evidence_id'] == 1
+            assert record[stage]['evidence'] == evidence
+    for _, context, payload, *_ in provider.calls:
+        assert context['context'][1]['text'] == evidence
+        schema = payload['response_format']['json_schema']['schema']['properties']['decisions']['items']
+        assert 'evidence' not in schema['required']
+        assert 'evidence' not in schema['properties']
+        assert schema['additionalProperties'] is False
+        assert 'Choose evidence_id from the supplied context IDs' in payload['messages'][0]['content']
+    # Resolving the text creates local audit records, not edits to model output.
+    for response in provider.responses:
+        rows = json.loads(response.body['choices'][0]['message']['content'])['decisions']
+        assert all('evidence' not in row for row in rows)
 
 
 @pytest.mark.parametrize('intent,boundary', [('commercial', 'editorial'), ('editorial', 'commercial'),
@@ -194,7 +226,14 @@ def test_all_windows_are_validated_before_any_model_request():
     lambda rows: rows[0].update(id=999),
     lambda rows: rows[0].update(id=True),
     lambda rows: rows[0].update(evidence_id=999),
+    lambda rows: rows[0].update(evidence_id=True),
+    lambda rows: rows[0].update(evidence_id='0'),
+    lambda rows: rows[0].pop('evidence_id'),
     lambda rows: rows[0].update(evidence='Invented words not present in this transcript'),
+    lambda rows: rows[0].update(evidence='A real paid promotion.'),
+    lambda rows: rows[0].update(reason=' '),
+    lambda rows: rows[0].update(reason='x' * 301),
+    lambda rows: rows[0].update(reason=None),
     lambda rows: rows[0].update(label='probably-ad'),
     lambda rows: rows[0].update(confidence=float('nan')),
     lambda rows: rows[0].update(confidence=True),
@@ -309,6 +348,51 @@ def test_truncated_output_subdivision_keeps_context_and_complete_unit_coverage()
     assert all(response.closed for response in provider.responses)
 
 
+def test_twenty_four_targets_reach_singletons_when_every_multi_target_response_is_invalid():
+    def invalid_multiple_targets(stage, answer, body):
+        if len(answer['decisions']) > 1:
+            body['choices'][0]['finish_reason'] = 'length'
+
+    provider = Provider('commercial', mutate=invalid_multiple_targets)
+    source = transcript(*[f'Commercial sentence {index}.' for index in range(24)])
+    original = deepcopy(source)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source)
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 48)]
+    assert [row['segment_id'] for row in cuts[0]['verification']] == list(range(24))
+    for stage in ('intent', 'boundaries'):
+        singletons = [context['target_ids'][0] for kind, context, *_ in provider.calls
+                      if kind == stage and len(context['target_ids']) == 1]
+        assert singletons == list(range(24))
+    assert {len(context['target_ids']) for _, context, *_ in provider.calls} == {24, 12, 6, 3, 2, 1}
+    assert len(provider.calls) == 71  # 23 invalid branch requests, then two passes for each leaf.
+    assert all([row['id'] for row in context['context']] == list(range(24))
+               for _, context, *_ in provider.calls)
+    assert all(response.closed for response in provider.responses)
+
+
+def test_invalid_final_singleton_discards_previously_completed_targets():
+    def fail_final_target(stage, answer, body):
+        rows = answer['decisions']
+        if len(rows) > 1:
+            body['choices'][0]['finish_reason'] = 'length'
+        elif rows[0]['id'] == 23 and stage == 'boundaries':
+            rows[0]['evidence_id'] = 999
+
+    provider = Provider('commercial', mutate=fail_final_target)
+    source = transcript(*[f'Commercial sentence {index}.' for index in range(24)])
+    original = deepcopy(source)
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        with pytest.raises(processing.ProcessingError, match='no new cuts were saved'):
+            classify(source)
+    assert source == original
+    assert len(provider.calls) == 71
+    assert provider.calls[-1][0] == 'boundaries'
+    assert provider.calls[-1][1]['target_ids'] == [23]
+    assert all(response.closed for response in provider.responses)
+
+
 def test_persistently_invalid_output_has_bounded_subdivision_and_no_partial_result():
     def invalid(stage, answer, body):
         answer['decisions'][0]['evidence'] = 'fabricated quotation absent from transcript'
@@ -316,7 +400,7 @@ def test_persistently_invalid_output_has_bounded_subdivision_and_no_partial_resu
     with patch('castwell.processing._classifier_request', side_effect=provider):
         with pytest.raises(processing.ProcessingError):
             classify(transcript(*[f'Commercial sentence {index}.' for index in range(24)]))
-    assert [len(context['target_ids']) for _, context, *_ in provider.calls] == [24, 12, 6, 3]
+    assert [len(context['target_ids']) for _, context, *_ in provider.calls] == [24, 12, 6, 3, 1]
     assert all(response.closed for response in provider.responses)
 
 

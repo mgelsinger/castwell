@@ -88,7 +88,7 @@ Two detection methods are available:
 | Method | Behavior |
 | --- | --- |
 | Local rules | Recognizes English sponsorship language, commercial calls to action, and familiar transitions. Available without an AI service; subtle or unfamiliar ads need review. |
-| Contextual AI | Checks commercial intent and edit boundaries in two separate passes, with verbatim transcript evidence for every unit. The policy distinguishes paid humor from unpaid parody and editorial quotations, but models can still confuse them. Disagreements and mixed speech require review. |
+| Contextual AI | Checks commercial intent and edit boundaries in two separate passes. Each judgment selects a transcript passage, and the application attaches its original text. The policy distinguishes paid humor from unpaid parody and editorial quotations, but models can still confuse them. Disagreements and mixed speech require review. |
 
 **Automatic** uses contextual AI when an endpoint and model are configured, otherwise local rules. The default verified policy reviews every transcript unit, including possible negatives. Agreed editorial judgments suppress keyword-only false positives. Local rules produce unapproved suggestions under this policy. An AI failure, incomplete configuration, or invalid response produces an error; it does not count as a successful no-ad result.
 

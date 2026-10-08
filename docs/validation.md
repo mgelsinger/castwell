@@ -4,11 +4,13 @@ These checks establish working application flows; they do not establish universa
 
 ## October 8 review workflow
 
-The Windows checkout passed **373 tests and 117 subtests**, including recovered-speech safeguards, two-pass structured decisions, retry/resume behavior, and the private recording evaluator. The Chromium smoke check passed with preserved cut metadata, manual boundary edits, original/cleaned playback positions, transcript-gap navigation, and desktop/mobile layouts. One upstream Starlette test-client deprecation warning remains.
+The final v5 Windows checkout passed **403 tests and 117 subtests** on Python 3.12 in 25.72 seconds, including recovered-speech safeguards, source-ID evidence resolution, bounded subdivision to individual targets, sentence assembly, retry/resume behavior, and the private recording evaluator. The Chromium smoke check passed with preserved cut metadata, manual boundary edits, bulk selection and clearing, original/cleaned playback positions, transcript-gap navigation, actual audio exports, and desktop/mobile layouts. The browser code was unchanged during v5 work, so its passing 26.3-second run was retained. One upstream Starlette test-client deprecation warning remains.
 
 A separate real-recording export check verified retained PCM samples, word order/timestamps, caption timelines, output durations, and unchanged source hashes. Model comparisons and their limitations are documented in the [October 8 readiness report](readiness-2026-10-08.md). The dated runs below describe earlier versions and are retained as history.
 
-The 0.4.0 wheel built successfully. Its new detector, recording evaluator, transcript-quality module and browser assets matched the checkout byte for byte; private models, recordings, libraries and tests were excluded. The Qwen3.5 setup passed offline source/output verification and independent checks rejecting 19 corrupted provenance cases. PowerShell argument validation and Python 3.10 syntax checks passed without starting additional model servers.
+The final 0.4.0 wheel built successfully with isolated PEP 517 build dependencies. All 17 packaged source/assets matched the checkout byte for byte; private models, recordings, libraries and tests were excluded. An isolated installation imported the v5 modules and passed `python -m castwell --help`. The 119,581-byte wheel's SHA256 is `b2b7b0406c99f8c9fa2877843ae75eb8a8495c8e4f7c5cfedee1bb0244414922`. This identifies the local validation artifact, not a reproducible-build guarantee.
+
+The Qwen3.5 setup passed offline source/output verification and independent checks rejecting 19 corrupted provenance cases. PowerShell argument validation and Python 3.10 syntax checks passed without starting additional model servers. The final full runtime suite was run on Python 3.12; syntax compatibility alone is not a Python 3.10 runtime test.
 
 ## Windows publication check
 
