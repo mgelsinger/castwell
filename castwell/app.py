@@ -34,6 +34,7 @@ class ProcessRequest(BaseModel):
     remove_ads: bool = True
     detector: str | None = None
     redetect: bool = False
+    retranscribe: bool = False
     download_only: bool = False
 
 
@@ -339,7 +340,7 @@ def create_app(data_dir=None):
             record = library.get(episode_id)
             cuts = processing.validate_cuts(library.revision(episode_id, revision_id)['cuts'], record['duration'])
             library.save_revision(episode_id, record['cuts'], 'Before restoring an earlier edit')
-            library.update(episode_id, cuts=cuts, cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=True, status='review', error=None, progress='Earlier cuts restored. Export to apply them.')
+            library.update(episode_id, cuts=cuts, cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=True, pending_job=None, status='review', error=None, progress='Earlier cuts restored. Export to apply them.')
             return library.public(library.get(episode_id), detail=True)
 
     @app.get('/api/episodes/{episode_id}/decisions')
@@ -408,7 +409,7 @@ def create_app(data_dir=None):
             cuts = processing.validate_cuts(body.cuts, record['duration'])
             if cuts != record['cuts']:
                 library.save_revision(episode_id, record['cuts'], 'Before manual cut changes')
-            library.update(episode_id, cuts=cuts, cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=True, status='review', error=None, progress='Cut changes saved. Export to apply them.')
+            library.update(episode_id, cuts=cuts, cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=True, pending_job=None, status='review', error=None, progress='Cut changes saved. Export to apply them.')
             return library.public(library.get(episode_id), detail=True)
 
     @app.post('/api/episodes/{episode_id}/render', status_code=202)
@@ -426,7 +427,7 @@ def create_app(data_dir=None):
             transcript = processing.validate_transcript(body, record['duration'] or None)
             if record['cuts']:
                 library.save_revision(episode_id, record['cuts'], 'Before replacing the transcript')
-            library.update(episode_id, transcript=transcript, cuts=[], cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=False, error=None, status='available', progress='Transcript imported. Process to detect ads.')
+            library.update(episode_id, transcript=transcript, cuts=[], cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=False, pending_job=None, error=None, status='available', progress='Transcript imported. Process to detect ads.')
             return library.public(library.get(episode_id), detail=True)
 
     @app.get('/api/episodes/{episode_id}/transcript')

@@ -25,6 +25,7 @@ EPISODE_ADDITIONS = {
     'cleaned_duration': 'REAL NOT NULL DEFAULT 0',
     'feed_id': 'TEXT',
     'last_played': 'TEXT',
+    'pending_job': 'TEXT',
 }
 
 
@@ -168,7 +169,7 @@ class Library:
             raise KeyError('Episode not found')
         record = dict(row)
         metadata = json.loads(record.pop('metadata'))
-        for field in ('transcript', 'waveform'):
+        for field in ('transcript', 'waveform', 'pending_job'):
             record[field] = json.loads(record[field]) if record[field] else None
         record['cuts'] = json.loads(record['cuts'])
         for field in BOOLEAN_FIELDS:
@@ -197,7 +198,7 @@ class Library:
         allowed = {'status', 'error', 'progress', 'audio', 'cleaned', 'transcript', 'cuts', 'duration', 'removed_seconds', *EPISODE_ADDITIONS}
         if not values or not values.keys() <= allowed:
             raise ValueError('Unsupported library update')
-        for field in ('transcript', 'cuts', 'waveform'):
+        for field in ('transcript', 'cuts', 'waveform', 'pending_job'):
             if field in values and values[field] is not None:
                 values[field] = json.dumps(values[field], allow_nan=False)
         with self.connect() as db:
@@ -333,7 +334,7 @@ class Library:
 
     def public(self, episode, detail=False):
         # Feed URLs can contain premium-feed credentials; they never leave the server.
-        result = {key: value for key, value in episode.items() if key not in {'feed_url', 'media_url', 'audio', 'cleaned', 'transcript', 'cuts', 'waveform'}}
+        result = {key: value for key, value in episode.items() if key not in {'feed_url', 'media_url', 'audio', 'cleaned', 'transcript', 'cuts', 'waveform', 'pending_job'}}
         result['image'] = _public_image(result.get('image'), episode.get('feed_url'))
         for field in BOOLEAN_FIELDS:
             result[field] = bool(episode.get(field))
@@ -349,5 +350,21 @@ class Library:
             except OSError:
                 result[field] = ''
         if detail:
-            result.update(transcript=episode['transcript'], cuts=episode['cuts'])
+            transcript = episode['transcript']
+            if isinstance(transcript, dict) and not isinstance(transcript.get('quality'), dict):
+                # Older/imported transcripts still need coverage warnings. This
+                # is a read-only view: reviewed cuts and stored speech stay intact.
+                from .transcript_quality import analyze_transcript
+
+                diagnostic_source = dict(transcript)
+                if not diagnostic_source.get('duration') and episode.get('duration'):
+                    diagnostic_source['duration'] = episode['duration']
+                try:
+                    quality = analyze_transcript(diagnostic_source)
+                except (ValueError, TypeError, KeyError):
+                    quality = {'version': 1, 'method': 'timestamp-gaps', 'requires_review': True,
+                               'gap_count': 0, 'gaps': [],
+                               'warning': 'Transcript timestamps could not be checked. Review the original audio or regenerate the transcript before trusting ad coverage.'}
+                transcript = dict(transcript, quality=quality)
+            result.update(transcript=transcript, cuts=episode['cuts'])
         return result

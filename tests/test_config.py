@@ -19,6 +19,7 @@ ENVIRONMENT = {
     "CASTWELL_AI_BASE_URL": "",
     "CASTWELL_AI_MODEL": "",
     "CASTWELL_AI_KEY": "",
+    "CASTWELL_AI_POLICY": "",
 }
 
 
@@ -44,7 +45,8 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings["detector"], "auto")
         self.assertEqual(settings["auto_approve_threshold"], 0.90)
         self.assertIsNone(settings["language"])
-        self.assertFalse(settings["review_only"])
+        self.assertTrue(settings["review_only"])
+        self.assertEqual(settings["ai_policy"], "verified")
         self.assertFalse(settings["ai_configured"])
         self.assertFalse(settings["key_configured"])
         self.assertEqual(settings["model_cache"], str(self.root / "models"))
@@ -68,7 +70,7 @@ class SettingsTests(unittest.TestCase):
             {"transcription_model": "model\x00name"}, {"detector": "made-up"},
             {"auto_approve_threshold": float("nan")}, {"auto_approve_threshold": True},
             {"auto_approve_threshold": 0.49}, {"auto_approve_threshold": 1.1},
-            {"review_only": "false"}, {"ai_base_url": 42}, {"ai_model": None},
+            {"review_only": "false"}, {"ai_policy": "made-up"}, {"ai_base_url": 42}, {"ai_model": None},
             {"model_cache": "/elsewhere"}, {"key_configured": True}, {"unknown": "value"},
         ]
         for values in invalid:

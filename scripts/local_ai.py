@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run an optional private classifier compatible with Castwell.
 
-Choose an existing GGUF with ``--model`` or download a pinned official Qwen 2.5
+Choose an existing GGUF with ``--model`` or download a pinned official Qwen
 model with ``--download`` (requires huggingface-hub). Downloads are verified
 against the publisher's SHA256 before use. The server listens only on loopback
 and needs no API key. The default Python backend uses CPU inference and requires
@@ -40,6 +40,14 @@ MODEL_PROFILES = {
              "539cf93f78e887edea1c04e2d7d8cdaca9d01dae9c9025bcb8accbe29df3d72a"),
         ],
     },
+    "14b": {
+        "repository": "Qwen/Qwen3-14B-GGUF",
+        "revision": "530227a7d994db8eca5ab5ced2fb692b614357fd",
+        "directory": "qwen3-14b",
+        "size_gb": 12.1,
+        "files": [("Qwen3-14B-Q6_K.gguf",
+                   "ec1f1d1421d7636a23e17645cac6fda39ee4b5f1f11e42eb09238089705ef699")],
+    },
 }
 
 
@@ -61,7 +69,7 @@ def download_model(cache_dir: Path, size: str = "7b") -> Path:
     except ImportError as exc:
         raise RuntimeError("Model downloads require huggingface-hub: pip install 'huggingface-hub>=0.34,<2'") from exc
     profile = MODEL_PROFILES[size]
-    print(f"Downloading/verifying official Qwen 2.5 {size.upper()} (~{profile['size_gb']} GB).", file=sys.stderr)
+    print(f"Downloading/verifying {profile['repository']} (~{profile['size_gb']} GB).", file=sys.stderr)
     paths = []
     for filename, checksum in profile["files"]:
         path = Path(hf_hub_download(
@@ -76,7 +84,9 @@ def download_model(cache_dir: Path, size: str = "7b") -> Path:
 
 def server_command(model: Path, *, port: int = 8081, threads: int = 4,
                    context: int = 8192, backend: str | None = None,
-                   server_binary: Path | None = None, gpu_layers: int | None = None) -> list[str]:
+                   server_binary: Path | None = None, gpu_layers: int | None = None,
+                   preset: str = "default", thinking: bool = True,
+                   max_tokens: int = 4096, reasoning_budget: int = 1536) -> list[str]:
     backend = backend or ("native" if server_binary else "python")
     if backend not in {"python", "native"}:
         raise ValueError("Backend must be python or native.")
@@ -86,18 +96,35 @@ def server_command(model: Path, *, port: int = 8081, threads: int = 4,
         raise ValueError("Port must be 1-65535, threads positive, and context at least 2048.")
     if gpu_layers is not None and gpu_layers < -1:
         raise ValueError("GPU layers must be -1 for all layers, zero for CPU, or positive.")
+    if preset not in {"default", "qwen3"}:
+        raise ValueError("Preset must be default or qwen3.")
+    if preset == "qwen3" and backend != "native":
+        raise ValueError("The qwen3 preset requires the native backend and its model chat template.")
+    if preset == "qwen3" and not 0 <= reasoning_budget < max_tokens < context:
+        raise ValueError("Qwen3 requires 0 <= reasoning budget < max tokens < context.")
     if backend == "native":
         binary = server_binary or shutil.which("llama-server")
         binary = Path(binary).expanduser() if binary else None
         if not binary or not binary.is_file():
             raise ValueError("Native llama-server was not found. Pass --server-binary /path/to/llama-server.")
         layers = "all" if gpu_layers in (None, -1) else str(gpu_layers)
-        return [
+        command = [
             str(binary.resolve()), "--model", str(model.resolve()),
             "--alias", "castwell-local", "--host", "127.0.0.1", "--port", str(port),
             "--threads", str(threads), "--threads-batch", str(threads),
             "--ctx-size", str(context), "--n-gpu-layers", layers, "--parallel", "1",
         ]
+        if preset == "qwen3":
+            # Publisher sampling guidance, with explicit local resource bounds.
+            # Deepseek parsing keeps the final schema-constrained JSON separate.
+            command += [
+                "--jinja", "--reasoning", "on" if thinking else "off",
+                "--reasoning-format", "deepseek", "--reasoning-budget", str(reasoning_budget if thinking else 0),
+                "--n-predict", str(max_tokens), "--temp", "0.6" if thinking else "0.7",
+                "--top-p", "0.95" if thinking else "0.8", "--top-k", "20",
+                "--min-p", "0", "--presence-penalty", "1.5",
+            ]
+        return command
     if server_binary is not None:
         raise ValueError("--server-binary requires the native backend.")
     return [
@@ -115,7 +142,7 @@ def main() -> int:
     source.add_argument("--model", type=Path, help="Existing Qwen-compatible GGUF file")
     source.add_argument("--download", action="store_true", help="Download and verify a pinned official Qwen model")
     parser.add_argument("--size", choices=sorted(MODEL_PROFILES), default="7b",
-                        help="Downloaded model size (default: 7b; 3b uses less memory and CPU)")
+                        help="Downloaded model: 3b/7b Qwen2.5, 14b Qwen3 Q6_K (requires native)")
     parser.add_argument("--cache-dir", type=Path,
                         default=Path(os.environ.get("CASTWELL_MODEL_CACHE", "~/.cache/castwell")).expanduser())
     parser.add_argument("--port", type=int, default=8081)
@@ -126,13 +153,21 @@ def main() -> int:
     parser.add_argument("--server-binary", type=Path, help="Existing native llama-server executable")
     parser.add_argument("--gpu-layers", type=int,
                         help="Layers to offload: -1 for all, 0 for CPU; default native=all, python=0")
+    parser.add_argument("--preset", choices=("default", "qwen3"),
+                        help="Use qwen3 for bounded native reasoning; automatic for --download --size 14b")
+    parser.add_argument("--no-thinking", action="store_true", help="Disable thinking with the qwen3 preset")
+    parser.add_argument("--max-tokens", type=int, default=4096, help="Qwen3 output cap including thinking")
+    parser.add_argument("--reasoning-budget", type=int, default=1536, help="Qwen3 thinking token budget")
     args = parser.parse_args()
     try:
         model = download_model(args.cache_dir, args.size) if args.download else args.model.expanduser()
         backend = args.backend or ("native" if args.server_binary else "python")
         command = server_command(model, port=args.port, threads=args.threads, context=args.context,
                                  backend=backend, server_binary=args.server_binary,
-                                 gpu_layers=args.gpu_layers)
+                                 gpu_layers=args.gpu_layers,
+                                 preset=args.preset or ("qwen3" if args.download and args.size == "14b" else "default"),
+                                 thinking=not args.no_thinking, max_tokens=args.max_tokens,
+                                 reasoning_budget=args.reasoning_budget)
         if backend == "python":
             try:
                 import llama_cpp.server  # noqa: F401

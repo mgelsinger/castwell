@@ -252,3 +252,30 @@ def test_script_runs_from_checkout_outside_repository_without_network(tmp_path):
     assert [item["config"]["backend"] for item in report["backends"]] == ["heuristic"]
     assert report["settings"]["allow_paid_api"] is False
     assert report["provenance"]["package_versions"]["castwell"]
+
+
+@pytest.mark.parametrize("address", ["https://provider.example", "http://127.0.0.2:8083", "http://user:secret@localhost:8083", "http://localhost:8083/v1?key=x"])
+def test_kev_stays_loopback_even_when_remote_other_backend_allowed(address):
+    with patch("castwell.evaluation._run_backend") as run, pytest.raises(ValueError):
+        evaluate_dataset(dataset(), backends=["heuristic", "kev"], kev_base_url=address, allow_remote=True)
+    run.assert_not_called()
+
+
+def test_kev_calls_local_adapter_without_paid_opt_in_and_keeps_approval_separate():
+    answer = {"cuts": [span(2, 8, approved=False, confidence=.86, selected_probability=.91, source="kev-local")], "review": False,
+              "provider": "kev-local", "policy_version": "kev-context-v1", "model": "kev-latest", "decisions": []}
+    with patch("castwell.jev.classify_local_transcript", return_value=answer) as local, patch("castwell.jev.classify_transcript") as paid:
+        result = evaluate_dataset(dataset(), backends=["kev"], kev_model_label="Pinned local checkpoint")
+    paid.assert_not_called()
+    assert local.call_args.kwargs == {"base_url": "http://127.0.0.1:8083", "model": "kev-latest"}
+    result = result["backends"][0]
+    assert result["config"]["model_label"] == "Pinned local checkpoint"
+    assert result["summary"]["approved"]["ad_seconds_missed"] == 6
+    assert result["summary"]["threshold_shadow"]["ad_seconds_missed"] == 0
+    assert result["cases"][0]["provider_metadata"]["provider"] == "kev-local"
+
+
+def test_verified_backend_receives_new_policy():
+    with patch("castwell.evaluation.processing.detect_ads", return_value=[]) as detector:
+        evaluate_dataset(dataset(), backends=["verified-ai"])
+    assert detector.call_args.kwargs["config"]["ai_policy"] == "verified"

@@ -1,0 +1,80 @@
+{
+  "frozen_at_utc": "2026-10-08T02:06:23.984501+00:00",
+  "purpose": "Pre-inference freeze for fresh synthetic holdout and real recordings. Earlier27-case challenge is development/regression only.",
+  "git_base": "c76c7edd5400746a779ca6b8c8c7d3327bd6688e",
+  "working_tree_changes": true,
+  "source_hash_basis": "working-tree file bytes",
+  "source_sha256": {
+    "castwell/ad_review.py": "11c92fc957b36011e45fcc70cde60fde79a78b2ae3ee1e920172fe516bd6a3e3",
+    "castwell/processing.py": "fb00182b4bf041d336c072661f5070d4a5a62ca78ffdaa9a8261202004815eff",
+    "castwell/evaluation.py": "1afa7de13e2b6c0c04ab83363c59fad55549bd2793c710e617d41b9b63e26d4c",
+    "castwell/jev.py": "f8f4bf4cc8471bcbcb23a3ba06a00071e5342fd93bac06343ea63321ce286947",
+    "castwell/transcript_quality.py": "196442416a7d1cc47ed7a0032da6dd342e678a4c12ab87d0d204563288b7aa16"
+  },
+  "synthetic_holdout": {
+    "file": "tests\\fixtures\\ad_read_holdout_v2.json",
+    "sha256": "4581c6c745d33aceaa3dd4e238dc6358c3daf6a1e9ea88c80fa5de1fbabdf051",
+    "cases": 33,
+    "predictions_inspected_before_freeze": false
+  },
+  "real_references": {
+    "doac-2026-09-25.first-10m.reference-v3.json": "cdc4f8632b98282af8eb84be435550902b1fce7116319f2647b9f2c4e74e3ce3",
+    "doac-2026-09-25.last-10m.reference-v3.json": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+    "skeptoid-2026-10-06.first-10m.reference-v3.json": "9343b28cc3733cbfba7d631ad46e1259a107281ea506488d8bf271dbeb922279",
+    "stdwytk-2026-08-27.first-10m.reference-v3.json": "0fdff267aeab03596230e1be67810d3b2bde318c2cd355f27007d757ae3bda1e",
+    "sysk-2026-10-07.first-10m.reference-v3.json": "9b2d3448f804efc1f59e5b3376addcda95cc0debe7f9315f5e3b9b4792f36595"
+  },
+  "qwen": {
+    "model": "Qwen/Qwen3-14B-GGUF",
+    "revision": "530227a7d994db8eca5ab5ced2fb692b614357fd",
+    "file": "Qwen3-14B-Q6_K.gguf",
+    "sha256": "ec1f1d1421d7636a23e17645cac6fda39ee4b5f1f11e42eb09238089705ef699",
+    "bytes": 12121937248,
+    "runtime": "llama.cpp b11146 7fe450e19 CUDA12.4",
+    "context": 8192,
+    "gpu_layers": "all",
+    "parallel": 1,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 20,
+    "min_p": 0,
+    "presence_penalty": 1.5,
+    "seed": 42,
+    "max_tokens": 4096,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    },
+    "server_default_reasoning_budget": 1536,
+    "client_overrides_server_thinking": true,
+    "policy": "intent-boundary-v4",
+    "ai_window_chars": 18000,
+    "effective_window_chars": 4500,
+    "max_targets": 24,
+    "max_context_units_per_side": 4,
+    "invalid_output_subdivision_depth": 3
+  },
+  "kev": {
+    "policy": "kev-context-v2",
+    "api_alias": "kev-latest",
+    "model_revision": "6cfce5c2fa4b4bd64026336ab649c5ca78857d52",
+    "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+    "source_revision": "5e42a7a03f28134853dd3ff77461457e921e5ec1",
+    "runtime": "Torch2.8.0+cu128 BF16 Windows, unfused SDPA, no CUDA graphs",
+    "confidence_semantics": "raw confidence is normalized probability margin; selected probability controls local review threshold; not podcast-calibrated"
+  },
+  "policy": {
+    "approval_threshold": 0.9,
+    "application_default_review_only": true,
+    "synthetic_shadow_review_only": false,
+    "real_recordings_review_only": true,
+    "paid_calls_allowed": false,
+    "loopback_only": true,
+    "two_passes_are_correlated": "Same model receives separate intent and boundary requests; these are not independent systems."
+  },
+  "selection_evidence": {
+    "development_result": ".local/evaluations/verified-dev-v4.json",
+    "sha256": "462db715bf656a9f1248018e9af42d579b86a443fe683bc2620068062b616693",
+    "capacity_result": ".local/evaluations/window-stress-v4.json",
+    "capacity_sha256": "26db06f4a2eb34c12e2a2c1fc9ebae83b2510516993a2bd863d2abfd4b40cdf0"
+  }
+}

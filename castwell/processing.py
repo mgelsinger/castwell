@@ -27,6 +27,10 @@ class ProcessingError(RuntimeError):
     """A processing operation failed without producing a valid result."""
 
 
+class InvalidAudioError(ProcessingError):
+    """The decoder ran but the supplied file did not contain readable audio."""
+
+
 class ProcessingCancelled(ProcessingError):
     """The caller cancelled an operation before its result was published."""
 
@@ -95,7 +99,7 @@ def probe_duration(audio: Path) -> float:
             raise ValueError("Invalid duration")
         return duration
     except (TypeError, ValueError, KeyError) as exc:
-        raise ProcessingError("FFprobe could not read the audio duration.") from exc
+        raise InvalidAudioError("FFprobe could not read the audio duration.") from exc
 
 
 def validate_transcript(transcript: dict, duration: Optional[float] = None) -> dict:
@@ -163,9 +167,11 @@ def validate_transcript(transcript: dict, duration: Optional[float] = None) -> d
 
 def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = None,
                language: Optional[str] = None, should_cancel: Optional[Callable] = None,
-               model_cache: Optional[str] = None) -> dict:
+               model_cache: Optional[str] = None, recover_gaps: bool = True) -> dict:
     """Generate local Whisper speech segments. The first run downloads a model."""
     _check_cancel(should_cancel)
+    if not isinstance(recover_gaps, bool):
+        raise ValueError("Gap recovery must be a boolean")
     duration = probe_duration(audio)
     if not isinstance(model, str) or not model.strip():
         raise ValueError("A Whisper model name or local model directory is required")
@@ -220,8 +226,14 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
             if progress:
                 progress(f"Transcribing: {min(100, int(end / duration * 100))}%")
         _check_cancel(should_cancel)
-        return validate_transcript({"language": info.language, "duration": duration, "segments": segments,
-                                    "model": model})
+        result = validate_transcript({"language": info.language, "duration": duration, "segments": segments,
+                                      "model": model})
+        from .transcript_quality import analyze_transcript, recover_transcript_gaps
+        if recover_gaps:
+            return recover_transcript_gaps(audio, result, engine, progress=progress, should_cancel=should_cancel)
+        result["quality"] = analyze_transcript(result)
+        result["quality"]["recovery"] = {"enabled": False}
+        return result
     except (ValueError, ProcessingError):
         raise
     except Exception as exc:
@@ -368,7 +380,8 @@ def _classification_transcript(transcript: dict) -> dict:
         for group in groups:
             if group[-1]["end"] > group[0]["start"]:
                 units.append({"id": len(units), "start": group[0]["start"], "end": group[-1]["end"],
-                              "text": _words_text(group), "words": group})
+                              "text": _words_text(group), "words": group,
+                              **({"asr_recovered": True} if segment.get("asr_recovered") else {})})
         if len(units) == before:
             units.append(dict(segment, id=len(units)))
     return dict(transcript, segments=units)
@@ -537,6 +550,9 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     if config is not None and not isinstance(config, dict):
         raise ValueError("Detector configuration must be an object")
     config = config or {}
+    ai_policy = config.get("ai_policy", "legacy")
+    if ai_policy not in {"legacy", "verified"}:
+        raise ValueError("AI policy must be legacy or verified")
     threshold = _number(config.get("auto_approve_threshold", .90), "auto approval threshold")
     review_only = config.get("review_only", False)
     if not 0 <= threshold <= 1 or not isinstance(review_only, bool):
@@ -564,6 +580,14 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
                 raise ValueError("Classifier limits outside supported range")
         except ValueError as exc:
             raise ProcessingError("AI window, context, and timeout settings must be valid bounded numbers.") from exc
+        if ai_policy == "verified":
+            from .ad_review import classify_verified
+            return classify_verified(transcript, base_url=base_url, model=model, key=key,
+                                     threshold=threshold, review_only=review_only,
+                                     progress=progress, should_cancel=should_cancel,
+                                     window_chars=window_chars, context_segments=context_segments,
+                                     request_timeout=request_timeout,
+                                     allow_redirects=allow_redirects, trust_env=trust_env)
         cuts = _ai_ads(transcript, base_url, model, key, threshold=threshold, review_only=review_only,
                        progress=progress, should_cancel=should_cancel, window_chars=window_chars,
                        context_segments=context_segments, request_timeout=request_timeout,
@@ -595,6 +619,10 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         if progress:
             progress("Checking explicit sponsorship and commercial cues")
         cuts = baseline
+        if ai_policy == "verified":
+            for cut in cuts:
+                cut["requires_review"] = True
+                cut["reason"] = "Unverified commercial cue; review its intent and boundaries before removing."
     for cut in cuts:
         if cut["source"] == "ai":
             selected = [i for i, segment in enumerate(transcript["segments"])
@@ -606,6 +634,10 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
                     and not _SPONSOR.search(selected_text)):
                 cut["requires_review"] = True
                 cut["reason"] += "; quoted advertising appears in editorial analysis, so verify before removing"
+        if any(segment.get("asr_recovered") and segment["start"] < cut["end"] and segment["end"] > cut["start"]
+               for segment in transcript["segments"]):
+            cut["requires_review"] = True
+            cut["reason"] += "; includes provisional recovered speech, so listen before removing"
         cut["approved"] = cut["confidence"] >= threshold and not review_only and not cut.get("requires_review", False)
         cut.setdefault("sources", [cut["source"]])
     _check_cancel(should_cancel)

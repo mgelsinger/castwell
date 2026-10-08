@@ -1,0 +1,1876 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen handcrafted synthetic transcript challenge. Times, fictional podcast/host groups, brands, commercial intent, and reference intervals are authored, not measured from recordings. This is not a real-podcast accuracy benchmark. Ambiguous cases have no definitive ad label and require review.",
+  "recorded_at": "2026-10-08T02:16:25.804630+00:00",
+  "dataset_sha256": "9bc08a5ade15ee3a78ec7f9d066ad8136cc60c3002f27f1561993a5627503266",
+  "dataset_hash_basis": "original fixture file bytes",
+  "provenance": {
+    "git_revision": "c76c7edd5400746a779ca6b8c8c7d3327bd6688e",
+    "git_dirty": true,
+    "python": "3.12.10",
+    "package_versions": {
+      "castwell": "0.4.0",
+      "requests": "2.34.2",
+      "llama-cpp-python": null
+    },
+    "source_sha256": {
+      "processing.py": "fb00182b4bf041d336c072661f5070d4a5a62ca78ffdaa9a8261202004815eff",
+      "evaluation.py": "1afa7de13e2b6c0c04ab83363c59fad55549bd2793c710e617d41b9b63e26d4c",
+      "jev.py": "f8f4bf4cc8471bcbcb23a3ba06a00071e5342fd93bac06343ea63321ce286947",
+      "ad_review.py": "11c92fc957b36011e45fcc70cde60fde79a78b2ae3ee1e920172fe516bd6a3e3"
+    }
+  },
+  "settings": {
+    "split": "dev",
+    "approval_threshold": 0.9,
+    "shadow_only": true,
+    "allow_remote": false,
+    "allow_paid_api": false,
+    "local_ai_inherited_credentials": false,
+    "local_ai_redirects": false,
+    "local_ai_environment_proxies_and_netrc": false,
+    "ai_window_chars": "18000",
+    "ai_context_segments": "12",
+    "ai_timeout_seconds": "180"
+  },
+  "metric_definitions": {
+    "primary": "Approved editorial seconds wrongly cut; lower is better. No audio is modified.",
+    "duration": "Union intersection of authored intervals; all remaining transcript time is non-ad time.",
+    "boundary": "Greedy one-to-one positive-overlap matching ranked by IoU, overlap, then indices; report absolute start/end errors. Unmatched spans have counts, no fabricated boundary error.",
+    "ambiguity": "category=ambiguous cases are excluded from accuracy denominators. ambiguous_safety reports union seconds/spans and case counts separately; approved selections are unsupported automatic cuts, not established editorial or ad errors. Failed cases remain explicit.",
+    "review_signal": "review_observed is any unapproved/requires_review cut for heuristic/local-ai, but Jev/Kev explicit uncertainty/conflict signals. manual_review_cases separately counts cases containing unapproved cuts for every backend.",
+    "failure": "Errors are excluded from scored metrics, never counted as successful no-ad predictions; eligible totals include failed cases.",
+    "proposed": "All candidate intervals, including unapproved review suggestions.",
+    "approved": "Classifier-approved intervals with the production approval threshold frozen at 0.90. Jev and Kev adapters never auto-approve.",
+    "threshold_shadow": "Hypothetical intervals at score >= 0.90: confidence for ordinary/paid backends, selected_probability for local Kev. Excludes explicit requires_review spans and Jev/Kev responses requesting review. Separate from actual approval; scores are not interchangeable or podcast-calibrated.",
+    "confidence": "Reported confidence is not measured accuracy or a calibrated probability."
+  },
+  "backends": [
+    {
+      "config": {
+        "backend": "kev",
+        "model": "kev-latest",
+        "model_label": "Kev4B pinned Qwen3.5-4B-Base BF16, kev-context-v2, unfused CUDA",
+        "base_url": "http://127.0.0.1:8083"
+      },
+      "cases": [
+        {
+          "id": "dev-01-straight",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "straightad",
+          "description": "Declared paid sponsor, product benefit, offer, and immediate editorial return. The entire sponsor block belongs in the cut.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "approved": false,
+              "confidence": 0.3711,
+              "commercial_probability": 0.5808,
+              "selected_probability": 0.5808,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                1,
+                2,
+                3
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1657,
+            "output_tokens": 586
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.2619,
+                "editorial": 0.3792,
+                "uncertain": 0.3588
+              },
+              "confidence": 0.0689,
+              "selected_probability": 0.3792,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1782,
+              "humor_probability": 0.0753,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.6757,
+                "editorial": 0.1512,
+                "uncertain": 0.1731
+              },
+              "confidence": 0.5136,
+              "selected_probability": 0.6757,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1191,
+              "humor_probability": 0.0581,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.5828,
+                "editorial": 0.1987,
+                "uncertain": 0.2185
+              },
+              "confidence": 0.3742,
+              "selected_probability": 0.5828,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1303,
+              "humor_probability": 0.0636,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.5808,
+                "editorial": 0.199,
+                "uncertain": 0.2203
+              },
+              "confidence": 0.3711,
+              "selected_probability": 0.5808,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1507,
+              "humor_probability": 0.0781,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.2152,
+                "editorial": 0.4217,
+                "uncertain": 0.3632
+              },
+              "confidence": 0.1325,
+              "selected_probability": 0.4217,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2185,
+              "humor_probability": 0.0746,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 1.187318
+        },
+        {
+          "id": "dev-02-humorous-paid",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "humorouspaidad",
+          "description": "The host jokes inside an explicitly paid read. Humor does not turn the paid product pitch into editorial parody.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 25.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 30.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 25.0,
+              "approved": false,
+              "confidence": 0.3497,
+              "commercial_probability": 0.5665,
+              "selected_probability": 0.5665,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                1,
+                2,
+                3,
+                4
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 20.0,
+              "selected_seconds": 20.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 20.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 20.0,
+              "total_ad_seconds": 20.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 25.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1985,
+            "output_tokens": 703
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.2477,
+                "editorial": 0.3649,
+                "uncertain": 0.3874
+              },
+              "confidence": 0.0812,
+              "selected_probability": 0.3874,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3776,
+              "humor_probability": 0.3876,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.6141,
+                "editorial": 0.2047,
+                "uncertain": 0.1811
+              },
+              "confidence": 0.4212,
+              "selected_probability": 0.6141,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.316,
+              "humor_probability": 0.7108,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.5665,
+                "editorial": 0.2228,
+                "uncertain": 0.2108
+              },
+              "confidence": 0.3497,
+              "selected_probability": 0.5665,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3383,
+              "humor_probability": 0.7784,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.7093,
+                "editorial": 0.1424,
+                "uncertain": 0.1483
+              },
+              "confidence": 0.5639,
+              "selected_probability": 0.7093,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2909,
+              "humor_probability": 0.7473,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.5786,
+                "editorial": 0.2279,
+                "uncertain": 0.1935
+              },
+              "confidence": 0.3679,
+              "selected_probability": 0.5786,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3142,
+              "humor_probability": 0.4875,
+              "requires_review": true
+            },
+            {
+              "segment_id": 5,
+              "start": 25.0,
+              "end": 30.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.2112,
+                "editorial": 0.4186,
+                "uncertain": 0.3702
+              },
+              "confidence": 0.1279,
+              "selected_probability": 0.4186,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3797,
+              "humor_probability": 0.4486,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.764045
+        },
+        {
+          "id": "dev-03-unpaid-parody",
+          "split": "dev",
+          "group": "harbor-notes--mara-vale",
+          "category": "unpaidparody",
+          "description": "A declared unpaid comedy sketch imitates sponsor language. No product is offered and the entire passage is editorial entertainment.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1660,
+            "output_tokens": 587
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.0571,
+                "editorial": 0.8262,
+                "uncertain": 0.1167
+              },
+              "confidence": 0.7392,
+              "selected_probability": 0.8262,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.8911,
+              "humor_probability": 0.9375,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.1984,
+                "editorial": 0.5871,
+                "uncertain": 0.2144
+              },
+              "confidence": 0.3807,
+              "selected_probability": 0.5871,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.7927,
+              "humor_probability": 0.8766,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.1869,
+                "editorial": 0.5878,
+                "uncertain": 0.2253
+              },
+              "confidence": 0.3817,
+              "selected_probability": 0.5878,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.8767,
+              "humor_probability": 0.8729,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.1116,
+                "editorial": 0.7194,
+                "uncertain": 0.169
+              },
+              "confidence": 0.579,
+              "selected_probability": 0.7194,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.8658,
+              "humor_probability": 0.9212,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.117,
+                "editorial": 0.6541,
+                "uncertain": 0.2289
+              },
+              "confidence": 0.4812,
+              "selected_probability": 0.6541,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.7781,
+              "humor_probability": 0.4504,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.635586
+        },
+        {
+          "id": "dev-04-quoted-editorial",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "quotededitorial",
+          "description": "A researcher quotes and critiques an old advertisement. The quotation is evidence in an editorial discussion, not a current offer.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1650,
+            "output_tokens": 583
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.075,
+                "editorial": 0.7531,
+                "uncertain": 0.1719
+              },
+              "confidence": 0.6297,
+              "selected_probability": 0.7531,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.6266,
+              "humor_probability": 0.1285,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.3369,
+                "editorial": 0.4656,
+                "uncertain": 0.1975
+              },
+              "confidence": 0.1984,
+              "selected_probability": 0.4656,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3971,
+              "humor_probability": 0.0974,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.3777,
+                "editorial": 0.38,
+                "uncertain": 0.2424
+              },
+              "confidence": 0.07,
+              "selected_probability": 0.38,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3761,
+              "humor_probability": 0.0756,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.1113,
+                "editorial": 0.648,
+                "uncertain": 0.2408
+              },
+              "confidence": 0.4719,
+              "selected_probability": 0.648,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.4697,
+              "humor_probability": 0.0776,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.117,
+                "editorial": 0.6603,
+                "uncertain": 0.2227
+              },
+              "confidence": 0.4904,
+              "selected_probability": 0.6603,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.5785,
+              "humor_probability": 0.0898,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.636416
+        },
+        {
+          "id": "dev-05-ordinary-brand",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "ordinarybrandmention",
+          "description": "Independent discussion of a fictional manufacturer, without a commercial pitch or sponsor arrangement.",
+          "expected_intervals": [],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 0,
+              "total_editorial_seconds": 25.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1649,
+            "output_tokens": 589
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.0941,
+                "editorial": 0.5791,
+                "uncertain": 0.3269
+              },
+              "confidence": 0.3686,
+              "selected_probability": 0.5791,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2616,
+              "humor_probability": 0.0461,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.0681,
+                "editorial": 0.6063,
+                "uncertain": 0.3257
+              },
+              "confidence": 0.4094,
+              "selected_probability": 0.6063,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2579,
+              "humor_probability": 0.0336,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.075,
+                "editorial": 0.5957,
+                "uncertain": 0.3293
+              },
+              "confidence": 0.3935,
+              "selected_probability": 0.5957,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2384,
+              "humor_probability": 0.0293,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.0942,
+                "editorial": 0.5719,
+                "uncertain": 0.3339
+              },
+              "confidence": 0.3578,
+              "selected_probability": 0.5719,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.3181,
+              "humor_probability": 0.0432,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.0695,
+                "editorial": 0.6328,
+                "uncertain": 0.2977
+              },
+              "confidence": 0.4492,
+              "selected_probability": 0.6328,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2716,
+              "humor_probability": 0.0307,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.641226
+        },
+        {
+          "id": "dev-06-self-promo",
+          "split": "dev",
+          "group": "workshop-window--eli-bracken",
+          "category": "selfpromo",
+          "description": "The host sells a paid class. This is a commercial interruption even without an outside sponsor.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 20.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "approved": false,
+              "confidence": 0.6429,
+              "commercial_probability": 0.762,
+              "selected_probability": 0.762,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                1,
+                2,
+                3
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 15.0,
+              "selected_seconds": 15.0,
+              "exact_match": true,
+              "boundary_absolute_error_seconds": 0.0,
+              "mean_boundary_error_seconds": 0.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 15.0,
+                  "intersection_over_union": 1.0,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 0.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 15.0,
+              "total_ad_seconds": 15.0,
+              "total_editorial_seconds": 10.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1656,
+            "output_tokens": 584
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.3408,
+                "editorial": 0.3094,
+                "uncertain": 0.3497
+              },
+              "confidence": 0.0246,
+              "selected_probability": 0.3497,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2175,
+              "humor_probability": 0.0656,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.7814,
+                "editorial": 0.0872,
+                "uncertain": 0.1314
+              },
+              "confidence": 0.6721,
+              "selected_probability": 0.7814,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1855,
+              "humor_probability": 0.1003,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.7975,
+                "editorial": 0.0766,
+                "uncertain": 0.1258
+              },
+              "confidence": 0.6963,
+              "selected_probability": 0.7975,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1782,
+              "humor_probability": 0.0533,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.762,
+                "editorial": 0.0962,
+                "uncertain": 0.1418
+              },
+              "confidence": 0.6429,
+              "selected_probability": 0.762,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.173,
+              "humor_probability": 0.0676,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.2453,
+                "editorial": 0.329,
+                "uncertain": 0.4258
+              },
+              "confidence": 0.1387,
+              "selected_probability": 0.4258,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2011,
+              "humor_probability": 0.0511,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.664251
+        },
+        {
+          "id": "dev-07-delayed-return",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "delayedreturnboundary",
+          "description": "The sponsor ends before an editorial fact. A later return marker must not pull the intervening editorial sentence into the ad.",
+          "expected_intervals": [
+            {
+              "start": 5.0,
+              "end": 15.0
+            }
+          ],
+          "expect_review": false,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "approved": false,
+              "confidence": 0.0506,
+              "commercial_probability": 0.3671,
+              "selected_probability": 0.3671,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                1,
+                2,
+                3
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 5.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 10.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 5.0,
+              "mean_boundary_error_seconds": 2.5,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 10.0,
+                  "intersection_over_union": 0.6666666666666666,
+                  "start_error_seconds": 0.0,
+                  "end_error_seconds": 5.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 10.0,
+              "total_ad_seconds": 10.0,
+              "total_editorial_seconds": 15.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1648,
+            "output_tokens": 586
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.2873,
+                "editorial": 0.3568,
+                "uncertain": 0.3559
+              },
+              "confidence": 0.0352,
+              "selected_probability": 0.3568,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2487,
+              "humor_probability": 0.0759,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.6075,
+                "editorial": 0.1791,
+                "uncertain": 0.2134
+              },
+              "confidence": 0.4113,
+              "selected_probability": 0.6075,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2041,
+              "humor_probability": 0.0683,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.6113,
+                "editorial": 0.1798,
+                "uncertain": 0.2089
+              },
+              "confidence": 0.4169,
+              "selected_probability": 0.6113,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1922,
+              "humor_probability": 0.0753,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.3671,
+                "editorial": 0.3376,
+                "uncertain": 0.2953
+              },
+              "confidence": 0.0506,
+              "selected_probability": 0.3671,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2267,
+              "humor_probability": 0.0493,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.2383,
+                "editorial": 0.4113,
+                "uncertain": 0.3504
+              },
+              "confidence": 0.117,
+              "selected_probability": 0.4113,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2433,
+              "humor_probability": 0.0491,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.645474
+        },
+        {
+          "id": "dev-08-mixed-span",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "mixedspan",
+          "description": "Authored timing: editorial at 5-8 seconds, paid read at 8-17, editorial at 17-20. The supplied 5-20 segment has no word timestamps, so exact automatic boundaries are unsupported and review is required.",
+          "expected_intervals": [
+            {
+              "start": 8.0,
+              "end": 17.0
+            }
+          ],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": false,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 5.0,
+              "end": 20.0,
+              "approved": false,
+              "confidence": 0.2988,
+              "commercial_probability": 0.5325,
+              "selected_probability": 0.5325,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                1
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": {
+            "proposed": {
+              "editorial_seconds_wrongly_cut": 6.0,
+              "ad_seconds_missed": 0.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 9.0,
+              "selected_seconds": 15.0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 6.0,
+              "mean_boundary_error_seconds": 3.0,
+              "matched_spans": 1,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 0,
+              "boundary_matches": [
+                {
+                  "predicted_index": 0,
+                  "expected_index": 0,
+                  "intersection_seconds": 9.0,
+                  "intersection_over_union": 0.6,
+                  "start_error_seconds": 3.0,
+                  "end_error_seconds": 3.0
+                }
+              ]
+            },
+            "approved": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 9.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            },
+            "threshold_shadow": {
+              "editorial_seconds_wrongly_cut": 0.0,
+              "ad_seconds_missed": 9.0,
+              "total_ad_seconds": 9.0,
+              "total_editorial_seconds": 16.0,
+              "ad_seconds_selected": 0.0,
+              "selected_seconds": 0,
+              "exact_match": false,
+              "boundary_absolute_error_seconds": 0,
+              "mean_boundary_error_seconds": null,
+              "matched_spans": 0,
+              "unmatched_predicted_spans": 0,
+              "unmatched_expected_spans": 1,
+              "boundary_matches": []
+            }
+          },
+          "intervals": {
+            "proposed": [
+              {
+                "start": 5.0,
+                "end": 20.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1015,
+            "output_tokens": 350
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "editorial",
+              "probabilities": {
+                "commercial": 0.1663,
+                "editorial": 0.426,
+                "uncertain": 0.4077
+              },
+              "confidence": 0.139,
+              "selected_probability": 0.426,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2015,
+              "humor_probability": 0.0274,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 20.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.5325,
+                "editorial": 0.1955,
+                "uncertain": 0.272
+              },
+              "confidence": 0.2988,
+              "selected_probability": 0.5325,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1895,
+              "humor_probability": 0.0576,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.1996,
+                "editorial": 0.3805,
+                "uncertain": 0.4199
+              },
+              "confidence": 0.1298,
+              "selected_probability": 0.4199,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.1889,
+              "humor_probability": 0.0348,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.46772
+        },
+        {
+          "id": "dev-09-ambiguous",
+          "split": "dev",
+          "group": "garden-measure--nora-finch",
+          "category": "ambiguous",
+          "description": "The excerpt omits whether this recommendation is sponsored or independent. The author does not supply a definitive ad label; request review rather than authorize a cut.",
+          "expected_intervals": [],
+          "expect_review": true,
+          "duration": 25.0,
+          "ambiguous": true,
+          "status": "ok",
+          "cuts": [
+            {
+              "start": 10.0,
+              "end": 15.0,
+              "approved": false,
+              "confidence": 0.0507,
+              "commercial_probability": 0.3671,
+              "selected_probability": 0.3671,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "requires_review": true,
+              "source": "kev-local",
+              "provider": "kev-local",
+              "model": "kev-latest",
+              "policy_version": "kev-context-v2",
+              "segment_ids": [
+                2
+              ],
+              "reason": "Local Kev classified these segments as commercial; manual approval is required."
+            }
+          ],
+          "review": true,
+          "metrics": null,
+          "intervals": {
+            "proposed": [
+              {
+                "start": 10.0,
+                "end": 15.0
+              }
+            ],
+            "approved": [],
+            "threshold_shadow": []
+          },
+          "usage": {
+            "input_tokens": 1655,
+            "output_tokens": 586
+          },
+          "provider_metadata": {
+            "model": "kev-latest",
+            "provider": "kev-local",
+            "request_count": 1,
+            "policy_version": "kev-context-v2"
+          },
+          "decisions": [
+            {
+              "segment_id": 0,
+              "start": 0.0,
+              "end": 5.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.2937,
+                "editorial": 0.3057,
+                "uncertain": 0.4006
+              },
+              "confidence": 0.1009,
+              "selected_probability": 0.4006,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2462,
+              "humor_probability": 0.079,
+              "requires_review": true
+            },
+            {
+              "segment_id": 1,
+              "start": 5.0,
+              "end": 10.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.3137,
+                "editorial": 0.2933,
+                "uncertain": 0.3931
+              },
+              "confidence": 0.0896,
+              "selected_probability": 0.3931,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2245,
+              "humor_probability": 0.0506,
+              "requires_review": true
+            },
+            {
+              "segment_id": 2,
+              "start": 10.0,
+              "end": 15.0,
+              "choice": "commercial",
+              "probabilities": {
+                "commercial": 0.3671,
+                "editorial": 0.2742,
+                "uncertain": 0.3587
+              },
+              "confidence": 0.0507,
+              "selected_probability": 0.3671,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2435,
+              "humor_probability": 0.0785,
+              "requires_review": true
+            },
+            {
+              "segment_id": 3,
+              "start": 15.0,
+              "end": 20.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.2102,
+                "editorial": 0.3598,
+                "uncertain": 0.43
+              },
+              "confidence": 0.1449,
+              "selected_probability": 0.43,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2642,
+              "humor_probability": 0.0931,
+              "requires_review": true
+            },
+            {
+              "segment_id": 4,
+              "start": 20.0,
+              "end": 25.0,
+              "choice": "uncertain",
+              "probabilities": {
+                "commercial": 0.2253,
+                "editorial": 0.3829,
+                "uncertain": 0.3918
+              },
+              "confidence": 0.0877,
+              "selected_probability": 0.3918,
+              "confidence_kind": "normalized_probability_margin",
+              "review_score": "selected_probability",
+              "parody_probability": 0.2743,
+              "humor_probability": 0.0664,
+              "requires_review": true
+            }
+          ],
+          "confidence_semantics": {
+            "confidence": "normalized_probability_margin",
+            "review_score": "selected_probability",
+            "review_threshold": 0.9
+          },
+          "seconds": 0.621177
+        }
+      ],
+      "summary": {
+        "attempted_cases": 9,
+        "successful_cases": 9,
+        "failed_cases": 0,
+        "ambiguous_cases": 1,
+        "accuracy_eligible_cases": 8,
+        "accuracy_scored_cases": 8,
+        "accuracy_failed_cases": 0,
+        "eligible_ad_seconds_including_failed_cases": 69.0,
+        "eligible_duration_seconds_including_failed_cases": 205.0,
+        "review_scored_cases": 9,
+        "review_expected_cases": 2,
+        "review_observed_cases": 9,
+        "manual_review_cases": 6,
+        "review_true_positive_cases": 2,
+        "review_false_positive_cases": 7,
+        "review_false_negative_cases": 0,
+        "ambiguous_safety": {
+          "attempted_cases": 1,
+          "successful_cases": 1,
+          "failed_cases": 0,
+          "eligible_duration_seconds_including_failed_cases": 25.0,
+          "scored_duration_seconds": 25.0,
+          "proposed": {
+            "selected_seconds": 5.0,
+            "union_spans": 1,
+            "cases_with_cuts": 1
+          },
+          "approved": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          },
+          "threshold_shadow": {
+            "selected_seconds": 0,
+            "union_spans": 0,
+            "cases_with_cuts": 0
+          }
+        },
+        "proposed": {
+          "editorial_seconds_wrongly_cut": 11.0,
+          "ad_seconds_missed": 0.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 69.0,
+          "selected_seconds": 80.0,
+          "boundary_absolute_error_seconds": 11.0,
+          "matched_spans": 5,
+          "unmatched_predicted_spans": 0,
+          "unmatched_expected_spans": 0,
+          "exact_match_cases": 6,
+          "exact_match_rate": 0.75,
+          "mean_boundary_error_seconds": 1.1
+        },
+        "approved": {
+          "editorial_seconds_wrongly_cut": 0.0,
+          "ad_seconds_missed": 69.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 0.0,
+          "selected_seconds": 0,
+          "boundary_absolute_error_seconds": 0,
+          "matched_spans": 0,
+          "unmatched_predicted_spans": 0,
+          "unmatched_expected_spans": 5,
+          "exact_match_cases": 3,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": null
+        },
+        "threshold_shadow": {
+          "editorial_seconds_wrongly_cut": 0.0,
+          "ad_seconds_missed": 69.0,
+          "total_ad_seconds": 69.0,
+          "total_editorial_seconds": 136.0,
+          "ad_seconds_selected": 0.0,
+          "selected_seconds": 0,
+          "boundary_absolute_error_seconds": 0,
+          "matched_spans": 0,
+          "unmatched_predicted_spans": 0,
+          "unmatched_expected_spans": 5,
+          "exact_match_cases": 3,
+          "exact_match_rate": 0.375,
+          "mean_boundary_error_seconds": null
+        }
+      }
+    }
+  ]
+}

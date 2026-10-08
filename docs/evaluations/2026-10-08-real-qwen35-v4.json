@@ -1,0 +1,978 @@
+{
+  "schema_version": 1,
+  "started_at_utc": "2026-10-08T02:40:10.078627+00:00",
+  "configuration": {
+    "backend": "verified-ai",
+    "base_url": "http://127.0.0.1:8081/v1",
+    "model": "castwell-local",
+    "model_label": "Qwen3.5-35B-A3B local Q8-to-Q4_K_M; llama.cpp b11146; CPU expert layers4; intent-boundary-v4 nonthinking",
+    "review_only": true,
+    "auto_approve_threshold": 0.9,
+    "transport": "literal loopback, no redirects, no inherited credentials or proxies",
+    "classifier_environment": {
+      "CASTWELL_AI_WINDOW_CHARS": "18000",
+      "CASTWELL_AI_CONTEXT_SEGMENTS": "12",
+      "CASTWELL_AI_TIMEOUT": "180"
+    },
+    "view_availability": {
+      "candidates": true,
+      "verified": true,
+      "approved": true
+    },
+    "confidence_semantics": {
+      "confidence": "minimum_model_self_report_across_two_passes",
+      "review_score": "confidence",
+      "review_threshold": 0.9,
+      "interpretation": "Self-reported confidence is not a calibrated probability; approval also requires intent/boundary agreement and alignment safeguards."
+    }
+  },
+  "provenance": {
+    "source_sha256": {
+      "castwell/processing.py": "fb00182b4bf041d336c072661f5070d4a5a62ca78ffdaa9a8261202004815eff",
+      "castwell/ad_review.py": "11c92fc957b36011e45fcc70cde60fde79a78b2ae3ee1e920172fe516bd6a3e3",
+      "castwell/jev.py": "f8f4bf4cc8471bcbcb23a3ba06a00071e5342fd93bac06343ea63321ce286947",
+      "castwell/evaluation.py": "1afa7de13e2b6c0c04ab83363c59fad55549bd2793c710e617d41b9b63e26d4c",
+      "castwell/transcript_quality.py": "196442416a7d1cc47ed7a0032da6dd342e678a4c12ab87d0d204563288b7aa16",
+      "castwell/recording_evaluation.py": "1b94f7e9814b74c7c6626fb0916fa78455f8cd9bea89f4b6329d87a671c72a9a",
+      "scripts/evaluate_recordings.py": "eabb42f565ef9fd7432c5878384e9a92f71518ed80641d693fb7cfde0ae53882"
+    },
+    "model_artifacts": [
+      {
+        "file": "Qwen3.5-35B-A3B-Q4_K_M-local.gguf",
+        "sha256": "e2d0b8f0283a971b90a7e1421d5e002e0e1549f25812e5fc5aa4a40a83dd0ed5",
+        "bytes": 21166758144
+      }
+    ],
+    "candidate_configuration_sha256": "6df397323c13e4b3f9d38b2f0929e84a4970cc5bc621dfc5c9a5fd00d3784bd0"
+  },
+  "limitations": [
+    "References are independently annotated from publisher context and ASR, without human listening verification.",
+    "Only labeled intervals are scored. Unverified intervals are excluded; unlabeled audio is not assumed editorial.",
+    "Unit coverage concerns provisional transcript spans, not exact acoustic cut boundaries or real-world accuracy.",
+    "Candidates are each backend's proposed removal intervals. Verified AI can propose uncertain spans; Kev proposes units whose selected class is commercial and keeps other typed decisions in the private report.",
+    "Review is enabled: actual approved cuts should be empty. Zero approved deletion does not establish detection quality.",
+    "Model artifact hashes identify supplied local files; this evaluator cannot attest which bytes a separate server loaded.",
+    "Four selected shows and overlapping episode context are a small convenience sample, not host-held-out population evidence.",
+    "Verified suggestions passed both model checks and alignment safeguards; actual approval remains off during this run."
+  ],
+  "clips": [
+    {
+      "id": "stdwytk-2026-08-27.first-10m.reference-v3.json",
+      "status": "ok",
+      "provenance": {
+        "reference_file": "stdwytk-2026-08-27.first-10m.reference-v3.json",
+        "reference_sha256": "0fdff267aeab03596230e1be67810d3b2bde318c2cd355f27007d757ae3bda1e",
+        "transcript_file": "stdwytk-2026-08-27.first-10m.recovery-candidate.json",
+        "transcript_sha256": "36f732d01d0145067c06278fecd5fa92bbf01dc2d72b011880271e21e98ac2e2",
+        "clip_file": "stdwytk-2026-08-27.first-10m.wav",
+        "clip_sha256": "dfd69bb275f8acff6d1e2e63d4600fca1fceafd405555ff7410d658027f9dcf6",
+        "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+        "source_offset_seconds": 0,
+        "source_episode_url": "https://omny.fm/shows/stuff-they-dont-want-you-to-know/listener-mail-sleeper-agents-devil-corp-automated-book-scanners-and-the-gandalf-protest",
+        "source_feed_url": "https://omny.fm/shows/stuff-they-dont-want-you-to-know/playlists/podcast.rss",
+        "downloaded_at_utc": "2026-10-08T01:40:08.017916+00:00",
+        "source_manifest_sha256": "f603026588482e870851c379cef944685a3fa1365a472fae23d9ee3791d87b2b",
+        "metadata_sha256": "66bedca3315e79eb69806becb0215299c0162ca4e8a54f74c3e675b9fede67bb",
+        "duration": 600.0
+      },
+      "eligible": {
+        "commercial_seconds": 132.36,
+        "protected_seconds": 377.31999999999994,
+        "unverified_seconds": 17.180000000000007
+      },
+      "elapsed_seconds": 341.9219999999623,
+      "metrics": {
+        "candidates": {
+          "selected_seconds": 117.53999999999996,
+          "annotated_commercial_seconds": 132.36,
+          "annotated_protected_seconds": 377.31999999999994,
+          "commercial_seconds_selected": 117.53999999999996,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 14.82000000000005,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 36.74000000000001,
+              "selected_seconds": 33.139999999999986,
+              "coverage": 0.9020141535111589,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 42.85999999999996,
+              "selected_seconds": 37.81999999999982,
+              "coverage": 0.8824078394773649,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 21.30000000000001,
+              "selected_seconds": 15.740000000000066,
+              "coverage": 0.7389671361502375,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 31.460000000000036,
+              "selected_seconds": 30.84000000000009,
+              "coverage": 0.9802924348378911,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 4,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 46.48,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 123.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 3.960000000000008,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 203.69999999999993,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 4,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "verified": {
+          "selected_seconds": 79.47999999999988,
+          "annotated_commercial_seconds": 132.36,
+          "annotated_protected_seconds": 377.31999999999994,
+          "commercial_seconds_selected": 79.47999999999988,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 52.88000000000014,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 36.74000000000001,
+              "selected_seconds": 24.72,
+              "coverage": 0.6728361458900379,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 42.85999999999996,
+              "selected_seconds": 34.99999999999983,
+              "coverage": 0.8166122258516068,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 21.30000000000001,
+              "selected_seconds": 8.500000000000057,
+              "coverage": 0.3990610328638522,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 31.460000000000036,
+              "selected_seconds": 11.259999999999991,
+              "coverage": 0.3579148124602663,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 4,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 46.48,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 123.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 3.960000000000008,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 203.69999999999993,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 4,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "approved": {
+          "selected_seconds": 0,
+          "annotated_commercial_seconds": 132.36,
+          "annotated_protected_seconds": 377.31999999999994,
+          "commercial_seconds_selected": 0,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 132.36,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 36.74000000000001,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 42.85999999999996,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 21.30000000000001,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 31.460000000000036,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 0,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 46.48,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 123.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 3.960000000000008,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 203.69999999999993,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 4,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        }
+      }
+    },
+    {
+      "id": "sysk-2026-10-07.first-10m.reference-v3.json",
+      "status": "ok",
+      "provenance": {
+        "reference_file": "sysk-2026-10-07.first-10m.reference-v3.json",
+        "reference_sha256": "9b2d3448f804efc1f59e5b3376addcda95cc0debe7f9315f5e3b9b4792f36595",
+        "transcript_file": "sysk-2026-10-07.first-10m.recovery-candidate.json",
+        "transcript_sha256": "446e2f1a464be1a5745ef6cd749ba19a1a6898d3b21982eebc7134e743dcf227",
+        "clip_file": "sysk-2026-10-07.first-10m.wav",
+        "clip_sha256": "91b4c6f895b84ff4c0250573af0a17b66764e630850b1ee5550c08a3d2ebc30a",
+        "source_audio_sha256": "333e9d180e4a58587cf542c290e376686fd41fa1bec9def318da999678719af6",
+        "source_offset_seconds": 0,
+        "source_episode_url": "https://omny.fm/shows/stuff-you-should-know-1/short-stuff-the-style-cycle",
+        "source_feed_url": "https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/a91018a4-ea4f-4130-bf55-ae270180c327/44710ecc-10bb-48d1-93c7-ae270180c33e/podcast.rss",
+        "downloaded_at_utc": "2026-10-08T01:42:01.807970+00:00",
+        "source_manifest_sha256": "f603026588482e870851c379cef944685a3fa1365a472fae23d9ee3791d87b2b",
+        "metadata_sha256": "032070f7d32d9e7690b774c49bb4cba129827f44bc684e3fd4e730778b4edc3a",
+        "duration": 600.0
+      },
+      "eligible": {
+        "commercial_seconds": 142.8,
+        "protected_seconds": 419.48,
+        "unverified_seconds": 29.449999999999992
+      },
+      "elapsed_seconds": 288.90600000001723,
+      "metrics": {
+        "candidates": {
+          "selected_seconds": 129.81999999999996,
+          "annotated_commercial_seconds": 142.8,
+          "annotated_protected_seconds": 419.48,
+          "commercial_seconds_selected": 129.81999999999996,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 12.980000000000047,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 26.459999999999994,
+              "selected_seconds": 22.379999999999992,
+              "coverage": 0.8458049886621314,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 31.6,
+              "selected_seconds": 29.340000000000003,
+              "coverage": 0.9284810126582279,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 61.620000000000005,
+              "selected_seconds": 56.33999999999992,
+              "coverage": 0.9143135345666977,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 23.120000000000005,
+              "selected_seconds": 21.760000000000048,
+              "coverage": 0.9411764705882372,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 4,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 3.4,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 314.52,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 101.56000000000006,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 3,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "verified": {
+          "selected_seconds": 72.21999999999997,
+          "annotated_commercial_seconds": 142.8,
+          "annotated_protected_seconds": 419.48,
+          "commercial_seconds_selected": 72.21999999999997,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 70.58000000000004,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 26.459999999999994,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 31.6,
+              "selected_seconds": 18.560000000000002,
+              "coverage": 0.5873417721518988,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 61.620000000000005,
+              "selected_seconds": 35.93999999999994,
+              "coverage": 0.5832521908471265,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 23.120000000000005,
+              "selected_seconds": 17.720000000000027,
+              "coverage": 0.7664359861591706,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 3,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 3.4,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 314.52,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 101.56000000000006,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 3,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "approved": {
+          "selected_seconds": 0,
+          "annotated_commercial_seconds": 142.8,
+          "annotated_protected_seconds": 419.48,
+          "commercial_seconds_selected": 0,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 142.8,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 26.459999999999994,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 31.6,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 61.620000000000005,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 3,
+              "annotated_seconds": 23.120000000000005,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 4,
+          "commercial_units_any_selected": 0,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 3.4,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 314.52,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 2,
+              "annotated_seconds": 101.56000000000006,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 3,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        }
+      }
+    },
+    {
+      "id": "skeptoid-2026-10-06.first-10m.reference-v3.json",
+      "status": "error",
+      "provenance": {
+        "reference_file": "skeptoid-2026-10-06.first-10m.reference-v3.json",
+        "reference_sha256": "9343b28cc3733cbfba7d631ad46e1259a107281ea506488d8bf271dbeb922279",
+        "transcript_file": "skeptoid-2026-10-06.first-10m.recovery-candidate.json",
+        "transcript_sha256": "62a1daf2c683fb66bbd7a703369b746c76775038961f1b3d8d7011d3391d27cc",
+        "clip_file": "skeptoid-2026-10-06.first-10m.wav",
+        "clip_sha256": "f3730525b099fc57736fa3052fe7ddd03c5044b2c326c249e03457c6cfbaedbe",
+        "source_audio_sha256": "b1c71a080b0c256854fccf84e01224314a3f852e1f0e33a01b4f6ceca6f78ecd",
+        "source_offset_seconds": 0,
+        "source_episode_url": "https://skeptoid.com/episodes/1061",
+        "source_feed_url": "https://feed.skeptoid.com",
+        "downloaded_at_utc": "2026-10-08T01:42:02.008656+00:00",
+        "source_manifest_sha256": "f603026588482e870851c379cef944685a3fa1365a472fae23d9ee3791d87b2b",
+        "metadata_sha256": "526f54c6ecac49653662f60afb77a799819fd601064859b296f127018021b014",
+        "duration": 600.0
+      },
+      "eligible": {
+        "commercial_seconds": 155.86000000000007,
+        "protected_seconds": 422.71,
+        "unverified_seconds": 0
+      },
+      "elapsed_seconds": 198.375,
+      "error_type": "_InvalidDecisions"
+    },
+    {
+      "id": "doac-2026-09-25.first-10m.reference-v3.json",
+      "status": "ok",
+      "provenance": {
+        "reference_file": "doac-2026-09-25.first-10m.reference-v3.json",
+        "reference_sha256": "cdc4f8632b98282af8eb84be435550902b1fce7116319f2647b9f2c4e74e3ce3",
+        "transcript_file": "doac-2026-09-25.first-10m.recovery-candidate.json",
+        "transcript_sha256": "91d6a83df27c680d5ee48ccecb3b9996492cdea8c31be652c98453131c59a99b",
+        "clip_file": "doac-2026-09-25.first-10m.wav",
+        "clip_sha256": "2bd9cb29f288ed606059855c4e24370e195a02b2f005c69d00f50093cd9d3aad",
+        "source_audio_sha256": "8d783e59c8ba8da7c99a3cf4708d330408cbe960fe48ddf7dd1d84468fed8400",
+        "source_offset_seconds": 0,
+        "source_episode_url": null,
+        "source_feed_url": "https://rss2.flightcast.com/xmsftuzjjykcmqwolaqn6mdn",
+        "downloaded_at_utc": "2026-10-08T01:42:48.941514+00:00",
+        "source_manifest_sha256": "f603026588482e870851c379cef944685a3fa1365a472fae23d9ee3791d87b2b",
+        "metadata_sha256": "cf7f6da47333b3439a68b86276665a72dfeda2929877c9458ea8932a48faac5c",
+        "duration": 600.0
+      },
+      "eligible": {
+        "commercial_seconds": 16.599999999999998,
+        "protected_seconds": 579.18,
+        "unverified_seconds": 0
+      },
+      "elapsed_seconds": 303.7969999999623,
+      "metrics": {
+        "candidates": {
+          "selected_seconds": 5.739999999999998,
+          "annotated_commercial_seconds": 16.599999999999998,
+          "annotated_protected_seconds": 579.18,
+          "commercial_seconds_selected": 5.739999999999998,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 10.86,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 16.599999999999998,
+              "selected_seconds": 5.739999999999998,
+              "coverage": 0.34578313253012044,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 1,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 579.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 1,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "verified": {
+          "selected_seconds": 5.739999999999998,
+          "annotated_commercial_seconds": 16.599999999999998,
+          "annotated_protected_seconds": 579.18,
+          "commercial_seconds_selected": 5.739999999999998,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 10.86,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 16.599999999999998,
+              "selected_seconds": 5.739999999999998,
+              "coverage": 0.34578313253012044,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 1,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 579.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 1,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "approved": {
+          "selected_seconds": 0,
+          "annotated_commercial_seconds": 16.599999999999998,
+          "annotated_protected_seconds": 579.18,
+          "commercial_seconds_selected": 0,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 16.599999999999998,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 16.599999999999998,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 0,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 579.18,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 1,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        }
+      }
+    },
+    {
+      "id": "doac-2026-09-25.last-10m.reference-v3.json",
+      "status": "ok",
+      "provenance": {
+        "reference_file": "doac-2026-09-25.last-10m.reference-v3.json",
+        "reference_sha256": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+        "transcript_file": "doac-2026-09-25.last-10m.recovery-candidate.json",
+        "transcript_sha256": "8469754a21deb2eeec436b38bfd2b20c30e94279a68920fab6caa61cb2fa11dd",
+        "clip_file": "doac-2026-09-25.last-10m.wav",
+        "clip_sha256": "b760022c2897bc34dcf128f546033df75a2b8c9676c9d49736555ad31782f2ac",
+        "source_audio_sha256": "8d783e59c8ba8da7c99a3cf4708d330408cbe960fe48ddf7dd1d84468fed8400",
+        "source_offset_seconds": 1345.6,
+        "source_episode_url": null,
+        "source_feed_url": "https://rss2.flightcast.com/xmsftuzjjykcmqwolaqn6mdn",
+        "downloaded_at_utc": "2026-10-08T01:42:48.941514+00:00",
+        "source_manifest_sha256": "f603026588482e870851c379cef944685a3fa1365a472fae23d9ee3791d87b2b",
+        "metadata_sha256": "cf7f6da47333b3439a68b86276665a72dfeda2929877c9458ea8932a48faac5c",
+        "duration": 597.100437
+      },
+      "eligible": {
+        "commercial_seconds": 19.82000000000005,
+        "protected_seconds": 571.78,
+        "unverified_seconds": 0
+      },
+      "elapsed_seconds": 323.10899999999674,
+      "metrics": {
+        "candidates": {
+          "selected_seconds": 38.57999999999993,
+          "annotated_commercial_seconds": 19.82000000000005,
+          "annotated_protected_seconds": 571.78,
+          "commercial_seconds_selected": 18.620000000000232,
+          "protected_seconds_selected": 19.959999999999695,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 1.199999999999818,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 19.82000000000005,
+              "selected_seconds": 18.620000000000232,
+              "coverage": 0.9394550958627742,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 1,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 562.4,
+              "selected_seconds": 18.299999999999727,
+              "coverage": 0.03253911806543337,
+              "any_selected": true,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 9.379999999999995,
+              "selected_seconds": 1.6599999999999682,
+              "coverage": 0.17697228144989008,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 2,
+          "protected_units_any_selected": 2,
+          "protected_units_fully_selected": 0
+        },
+        "verified": {
+          "selected_seconds": 12.920000000000186,
+          "annotated_commercial_seconds": 19.82000000000005,
+          "annotated_protected_seconds": 571.78,
+          "commercial_seconds_selected": 12.920000000000186,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 6.899999999999864,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 19.82000000000005,
+              "selected_seconds": 12.920000000000186,
+              "coverage": 0.6518668012109059,
+              "any_selected": true,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 1,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 562.4,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 9.379999999999995,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 2,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        },
+        "approved": {
+          "selected_seconds": 0,
+          "annotated_commercial_seconds": 19.82000000000005,
+          "annotated_protected_seconds": 571.78,
+          "commercial_seconds_selected": 0,
+          "protected_seconds_selected": 0,
+          "unverified_seconds_selected": 0,
+          "commercial_seconds_missed": 19.82000000000005,
+          "unlabeled_seconds_selected": 0.0,
+          "commercial_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 19.82000000000005,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "commercial_unit_count": 1,
+          "commercial_units_any_selected": 0,
+          "commercial_units_fully_selected": 0,
+          "protected_units": [
+            {
+              "index": 0,
+              "annotated_seconds": 562.4,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            },
+            {
+              "index": 1,
+              "annotated_seconds": 9.379999999999995,
+              "selected_seconds": 0,
+              "coverage": 0.0,
+              "any_selected": false,
+              "fully_selected": false
+            }
+          ],
+          "protected_unit_count": 2,
+          "protected_units_any_selected": 0,
+          "protected_units_fully_selected": 0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_clips": 5,
+    "successful_clips": 4,
+    "failed_clips": 1,
+    "unfinished_clips": 0,
+    "eligible_commercial_seconds_including_failed_and_unfinished": 467.44000000000017,
+    "eligible_protected_seconds_including_failed_and_unfinished": 2370.47,
+    "elapsed_seconds": 1456.1089999999385,
+    "views": {
+      "candidates": {
+        "selected_seconds": 291.67999999999984,
+        "annotated_commercial_seconds": 311.5800000000001,
+        "annotated_protected_seconds": 1947.7599999999998,
+        "commercial_seconds_selected": 271.72000000000014,
+        "commercial_seconds_missed": 39.859999999999914,
+        "protected_seconds_selected": 19.959999999999695,
+        "unverified_seconds_selected": 0,
+        "unlabeled_seconds_selected": 0.0,
+        "commercial_unit_count": 10,
+        "commercial_units_any_selected": 10,
+        "commercial_units_fully_selected": 0,
+        "protected_unit_count": 10,
+        "protected_units_any_selected": 2,
+        "protected_units_fully_selected": 0
+      },
+      "verified": {
+        "selected_seconds": 170.36000000000004,
+        "annotated_commercial_seconds": 311.5800000000001,
+        "annotated_protected_seconds": 1947.7599999999998,
+        "commercial_seconds_selected": 170.36000000000004,
+        "commercial_seconds_missed": 141.22000000000003,
+        "protected_seconds_selected": 0,
+        "unverified_seconds_selected": 0,
+        "unlabeled_seconds_selected": 0.0,
+        "commercial_unit_count": 10,
+        "commercial_units_any_selected": 9,
+        "commercial_units_fully_selected": 0,
+        "protected_unit_count": 10,
+        "protected_units_any_selected": 0,
+        "protected_units_fully_selected": 0
+      },
+      "approved": {
+        "selected_seconds": 0,
+        "annotated_commercial_seconds": 311.5800000000001,
+        "annotated_protected_seconds": 1947.7599999999998,
+        "commercial_seconds_selected": 0,
+        "commercial_seconds_missed": 311.5800000000001,
+        "protected_seconds_selected": 0,
+        "unverified_seconds_selected": 0,
+        "unlabeled_seconds_selected": 0.0,
+        "commercial_unit_count": 10,
+        "commercial_units_any_selected": 0,
+        "commercial_units_fully_selected": 0,
+        "protected_unit_count": 10,
+        "protected_units_any_selected": 0,
+        "protected_units_fully_selected": 0
+      }
+    }
+  }
+}

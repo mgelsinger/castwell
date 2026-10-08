@@ -157,6 +157,161 @@ class JobsTests(unittest.TestCase):
         self.assertIsNone(episode['error'])
         transcribe.assert_not_called()
 
+    def test_failed_redetection_retries_same_intent_after_reopening_library(self):
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=[CUT], analysis_done=True)
+        with patch('castwell.processing.detect_ads', side_effect=processing.ProcessingError('Classifier unavailable')):
+            self.jobs.submit(identifier, 'process', {'redetect': True, 'detector': 'ai'})
+            failed = self.wait()
+        self.assertEqual(failed['status'], 'error')
+        self.assertEqual(failed['cuts'], [CUT])
+        self.assertTrue(failed['analysis_done'])
+        self.jobs.shutdown()
+        self.jobs.pool.shutdown(wait=True)
+        self.library = Library(self.library.root)
+        self.library.recover()
+        self.jobs = Jobs(self.library, 'base')
+        self.addCleanup(self.jobs.pool.shutdown, wait=True, cancel_futures=True)
+        self.addCleanup(self.jobs.shutdown)
+        with patch('castwell.processing.detect_ads', return_value=[]) as detect, patch('castwell.processing.transcribe') as transcribe:
+            self.jobs.submit(identifier, 'process', {'remove_ads': True})
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertEqual(finished['cuts'], [])
+        self.assertIsNone(finished['pending_job'])
+        self.assertEqual(detect.call_args.kwargs['detector'], 'ai')
+        transcribe.assert_not_called()
+
+    def test_bad_download_is_removed_and_retry_downloads_again(self):
+        identifier = self.episode(audio=False)
+        def download(url, destination, **kwargs):
+            destination.write_bytes(b'HTTP 200 error page')
+            return destination
+        self.probe.side_effect = processing.InvalidAudioError('Invalid audio')
+        with patch('castwell.jobs.download_media', side_effect=download) as fetch:
+            self.jobs.submit(identifier, 'process', {'download_only': True})
+            failed = self.wait()
+            self.assertEqual(failed['status'], 'error')
+            self.assertFalse(Path(failed['audio']).exists())
+            self.probe.side_effect = None
+            with patch('castwell.processing.transcribe') as transcribe:
+                self.jobs.submit(identifier, 'process')
+                finished = self.wait()
+        self.assertEqual(fetch.call_count, 2)
+        self.assertEqual(finished['status'], 'downloaded', finished['error'])
+        self.assertTrue(Path(finished['audio']).is_file())
+        transcribe.assert_not_called()
+
+    def test_probe_installation_error_does_not_remove_cached_audio(self):
+        identifier = self.episode()
+        original = Path(self.library.get(identifier)['audio'])
+        self.probe.side_effect = processing.ProcessingError('ffprobe is required')
+        self.jobs.submit(identifier, 'process', {'download_only': True})
+        self.assertEqual(self.wait()['status'], 'error')
+        self.assertTrue(original.is_file())
+
+    def test_invalid_local_upload_is_never_deleted_by_retry(self):
+        identifier = self.episode()
+        self.library.import_entries([{'id': identifier, 'media_url': '', 'source': 'local'}])
+        original = Path(self.library.get(identifier)['audio'])
+        self.probe.side_effect = processing.InvalidAudioError('Invalid audio')
+        self.jobs.submit(identifier, 'process', {'download_only': True})
+        self.assertEqual(self.wait()['status'], 'error')
+        self.assertTrue(original.is_file())
+
+    def test_audio_only_preserves_prepared_status_and_reviewed_cuts(self):
+        for status, cuts in (('ready', []), ('review', [dict(CUT, approved=False)])):
+            identifier = self.episode(status, transcript=TRANSCRIPT, status=status, cuts=cuts,
+                                      analysis_done=True, progress='Previously prepared')
+            with patch('castwell.processing.detect_ads') as detect, patch('castwell.processing.transcribe') as transcribe:
+                self.jobs.submit(identifier, 'process', {'download_only': True})
+                finished = self.wait(identifier)
+            self.assertEqual(finished['status'], status)
+            self.assertEqual(finished['progress'], 'Previously prepared')
+            self.assertEqual(finished['cuts'], cuts)
+            detect.assert_not_called()
+            transcribe.assert_not_called()
+
+    def test_failed_retranscription_keeps_previous_text_and_retries_new_model(self):
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=[CUT], analysis_done=True)
+        self.jobs.settings_getter = lambda: {'transcription_model': 'small', 'language': 'fr'}
+        with patch('castwell.processing.transcribe', side_effect=processing.ProcessingError('Model unavailable')):
+            self.jobs.submit(identifier, 'process', {'retranscribe': True})
+            failed = self.wait()
+        self.assertEqual(failed['transcript'], TRANSCRIPT)
+        self.assertEqual(failed['cuts'], [CUT])
+        fresh = dict(TRANSCRIPT, model='small', language='fr', segments=[dict(TRANSCRIPT['segments'][0], text='Updated speech text')])
+        with patch('castwell.processing.transcribe', return_value=fresh) as transcribe, \
+             patch('castwell.processing.detect_ads') as detect, \
+             patch('castwell.processing.render_audio', return_value={'duration': 9, 'removed_seconds': 3}):
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertEqual(finished['transcript'], fresh)
+        self.assertEqual(finished['cuts'], [CUT])
+        self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
+        self.assertEqual(transcribe.call_args.kwargs['language'], 'fr')
+        detect.assert_not_called()
+        backup = next(self.library.directory(identifier).glob('previous-transcript-*.json'))
+        self.assertEqual(json.loads(backup.read_text()), TRANSCRIPT)
+
+    def test_cancelled_retranscription_preserves_existing_text_and_intent(self):
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=[CUT], analysis_done=True)
+        def transcribe(*args, **kwargs):
+            self.jobs.cancel(identifier)
+            raise processing.ProcessingCancelled('Cancelled during inference')
+        with patch('castwell.processing.transcribe', side_effect=transcribe):
+            self.jobs.submit(identifier, 'process', {'retranscribe': True})
+            cancelled = self.wait()
+        self.assertEqual(cancelled['status'], 'cancelled')
+        self.assertEqual(cancelled['transcript'], TRANSCRIPT)
+        self.assertEqual(cancelled['cuts'], [CUT])
+        self.assertTrue(cancelled['pending_job']['options']['retranscribe'])
+
+    def test_completed_retranscription_is_checkpointed_before_cancelled_redetection(self):
+        identifier = self.episode(transcript=TRANSCRIPT, analysis_done=True)
+        fresh = dict(TRANSCRIPT, segments=[dict(TRANSCRIPT['segments'][0], text='Completed replacement')])
+        def transcribe(*args, **kwargs):
+            self.jobs.cancel(identifier)
+            return fresh
+        with patch('castwell.processing.transcribe', side_effect=transcribe), patch('castwell.processing.detect_ads') as detect:
+            self.jobs.submit(identifier, 'process', {'retranscribe': True, 'redetect': True})
+            cancelled = self.wait()
+        detect.assert_not_called()
+        self.assertEqual(cancelled['transcript'], fresh)
+        self.assertFalse(cancelled['pending_job']['options']['retranscribe'])
+        with patch('castwell.processing.transcribe') as transcribe, patch('castwell.processing.detect_ads', return_value=[]) as detect:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready')
+        transcribe.assert_not_called()
+        detect.assert_called_once()
+
+    def test_redetection_is_not_repeated_after_only_rendering_failed(self):
+        identifier = self.episode(transcript=TRANSCRIPT, analysis_done=True)
+        with patch('castwell.processing.detect_ads', return_value=[CUT]) as detect, \
+             patch('castwell.processing.render_audio', side_effect=processing.ProcessingError('Temporary render failure')):
+            self.jobs.submit(identifier, 'process', {'redetect': True})
+            self.assertEqual(self.wait()['status'], 'error')
+        detect.assert_called_once()
+        with patch('castwell.processing.detect_ads') as detect, \
+             patch('castwell.processing.render_audio', return_value={'duration': 9, 'removed_seconds': 3}):
+            self.jobs.submit(identifier, 'process')
+            self.assertEqual(self.wait()['status'], 'ready')
+        detect.assert_not_called()
+
+    def test_retry_of_failed_manual_export_does_not_start_transcription(self):
+        identifier = self.episode(cuts=[CUT], analysis_done=True)
+        with patch('castwell.processing.render_audio', side_effect=processing.ProcessingError('Temporary export failure')):
+            self.jobs.submit(identifier, 'render')
+            self.assertEqual(self.wait()['status'], 'error')
+        with patch('castwell.processing.transcribe') as transcribe, \
+             patch('castwell.processing.render_audio', return_value={'duration': 9, 'removed_seconds': 3}) as render:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready')
+        render.assert_called_once()
+        transcribe.assert_not_called()
+
     def test_cancelled_active_job_retains_completed_transcript_and_can_resume(self):
         identifier = self.episode()
         entered, release = threading.Event(), threading.Event()

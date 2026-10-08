@@ -19,6 +19,10 @@ from . import processing
 from .feeds import download_media
 
 
+PROCESS_DEFAULTS = {'remove_ads': True, 'detector': None, 'redetect': False,
+                    'retranscribe': False, 'download_only': False}
+
+
 class SerialWorker:
     """A single daemon worker; uninterruptible model loads cannot block exit.
 
@@ -89,16 +93,28 @@ class Jobs:
         if operation not in ('process', 'render', 'download'):
             raise ValueError('Unknown processing operation')
         with self.lock:
-            self.library.get(episode_id)
+            episode = self.library.get(episode_id)
             if self._closed or episode_id in self.pending:
                 return False
+            supplied = {key: self._option(options, key, default) for key, default in PROCESS_DEFAULTS.items()}
+            if supplied['download_only'] and (supplied['redetect'] or supplied['retranscribe']):
+                raise ValueError('Audio-only downloads cannot also request transcription or ad detection')
+            previous = episode.get('pending_job')
+            if previous and operation == 'process' and supplied == PROCESS_DEFAULTS:
+                # Retry resumes the unfinished operation, including after a
+                # restart. Successful stages clear their own redo flags.
+                request = previous
+                operation, supplied = request['operation'], request['options']
+            else:
+                request = {'operation': operation, 'options': supplied,
+                           'prior_status': episode['status'], 'prior_progress': episode['progress']}
+            self.library.update(episode_id, status='queued', error=None, progress='Waiting to process', pending_job=request)
             self.pending.add(episode_id)
             self._cancellations[episode_id] = threading.Event()
-            self.library.update(episode_id, status='queued', error=None, progress='Waiting to process')
             try:
                 # The worker takes this same lock before starting. Its future is
                 # registered before cancel() or the worker can observe the job.
-                self._futures[episode_id] = self.pool.submit(self.run, episode_id, operation, options)
+                self._futures[episode_id] = self.pool.submit(self.run, episode_id, operation, supplied)
             except Exception:
                 self._forget(episode_id)
                 self.library.update(episode_id, status='error', error='The processing queue is unavailable.',
@@ -166,6 +182,13 @@ class Jobs:
                 self._check_cancel(cancel)
             self.library.update(episode_id, status=status, progress=str(message))
 
+    def _complete_stage(self, episode_id, option, **values):
+        request = self.library.get(episode_id).get('pending_job')
+        if request:
+            request['options'][option] = False
+            values['pending_job'] = request
+        self.library.update(episode_id, **values)
+
     def run(self, episode_id, operation, options=None):
         with self.lock:
             cancel = self._cancellations.get(episode_id, threading.Event())
@@ -176,6 +199,9 @@ class Jobs:
                 self._process(episode_id, options, settings, cancel, download_only=operation == 'download')
             else:
                 self.render(episode_id, cancel)
+            with self.lock:
+                self._check_cancel(cancel)
+                self.library.update(episode_id, pending_job=None)
         except processing.ProcessingCancelled:
             with self.lock:
                 self._cancelled(episode_id)
@@ -201,6 +227,7 @@ class Jobs:
         episode = self.library.get(episode_id)
         folder = self.library.directory(episode_id)
         audio = Path(episode['audio']) if episode.get('audio') else None
+        same_audio = audio is not None and audio.is_file()
         if audio is None or not audio.is_file():
             self.progress(episode_id, 'downloading', 'Downloading original audio')
             if audio is not None:
@@ -227,7 +254,16 @@ class Jobs:
             self.library.update(episode_id, audio=str(audio))
         self._check_cancel(cancel)
         self.progress(episode_id, 'downloading', 'Reading audio duration')
-        duration = processing.probe_duration(audio)
+        try:
+            duration = processing.probe_duration(audio)
+        except processing.InvalidAudioError:
+            # A host can return an HTTP 200 error page as media. Remove only
+            # our cached download, so Retry fetches fresh bytes. Retain the DB
+            # path so replacement invalidates old timestamps on the next run.
+            if (episode.get('media_url') and audio.parent.resolve() == folder.resolve()
+                    and audio.name.startswith('original.')):
+                audio.unlink(missing_ok=True)
+            raise
         self.library.update(episode_id, duration=duration)
         self._check_cancel(cancel)
         if not episode.get('waveform'):
@@ -236,11 +272,17 @@ class Jobs:
             self.library.update(episode_id, waveform=waveform)
         self._check_cancel(cancel)
         if download_only or self._option(options, 'download_only', False):
-            self.library.update(episode_id, status='downloaded', progress='Original audio ready to play')
+            request = episode.get('pending_job') or {}
+            if same_audio and request.get('prior_status') in ('ready', 'review'):
+                self.library.update(episode_id, status=request['prior_status'], progress=request['prior_progress'])
+            elif same_audio and episode.get('analysis_done') and not episode['cuts']:
+                self.library.update(episode_id, status='ready', progress='No cuts selected; original audio retained')
+            else:
+                self.library.update(episode_id, status='downloaded', progress='Original audio ready to play')
             return
 
         episode = self.library.get(episode_id)
-        if episode['transcript'] is None:
+        if episode['transcript'] is None or self._option(options, 'retranscribe', False):
             self.progress(episode_id, 'transcribing', 'Generating timestamped transcript')
             transcript = processing.transcribe(
                 audio, model=settings.get('transcription_model') or self.model,
@@ -250,7 +292,12 @@ class Jobs:
                 should_cancel=cancel.is_set,
             )
             transcript = processing.validate_transcript(transcript, duration)
-            self.library.update(episode_id, transcript=transcript)
+            if episode['transcript'] is not None:
+                backup = folder / ('previous-transcript-' + uuid.uuid4().hex + '.json')
+                backup.write_text(json.dumps(episode['transcript'], ensure_ascii=False, indent=2), encoding='utf-8')
+            # The original timeline has not changed, so reviewed cuts remain
+            # valid. Failed or cancelled inference never clears the old text.
+            self._complete_stage(episode_id, 'retranscribe', transcript=transcript)
         else:
             # Imported transcripts may carry the feed's estimated duration.
             transcript = processing.validate_transcript(episode['transcript'], duration)
@@ -279,8 +326,8 @@ class Jobs:
             cuts = processing.validate_cuts(cuts, duration)
             if cuts != episode['cuts']:
                 self.library.save_revision(episode_id, episode['cuts'], 'Before advertisement detection')
-            self.library.update(episode_id, cuts=cuts, analysis_done=True, cleaned=None,
-                                cleaned_duration=0, removed_seconds=0)
+            self._complete_stage(episode_id, 'redetect', cuts=cuts, analysis_done=True, cleaned=None,
+                                 cleaned_duration=0, removed_seconds=0)
         self._check_cancel(cancel)
         self.render(episode_id, cancel)
 

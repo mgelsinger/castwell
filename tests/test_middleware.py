@@ -125,9 +125,9 @@ class AllowedHostsTests(unittest.TestCase):
             with TestClient(app, base_url='http://attacker.example') as client:
                 headers = {'Origin': 'http://attacker.example', 'Sec-Fetch-Site': 'same-origin'}
                 self.assertEqual(client.get('/api/episodes', headers=headers).status_code, 400)
-                response = client.patch('/api/settings', headers=headers, json={'review_only': True})
+                response = client.patch('/api/settings', headers=headers, json={'review_only': False})
                 self.assertEqual(response.status_code, 400)
-                self.assertFalse(app.state.settings.get()['review_only'])
+                self.assertTrue(app.state.settings.get()['review_only'])
 
     def test_loopback_and_configured_lan_hosts_work_and_other_hosts_fail(self):
         app = FastAPI()

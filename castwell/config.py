@@ -23,7 +23,8 @@ _DEFAULTS = {
     "language": None,
     "detector": "auto",
     "auto_approve_threshold": 0.90,
-    "review_only": False,
+    "review_only": True,
+    "ai_policy": "verified",
     "ai_base_url": "",
     "ai_model": "",
 }
@@ -31,6 +32,7 @@ _ENVIRONMENT = {
     "transcription_model": "CASTWELL_TRANSCRIPTION_MODEL",
     "ai_base_url": "CASTWELL_AI_BASE_URL",
     "ai_model": "CASTWELL_AI_MODEL",
+    "ai_policy": "CASTWELL_AI_POLICY",
 }
 _MODEL_FILES = ("model.bin", "config.json", "tokenizer.json")
 
@@ -64,6 +66,8 @@ def _validated(values: dict) -> dict:
             raise ValueError("Language must be a two or three letter language code, or auto")
     if "detector" in result and result["detector"] not in ("auto", "ai", "heuristic"):
         raise ValueError("Detector must be auto, ai, or heuristic")
+    if "ai_policy" in result and result["ai_policy"] not in ("legacy", "verified"):
+        raise ValueError("AI policy must be legacy or verified")
     if "auto_approve_threshold" in result:
         threshold = result["auto_approve_threshold"]
         if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold) or not 0.5 <= threshold <= 1:

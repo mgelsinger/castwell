@@ -47,6 +47,7 @@ class FixtureServer(BaseHTTPRequestHandler):
                 <enclosure url="{self.server.base}/audio.wav?token=media-secret" type="audio/wav"/>
                 </item></channel></rss>'''.encode()
         elif path == "/audio.wav":
+            self.server.media_requests = getattr(self.server, 'media_requests', 0) + 1
             body = self.server.audio
         else:
             self.send_error(404)
@@ -92,6 +93,9 @@ class AppIntegrationTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.app = create_app(self.directory.name)
+        # These workflows intentionally exercise automatic export after an
+        # explicit opt-in. Fresh-library review defaults are checked separately.
+        self.app.state.settings.update({'review_only': False, 'ai_policy': 'legacy'})
         self.client = TestClient(self.app)
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
@@ -236,6 +240,20 @@ class AppIntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.get(f"/api/episodes/{episode_id}/transcript?format=html").status_code, 400)
         self.assertEqual(self.client.get(f"/media/{episode_id}/unknown").status_code, 404)
 
+    def test_imported_transcript_exposes_gap_warning_on_import_and_later_reads(self):
+        episode_id = self.import_feed()
+        imported = {"segments": [{"start": 0, "end": 2, "text": "Opening."},
+                                  {"start": 10, "end": 12, "text": "Return."}]}
+        response = self.client.post(f"/api/episodes/{episode_id}/transcript", json=imported)
+        self.assertEqual(response.status_code, 200, response.text)
+        for detail in (response.json(), self.client.get(f"/api/episodes/{episode_id}").json()):
+            quality = detail["transcript"]["quality"]
+            self.assertTrue(quality["requires_review"])
+            self.assertEqual(quality["gaps"], [{"start": 2, "end": 10, "duration": 8}])
+        stored = self.app.state.library.get(episode_id)
+        self.assertNotIn("quality", stored["transcript"])
+        self.assertEqual([segment["text"] for segment in stored["transcript"]["segments"]], ["Opening.", "Return."])
+
     def test_retry_preserves_reviewed_cuts_until_explicit_redetection(self):
         episode_id = self.import_feed()
         self.download(episode_id)
@@ -253,6 +271,80 @@ class AppIntegrationTests(unittest.TestCase):
         episode = self.wait_for_job(episode_id)
         self.assertEqual(episode["removed_seconds"], 4)
         self.assertEqual(episode["cuts"][0]["source"], "heuristic")
+
+    def test_http_200_error_page_is_not_a_permanent_download_cache(self):
+        episode_id = self.import_feed()
+        endpoint = f'/api/episodes/{episode_id}'
+        before = getattr(self.server, 'media_requests', 0)
+        with patch.object(self.server, 'audio', b'<html>Temporary host error</html>'):
+            self.assertEqual(self.client.post(endpoint + '/process', json={'download_only': True}).status_code, 202)
+            failed = self.wait_for_job(episode_id, 'error')
+        self.assertFalse(failed['has_audio'])
+        with patch('castwell.processing.transcribe', side_effect=AssertionError('Retry must retain audio-only intent')):
+            self.assertEqual(self.client.post(endpoint + '/process', json={}).status_code, 202)
+            finished = self.wait_for_job(episode_id, 'downloaded')
+        self.assertTrue(finished['has_audio'])
+        self.assertEqual(self.server.media_requests - before, 2)
+        original = self.app.state.library.get(episode_id)['audio']
+        self.assertEqual(Path(original).read_bytes(), self.audio_bytes)
+
+    def test_audio_only_keeps_prepared_no_cut_episode_in_library_rss(self):
+        episode_id = self.import_feed()
+        self.download(episode_id)
+        endpoint = f'/api/episodes/{episode_id}'
+        self.client.post(endpoint + '/transcript', json=TRANSCRIPT)
+        self.assertEqual(self.client.post(endpoint + '/cuts', json={'cuts': []}).status_code, 200)
+        self.client.post(endpoint + '/render')
+        self.wait_for_job(episode_id, 'ready')
+        self.assertIn(episode_id, self.client.get('/api/export/feed').text)
+        self.client.post(endpoint + '/process', json={'download_only': True})
+        self.wait_for_job(episode_id, 'ready')
+        self.assertIn(episode_id, self.client.get('/api/export/feed').text)
+
+    def test_retranscribe_api_uses_new_model_without_replacing_reviewed_cuts(self):
+        episode_id = self.import_feed()
+        self.download(episode_id)
+        endpoint = f'/api/episodes/{episode_id}'
+        self.client.post(endpoint + '/transcript', json=TRANSCRIPT)
+        self.client.post(endpoint + '/cuts', json={'cuts': [{'start': 3, 'end': 5, 'approved': True, 'source': 'manual'}]})
+        reviewed = self.client.get(endpoint).json()['cuts']
+        fresh = dict(TRANSCRIPT, model='small', segments=[dict(TRANSCRIPT['segments'][0], text='A newly recognized sentence.')])
+        with patch.dict(os.environ, {'CASTWELL_TRANSCRIPTION_MODEL': ''}), \
+             patch('castwell.processing.transcribe', return_value=fresh) as transcribe, \
+             patch('castwell.processing.detect_ads', side_effect=AssertionError('Reviewed cuts must be preserved')):
+            self.assertEqual(self.client.patch('/api/settings', json={'transcription_model': 'small'}).status_code, 200)
+            self.assertEqual(self.client.post(endpoint + '/process', json={'retranscribe': True}).status_code, 202)
+            finished = self.wait_for_job(episode_id, 'ready')
+        self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
+        self.assertEqual(finished['transcript']['model'], 'small')
+        self.assertEqual(finished['cuts'], reviewed)
+        self.assertEqual(finished['removed_seconds'], 2)
+        self.assertNotIn('pending_job', finished)
+        self.assertEqual(self.client.post(endpoint + '/process', json={'download_only': True, 'retranscribe': True}).status_code, 400)
+
+    def test_new_manual_decisions_supersede_failed_redetection_intent(self):
+        episode_id = self.import_feed()
+        self.download(episode_id)
+        endpoint = f'/api/episodes/{episode_id}'
+        self.client.post(endpoint + '/transcript', json=TRANSCRIPT)
+        with patch('castwell.processing.detect_ads', side_effect=RuntimeError('Temporary classifier outage')):
+            self.client.post(endpoint + '/process', json={'redetect': True})
+            self.wait_for_job(episode_id, 'error')
+        self.client.post(endpoint + '/cuts', json={'cuts': []})
+        with patch('castwell.processing.detect_ads', side_effect=AssertionError('New manual decisions must override an old retry')):
+            self.client.post(endpoint + '/process', json={})
+            finished = self.wait_for_job(episode_id, 'ready')
+        self.assertEqual(finished['cuts'], [])
+
+    def test_verified_review_mode_does_not_automatically_export_heuristic_cues(self):
+        self.app.state.settings.update({'review_only': True, 'ai_policy': 'verified'})
+        episode_id = self.import_feed()
+        self.download(episode_id)
+        finished = self.process_imported_transcript(episode_id)
+        self.assertEqual(finished['status'], 'review')
+        self.assertTrue(finished['cuts'])
+        self.assertFalse(any(cut['approved'] for cut in finished['cuts']))
+        self.assertFalse(finished['has_cleaned'])
 
     def test_cross_origin_mutations_are_rejected(self):
         body = {"url": self.server.base + "/feed.xml"}

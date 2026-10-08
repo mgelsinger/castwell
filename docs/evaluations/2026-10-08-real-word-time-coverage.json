@@ -1,0 +1,475 @@
+{
+  "schema_version": 1,
+  "scope": "Supplementary ASR word-time coverage for the fixed real-recording runs. Failure remains explicit.",
+  "method": "Partition time at every prediction, reference, exclusion and word boundary. Count the union of ASR word intervals intersected with eligible commercial/protected references and the selected view. Unverified ranges are masked. Zero-duration word timestamps contribute zero time.",
+  "limitations": [
+    "Word timestamps and reference labels are provisional ASR/publisher annotations, not listening-verified acoustic truth.",
+    "Word-time excludes between-word gaps and speech absent from ASR. It cannot establish complete advertisement removal.",
+    "Scored values cover successful clips only. Failed-case word-time remains separately eligible and unscored.",
+    "The paired comparison uses only clips successfully scored by both models; it does not erase failures on other clips.",
+    "Candidates, verified and approved retain their original meanings. Kev has no verified view; actual approvals were disabled for both runs."
+  ],
+  "source_reports": {
+    "qwen35-v4": {
+      "file": "2026-10-08-real-qwen35-v4.json",
+      "sha256": "09c19c469758558360e9f89eabdbc8cb0551ad6e2095ffade31ef48e9a20faf2",
+      "candidate_configuration_sha256": "6df397323c13e4b3f9d38b2f0929e84a4970cc5bc621dfc5c9a5fd00d3784bd0"
+    },
+    "kev-v2": {
+      "file": "2026-10-08-real-kev-v2.json",
+      "sha256": "bfa37e6973c3a785aec59c553ddde14daaa576b1673e0dadc34b0b2f07f652db",
+      "candidate_configuration_sha256": "65b26e5e394691abb9dc85d0a6f02458bf4b46400611a2fcb9bbd52e4e73b5c3"
+    }
+  },
+  "models": {
+    "qwen35-v4": {
+      "model_label": "Qwen3.5-35B-A3B, frozen v4 run",
+      "total_clips": 5,
+      "successful_clips": 4,
+      "failed_clips": [
+        "skeptoid-2026-10-06.first-10m.reference-v3.json"
+      ],
+      "unfinished_clips": [],
+      "word_time_denominators": {
+        "eligible_including_failed_and_unfinished_commercial_word_seconds": 410.2400000000004,
+        "successful_commercial_word_seconds": 276.5800000000002,
+        "failed_commercial_word_seconds": 133.66000000000017,
+        "unfinished_commercial_word_seconds": 0,
+        "eligible_including_failed_and_unfinished_protected_word_seconds": 1995.07,
+        "successful_protected_word_seconds": 1642.5200000000002,
+        "failed_protected_word_seconds": 352.5499999999995,
+        "unfinished_protected_word_seconds": 0
+      },
+      "scored_word_time_views": {
+        "candidates": {
+          "annotated_commercial_word_seconds": 276.5800000000002,
+          "commercial_word_seconds_selected": 263.24000000000024,
+          "commercial_word_seconds_missed": 13.34000000000003,
+          "annotated_protected_word_seconds": 1642.5200000000002,
+          "protected_word_seconds_selected": 19.959999999999695
+        },
+        "verified": {
+          "annotated_commercial_word_seconds": 276.5800000000002,
+          "commercial_word_seconds_selected": 164.9200000000001,
+          "commercial_word_seconds_missed": 111.66000000000014,
+          "annotated_protected_word_seconds": 1642.5200000000002,
+          "protected_word_seconds_selected": 0
+        },
+        "approved": {
+          "annotated_commercial_word_seconds": 276.5800000000002,
+          "commercial_word_seconds_selected": 0,
+          "commercial_word_seconds_missed": 276.5800000000002,
+          "annotated_protected_word_seconds": 1642.5200000000002,
+          "protected_word_seconds_selected": 0
+        }
+      },
+      "clips": [
+        {
+          "id": "stdwytk-2026-08-27.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "0fdff267aeab03596230e1be67810d3b2bde318c2cd355f27007d757ae3bda1e",
+          "transcript_sha256": "36f732d01d0145067c06278fecd5fa92bbf01dc2d72b011880271e21e98ac2e2",
+          "clip_sha256": "dfd69bb275f8acff6d1e2e63d4600fca1fceafd405555ff7410d658027f9dcf6",
+          "eligible_commercial_word_seconds": 117.33999999999989,
+          "eligible_protected_word_seconds": 309.0000000000002,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 117.33999999999989,
+              "commercial_word_seconds_selected": 114.05999999999986,
+              "commercial_word_seconds_missed": 3.2800000000000296,
+              "annotated_protected_word_seconds": 309.0000000000002,
+              "protected_word_seconds_selected": 0
+            },
+            "verified": {
+              "annotated_commercial_word_seconds": 117.33999999999989,
+              "commercial_word_seconds_selected": 76.85999999999981,
+              "commercial_word_seconds_missed": 40.480000000000075,
+              "annotated_protected_word_seconds": 309.0000000000002,
+              "protected_word_seconds_selected": 0
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 117.33999999999989,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 117.33999999999989,
+              "annotated_protected_word_seconds": 309.0000000000002,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "sysk-2026-10-07.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "9b2d3448f804efc1f59e5b3376addcda95cc0debe7f9315f5e3b9b4792f36595",
+          "transcript_sha256": "446e2f1a464be1a5745ef6cd749ba19a1a6898d3b21982eebc7134e743dcf227",
+          "clip_sha256": "91b4c6f895b84ff4c0250573af0a17b66764e630850b1ee5550c08a3d2ebc30a",
+          "eligible_commercial_word_seconds": 124.8200000000001,
+          "eligible_protected_word_seconds": 368.1000000000003,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 124.8200000000001,
+              "commercial_word_seconds_selected": 124.8200000000001,
+              "commercial_word_seconds_missed": 0,
+              "annotated_protected_word_seconds": 368.1000000000003,
+              "protected_word_seconds_selected": 0
+            },
+            "verified": {
+              "annotated_commercial_word_seconds": 124.8200000000001,
+              "commercial_word_seconds_selected": 69.40000000000009,
+              "commercial_word_seconds_missed": 55.42000000000001,
+              "annotated_protected_word_seconds": 368.1000000000003,
+              "protected_word_seconds_selected": 0
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 124.8200000000001,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 124.8200000000001,
+              "annotated_protected_word_seconds": 368.1000000000003,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "skeptoid-2026-10-06.first-10m.reference-v3.json",
+          "status": "error",
+          "reference_sha256": "9343b28cc3733cbfba7d631ad46e1259a107281ea506488d8bf271dbeb922279",
+          "transcript_sha256": "62a1daf2c683fb66bbd7a703369b746c76775038961f1b3d8d7011d3391d27cc",
+          "clip_sha256": "f3730525b099fc57736fa3052fe7ddd03c5044b2c326c249e03457c6cfbaedbe",
+          "eligible_commercial_word_seconds": 133.66000000000017,
+          "eligible_protected_word_seconds": 352.5499999999995,
+          "views": null
+        },
+        {
+          "id": "doac-2026-09-25.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "cdc4f8632b98282af8eb84be435550902b1fce7116319f2647b9f2c4e74e3ce3",
+          "transcript_sha256": "91d6a83df27c680d5ee48ccecb3b9996492cdea8c31be652c98453131c59a99b",
+          "clip_sha256": "2bd9cb29f288ed606059855c4e24370e195a02b2f005c69d00f50093cd9d3aad",
+          "eligible_commercial_word_seconds": 15.799999999999999,
+          "eligible_protected_word_seconds": 497.1199999999998,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 15.799999999999999,
+              "commercial_word_seconds_selected": 5.739999999999998,
+              "commercial_word_seconds_missed": 10.06,
+              "annotated_protected_word_seconds": 497.1199999999998,
+              "protected_word_seconds_selected": 0
+            },
+            "verified": {
+              "annotated_commercial_word_seconds": 15.799999999999999,
+              "commercial_word_seconds_selected": 5.739999999999998,
+              "commercial_word_seconds_missed": 10.06,
+              "annotated_protected_word_seconds": 497.1199999999998,
+              "protected_word_seconds_selected": 0
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 15.799999999999999,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 15.799999999999999,
+              "annotated_protected_word_seconds": 497.1199999999998,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "doac-2026-09-25.last-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+          "transcript_sha256": "8469754a21deb2eeec436b38bfd2b20c30e94279a68920fab6caa61cb2fa11dd",
+          "clip_sha256": "b760022c2897bc34dcf128f546033df75a2b8c9676c9d49736555ad31782f2ac",
+          "eligible_commercial_word_seconds": 18.620000000000232,
+          "eligible_protected_word_seconds": 468.2999999999999,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 18.620000000000232,
+              "commercial_word_seconds_selected": 18.620000000000232,
+              "commercial_word_seconds_missed": 0,
+              "annotated_protected_word_seconds": 468.2999999999999,
+              "protected_word_seconds_selected": 19.959999999999695
+            },
+            "verified": {
+              "annotated_commercial_word_seconds": 18.620000000000232,
+              "commercial_word_seconds_selected": 12.920000000000186,
+              "commercial_word_seconds_missed": 5.7000000000000455,
+              "annotated_protected_word_seconds": 468.2999999999999,
+              "protected_word_seconds_selected": 0
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 18.620000000000232,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 18.620000000000232,
+              "annotated_protected_word_seconds": 468.2999999999999,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        }
+      ]
+    },
+    "kev-v2": {
+      "model_label": "Kev 4B, kev-context-v2",
+      "total_clips": 5,
+      "successful_clips": 5,
+      "failed_clips": [],
+      "unfinished_clips": [],
+      "word_time_denominators": {
+        "eligible_including_failed_and_unfinished_commercial_word_seconds": 410.2400000000004,
+        "successful_commercial_word_seconds": 410.2400000000004,
+        "failed_commercial_word_seconds": 0,
+        "unfinished_commercial_word_seconds": 0,
+        "eligible_including_failed_and_unfinished_protected_word_seconds": 1995.0699999999997,
+        "successful_protected_word_seconds": 1995.0699999999997,
+        "failed_protected_word_seconds": 0,
+        "unfinished_protected_word_seconds": 0
+      },
+      "scored_word_time_views": {
+        "candidates": {
+          "annotated_commercial_word_seconds": 410.2400000000004,
+          "commercial_word_seconds_selected": 371.36000000000047,
+          "commercial_word_seconds_missed": 38.87999999999992,
+          "annotated_protected_word_seconds": 1995.0699999999997,
+          "protected_word_seconds_selected": 60.54000000000002
+        },
+        "verified": null,
+        "approved": {
+          "annotated_commercial_word_seconds": 410.2400000000004,
+          "commercial_word_seconds_selected": 0,
+          "commercial_word_seconds_missed": 410.2400000000004,
+          "annotated_protected_word_seconds": 1995.0699999999997,
+          "protected_word_seconds_selected": 0
+        }
+      },
+      "clips": [
+        {
+          "id": "doac-2026-09-25.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "cdc4f8632b98282af8eb84be435550902b1fce7116319f2647b9f2c4e74e3ce3",
+          "transcript_sha256": "91d6a83df27c680d5ee48ccecb3b9996492cdea8c31be652c98453131c59a99b",
+          "clip_sha256": "2bd9cb29f288ed606059855c4e24370e195a02b2f005c69d00f50093cd9d3aad",
+          "eligible_commercial_word_seconds": 15.799999999999999,
+          "eligible_protected_word_seconds": 497.1199999999998,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 15.799999999999999,
+              "commercial_word_seconds_selected": 5.739999999999998,
+              "commercial_word_seconds_missed": 10.06,
+              "annotated_protected_word_seconds": 497.1199999999998,
+              "protected_word_seconds_selected": 0
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 15.799999999999999,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 15.799999999999999,
+              "annotated_protected_word_seconds": 497.1199999999998,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "doac-2026-09-25.last-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+          "transcript_sha256": "8469754a21deb2eeec436b38bfd2b20c30e94279a68920fab6caa61cb2fa11dd",
+          "clip_sha256": "b760022c2897bc34dcf128f546033df75a2b8c9676c9d49736555ad31782f2ac",
+          "eligible_commercial_word_seconds": 18.620000000000232,
+          "eligible_protected_word_seconds": 468.2999999999999,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 18.620000000000232,
+              "commercial_word_seconds_selected": 18.620000000000232,
+              "commercial_word_seconds_missed": 0,
+              "annotated_protected_word_seconds": 468.2999999999999,
+              "protected_word_seconds_selected": 5.2999999999999545
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 18.620000000000232,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 18.620000000000232,
+              "annotated_protected_word_seconds": 468.2999999999999,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "skeptoid-2026-10-06.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "9343b28cc3733cbfba7d631ad46e1259a107281ea506488d8bf271dbeb922279",
+          "transcript_sha256": "62a1daf2c683fb66bbd7a703369b746c76775038961f1b3d8d7011d3391d27cc",
+          "clip_sha256": "f3730525b099fc57736fa3052fe7ddd03c5044b2c326c249e03457c6cfbaedbe",
+          "eligible_commercial_word_seconds": 133.66000000000017,
+          "eligible_protected_word_seconds": 352.5499999999995,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 133.66000000000017,
+              "commercial_word_seconds_selected": 113.58000000000018,
+              "commercial_word_seconds_missed": 20.07999999999997,
+              "annotated_protected_word_seconds": 352.5499999999995,
+              "protected_word_seconds_selected": 10.68
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 133.66000000000017,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 133.66000000000017,
+              "annotated_protected_word_seconds": 352.5499999999995,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "stdwytk-2026-08-27.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "0fdff267aeab03596230e1be67810d3b2bde318c2cd355f27007d757ae3bda1e",
+          "transcript_sha256": "36f732d01d0145067c06278fecd5fa92bbf01dc2d72b011880271e21e98ac2e2",
+          "clip_sha256": "dfd69bb275f8acff6d1e2e63d4600fca1fceafd405555ff7410d658027f9dcf6",
+          "eligible_commercial_word_seconds": 117.33999999999989,
+          "eligible_protected_word_seconds": 309.0000000000002,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 117.33999999999989,
+              "commercial_word_seconds_selected": 113.51999999999995,
+              "commercial_word_seconds_missed": 3.8199999999999363,
+              "annotated_protected_word_seconds": 309.0000000000002,
+              "protected_word_seconds_selected": 41.39999999999997
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 117.33999999999989,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 117.33999999999989,
+              "annotated_protected_word_seconds": 309.0000000000002,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        },
+        {
+          "id": "sysk-2026-10-07.first-10m.reference-v3.json",
+          "status": "ok",
+          "reference_sha256": "9b2d3448f804efc1f59e5b3376addcda95cc0debe7f9315f5e3b9b4792f36595",
+          "transcript_sha256": "446e2f1a464be1a5745ef6cd749ba19a1a6898d3b21982eebc7134e743dcf227",
+          "clip_sha256": "91b4c6f895b84ff4c0250573af0a17b66764e630850b1ee5550c08a3d2ebc30a",
+          "eligible_commercial_word_seconds": 124.8200000000001,
+          "eligible_protected_word_seconds": 368.1000000000003,
+          "views": {
+            "candidates": {
+              "annotated_commercial_word_seconds": 124.8200000000001,
+              "commercial_word_seconds_selected": 119.90000000000009,
+              "commercial_word_seconds_missed": 4.920000000000009,
+              "annotated_protected_word_seconds": 368.1000000000003,
+              "protected_word_seconds_selected": 3.1600000000000996
+            },
+            "approved": {
+              "annotated_commercial_word_seconds": 124.8200000000001,
+              "commercial_word_seconds_selected": 0,
+              "commercial_word_seconds_missed": 124.8200000000001,
+              "annotated_protected_word_seconds": 368.1000000000003,
+              "protected_word_seconds_selected": 0
+            }
+          }
+        }
+      ]
+    }
+  },
+  "paired_successful_clips": {
+    "clip_ids": [
+      "doac-2026-09-25.first-10m.reference-v3.json",
+      "doac-2026-09-25.last-10m.reference-v3.json",
+      "stdwytk-2026-08-27.first-10m.reference-v3.json",
+      "sysk-2026-10-07.first-10m.reference-v3.json"
+    ],
+    "count": 4,
+    "models": {
+      "qwen35-v4": {
+        "candidates": {
+          "word_time": {
+            "annotated_commercial_word_seconds": 276.5800000000002,
+            "commercial_word_seconds_selected": 263.24000000000024,
+            "commercial_word_seconds_missed": 13.34000000000003,
+            "annotated_protected_word_seconds": 1642.5200000000002,
+            "protected_word_seconds_selected": 19.959999999999695
+          },
+          "continuous_spans": {
+            "annotated_commercial_seconds": 311.5800000000001,
+            "commercial_seconds_selected": 271.72000000000014,
+            "commercial_seconds_missed": 39.859999999999914,
+            "annotated_protected_seconds": 1947.76,
+            "protected_seconds_selected": 19.959999999999695,
+            "unverified_seconds_selected": 0,
+            "unlabeled_seconds_selected": 0
+          }
+        },
+        "verified": {
+          "word_time": {
+            "annotated_commercial_word_seconds": 276.5800000000002,
+            "commercial_word_seconds_selected": 164.9200000000001,
+            "commercial_word_seconds_missed": 111.66000000000014,
+            "annotated_protected_word_seconds": 1642.5200000000002,
+            "protected_word_seconds_selected": 0
+          },
+          "continuous_spans": {
+            "annotated_commercial_seconds": 311.5800000000001,
+            "commercial_seconds_selected": 170.36000000000004,
+            "commercial_seconds_missed": 141.22000000000003,
+            "annotated_protected_seconds": 1947.76,
+            "protected_seconds_selected": 0,
+            "unverified_seconds_selected": 0,
+            "unlabeled_seconds_selected": 0
+          }
+        },
+        "approved": {
+          "word_time": {
+            "annotated_commercial_word_seconds": 276.5800000000002,
+            "commercial_word_seconds_selected": 0,
+            "commercial_word_seconds_missed": 276.5800000000002,
+            "annotated_protected_word_seconds": 1642.5200000000002,
+            "protected_word_seconds_selected": 0
+          },
+          "continuous_spans": {
+            "annotated_commercial_seconds": 311.5800000000001,
+            "commercial_seconds_selected": 0,
+            "commercial_seconds_missed": 311.5800000000001,
+            "annotated_protected_seconds": 1947.76,
+            "protected_seconds_selected": 0,
+            "unverified_seconds_selected": 0,
+            "unlabeled_seconds_selected": 0
+          }
+        }
+      },
+      "kev-v2": {
+        "candidates": {
+          "word_time": {
+            "annotated_commercial_word_seconds": 276.5800000000002,
+            "commercial_word_seconds_selected": 257.7800000000003,
+            "commercial_word_seconds_missed": 18.799999999999947,
+            "annotated_protected_word_seconds": 1642.5200000000002,
+            "protected_word_seconds_selected": 49.86000000000003
+          },
+          "continuous_spans": {
+            "annotated_commercial_seconds": 311.58000000000004,
+            "commercial_seconds_selected": 266.22000000000025,
+            "commercial_seconds_missed": 45.35999999999985,
+            "annotated_protected_seconds": 1947.76,
+            "protected_seconds_selected": 54.06,
+            "unverified_seconds_selected": 0,
+            "unlabeled_seconds_selected": 6.740000000000002
+          }
+        },
+        "verified": null,
+        "approved": {
+          "word_time": {
+            "annotated_commercial_word_seconds": 276.5800000000002,
+            "commercial_word_seconds_selected": 0,
+            "commercial_word_seconds_missed": 276.5800000000002,
+            "annotated_protected_word_seconds": 1642.5200000000002,
+            "protected_word_seconds_selected": 0
+          },
+          "continuous_spans": {
+            "annotated_commercial_seconds": 311.58000000000004,
+            "commercial_seconds_selected": 0,
+            "commercial_seconds_missed": 311.58000000000004,
+            "annotated_protected_seconds": 1947.76,
+            "protected_seconds_selected": 0,
+            "unverified_seconds_selected": 0,
+            "unlabeled_seconds_selected": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "scope": "Audio export and timeline mechanics only; no detector accuracy or listening validation.",
+  "reference_version": 3,
+  "source_audio_sha256": "b760022c2897bc34dcf128f546033df75a2b8c9676c9d49736555ad31782f2ac",
+  "reference_sha256": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+  "transcript_sha256": "8469754a21deb2eeec436b38bfd2b20c30e94279a68920fab6caa61cb2fa11dd",
+  "source_files_unchanged": true,
+  "source_duration_seconds": 597.100437,
+  "approved_cut_count": 1,
+  "approved_union_seconds": 19.82,
+  "expected_output_duration_seconds": 577.280437,
+  "outputs": {
+    "wav": {
+      "duration_seconds": 577.280438,
+      "duration_error_seconds": 1e-06,
+      "duration_tolerance_seconds": 0.0001,
+      "decodes_to_eof": true,
+      "sha256": "d2823887c09ef08c263c74673a484c55402637423c3a524d1f41ffcbb64c6adc"
+    },
+    "mp3": {
+      "duration_seconds": 577.280437,
+      "duration_error_seconds": 0.0,
+      "duration_tolerance_seconds": 0.15,
+      "decodes_to_eof": true,
+      "sha256": "fad4fe0a2e9fdb2fadad935c65a842b9217aafbab0f2a13c20282ffb582fe2bd"
+    }
+  },
+  "lossless_pcm": {
+    "exact_retained_samples_match": true,
+    "sample_rate": 16000,
+    "channels": 1,
+    "sample_width_bytes": 2,
+    "retained_frame_count": 9236487
+  },
+  "transcript": {
+    "original_words": 1804,
+    "retained_words": 1737,
+    "removed_words": 67,
+    "words_before_cut": 1704,
+    "words_after_cut": 33,
+    "all_retained_words_preserved_in_order": true,
+    "all_word_timestamps_match_independent_mapping": true
+  },
+  "captions": {
+    "srt": {
+      "parsed_by_ffprobe": true,
+      "cue_count": 108,
+      "ordered_positive_timestamps": true,
+      "within_cleaned_duration": true
+    },
+    "vtt": {
+      "parsed_by_ffprobe": true,
+      "cue_count": 108,
+      "ordered_positive_timestamps": true,
+      "within_cleaned_duration": true
+    }
+  }
+}

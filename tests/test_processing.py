@@ -58,6 +58,23 @@ class ProcessingTests(unittest.TestCase):
         self.assertEqual(len(cuts), 1)
         self.assertFalse(cuts[0]["approved"])
 
+    def test_recovered_speech_blocks_legacy_heuristic_automatic_approval(self):
+        source = transcript("We explore Saturn.", "This episode is sponsored by Acme.",
+                            "Use promo code SPACE for a free trial.", "Now back to our conversation.")
+        source["segments"][1]["asr_recovered"] = True
+        cuts = detect_ads(source, "heuristic", config={"ai_policy": "legacy", "review_only": False})
+        self.assertEqual([(cut["start"], cut["end"]) for cut in cuts], [(10, 30)])
+        self.assertFalse(cuts[0]["approved"])
+        self.assertTrue(cuts[0]["requires_review"])
+        self.assertIn("provisional recovered speech", cuts[0]["reason"])
+
+    def test_touching_recovered_editorial_does_not_change_legacy_ad_approval(self):
+        source = transcript("We explore Saturn.", "This episode is sponsored by Acme.",
+                            "Use promo code SPACE for a free trial.", "Now back to our conversation.")
+        source["segments"][3]["asr_recovered"] = True
+        cuts = detect_ads(source, "heuristic", config={"ai_policy": "legacy", "review_only": False})
+        self.assertEqual([(cut["start"], cut["end"], cut["approved"]) for cut in cuts], [(10, 30, True)])
+
     def test_editorial_discussion_of_advertising_is_not_auto_removed(self):
         source = transcript("We discuss an example: this episode is sponsored by Acme.",
                             "Advertisers ask listeners to use promo code SALE.", "Now back to our conversation.")
@@ -85,6 +102,18 @@ class ProcessingTests(unittest.TestCase):
         sent = request.call_args.kwargs["json"]["messages"][1]["content"]
         self.assertIn("ancient oceans", sent)
         self.assertNotIn("Authorization", request.call_args.kwargs["headers"])
+
+    def test_legacy_ai_only_demotes_cuts_overlapping_recovered_speech(self):
+        source = transcript("A recovered promotion.", "Editorial discussion.", "Another promotion.")
+        source["segments"][0]["asr_recovered"] = True
+        answer = {"ads": [{"segment_ids": [0], "confidence": .99, "reason": "Promotion one"},
+                          {"segment_ids": [2], "confidence": .99, "reason": "Promotion two"}]}
+        with self.ai_environment(), patch("requests.post", return_value=FakeResponse(answer)):
+            cuts = detect_ads(source, "ai", config={"ai_policy": "legacy", "review_only": False})
+        self.assertEqual([(cut["start"], cut["end"], cut["approved"]) for cut in cuts], [(0, 10, False), (20, 30, True)])
+        self.assertTrue(cuts[0]["requires_review"])
+        self.assertIn("recovered speech", cuts[0]["reason"])
+        self.assertEqual(cuts[1]["reason"], "Promotion two")
 
     def test_ai_must_use_real_contiguous_segment_ids_and_numeric_confidence(self):
         cases = [

@@ -1,6 +1,7 @@
 """Durability, migration, and privacy contracts for the local podcast library."""
 
 import hashlib
+import copy
 import json
 import sqlite3
 import tempfile
@@ -190,6 +191,44 @@ class LibraryTests(unittest.TestCase):
         for field in ('transcript', 'waveform', 'cuts', 'audio', 'cleaned', 'feed_url', 'media_url'):
             self.assertNotIn(field, summary)
         self.assertNotIn('private spoken words', json.dumps(summary))
+
+    def test_detail_adds_legacy_quality_without_mutating_transcript_or_reviewed_cuts(self):
+        self.library.import_entries([entry()])
+        transcript = {'language': 'en', 'segments': [
+            {'id': 7, 'start': 0, 'end': 4, 'text': 'Original opening.'},
+            {'id': 9, 'start': 14, 'end': 120, 'text': 'Original return.'},
+        ]}
+        cuts = [{'start': 20, 'end': 30, 'approved': True, 'source': 'manual'}]
+        self.library.update('one', transcript=transcript, cuts=cuts, analysis_done=True, status='ready')
+        record = self.library.get('one')
+        frozen = copy.deepcopy(record)
+        detail = self.library.public(record, detail=True)
+        self.assertEqual(detail['transcript']['quality']['gaps'], [{'start': 4, 'end': 14, 'duration': 10}])
+        self.assertTrue(detail['transcript']['quality']['requires_review'])
+        self.assertEqual(detail['transcript']['segments'], transcript['segments'])
+        self.assertEqual(detail['cuts'], cuts)
+        self.assertEqual(record, frozen)
+        self.assertEqual(self.library.get('one'), frozen)
+        self.assertNotIn('transcript', self.library.public(record))
+
+    def test_detail_preserves_existing_recovery_audit_and_warning(self):
+        self.library.import_entries([entry()])
+        quality = {'version': 1, 'requires_review': True, 'warning': 'Review recovered speech.',
+                   'gaps': [], 'recovery': {'candidates': [{'start': 4, 'end': 5}], 'failed_attempts': 1}}
+        transcript = {'duration': 120, 'segments': [], 'quality': quality}
+        self.library.update('one', transcript=transcript)
+        detail = self.library.public(self.library.get('one'), detail=True)
+        self.assertEqual(detail['transcript'], transcript)
+
+    def test_detail_warns_about_uncheckable_legacy_timestamps_without_failing(self):
+        self.library.import_entries([entry()])
+        transcript = {'segments': [{'text': 'Legacy speech without timestamps.'}]}
+        self.library.update('one', transcript=transcript)
+        detail = self.library.public(self.library.get('one'), detail=True)
+        self.assertTrue(detail['transcript']['quality']['requires_review'])
+        self.assertIn('timestamps could not be checked', detail['transcript']['quality']['warning'])
+        self.assertEqual(detail['transcript']['segments'], transcript['segments'])
+        self.assertEqual(self.library.get('one')['transcript'], transcript)
 
     def test_recent_listening_time_is_durable_and_unrelated_flags_do_not_change_it(self):
         self.library.import_entries([entry()])

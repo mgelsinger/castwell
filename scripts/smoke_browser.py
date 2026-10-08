@@ -202,6 +202,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             note("Browser: upload audio, import a timestamped transcript, and configure review")
             page.goto(base, wait_until="networkidle")
             expect(page.locator("#empty-state")).to_be_visible()
+            expect(page.locator("#playback-speed")).to_have_value("1")
             page.locator("#add-more").click()
             page.locator("#upload-button").click()
             page.locator("#audio-upload").set_input_files(str(audio))
@@ -216,6 +217,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#close-detail").click()
             page.locator("#sidebar-settings").click()
             expect(page.locator("#save-settings")).to_be_enabled()
+            expect(page.locator("#setting-review-only")).to_be_checked()
             page.locator("#setting-detector").select_option("heuristic")
             page.locator("#setting-review-only").check()
             with page.expect_response(lambda response: response.url.endswith("/api/settings") and response.request.method == "PATCH") as saved:
@@ -246,6 +248,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             note("Browser: verify waveform, both audio versions, playback speed, and downloads")
             wait_js(page, "() => document.querySelector('#audio-player').readyState >= 2", label="original media decoding")
             assert abs(page.locator("#audio-player").evaluate("audio => audio.duration") - 12) < 0.1
+            assert page.locator("#audio-player").evaluate("audio => audio.playbackRate") == 1
             expect(page.locator("#waveform-notice")).to_contain_text("click the waveform")
             assert page.request.get(f"/api/episodes/{episode_id}/waveform").json()["peaks"]
             waveform = page.locator("#audio-waveform")
@@ -353,6 +356,202 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#tab-cuts").click()
             wait_js(page, "() => { const dialog = document.querySelector('#episode-dialog'); return document.documentElement.scrollWidth <= innerWidth + 1 && dialog.scrollWidth <= dialog.clientWidth + 1; }", label="mobile review without horizontal overflow")
             screenshot("mobile-review")
+
+            note("Browser: retain the original playhead when editing a cleaned recording")
+            playback_audio = workspace / "Playback position regression.wav"
+            subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin", "-y", "-f", "lavfi",
+                            "-i", "sine=frequency=330:sample_rate=16000:duration=24", "-c:a", "pcm_s16le", str(playback_audio)],
+                           check=True, capture_output=True)
+            uploaded = page.request.post("/api/audio", multipart={"file": {
+                "name": playback_audio.name, "mimeType": "audio/wav", "buffer": playback_audio.read_bytes(),
+            }})
+            assert uploaded.status == 201, uploaded.text()
+            playback_id = uploaded.json()["id"]
+            imported = page.request.post(f"/api/episodes/{playback_id}/transcript", data={
+                "duration": 24, "language": "en", "segments": [
+                    {"id": 0, "start": 0, "end": 6, "text": "The beginning of the conversation."},
+                    {"id": 1, "start": 6, "end": 14, "text": "A manually reviewed commercial passage."},
+                    {"id": 2, "start": 14, "end": 24, "text": "The conversation continues after the commercial."},
+                ],
+            })
+            assert imported.ok, imported.text()
+            cuts = page.request.post(f"/api/episodes/{playback_id}/cuts", data={"cuts": [
+                {"start": 6, "end": 14, "approved": True, "source": "manual", "reason": "Playback regression fixture"},
+            ]})
+            assert cuts.ok, cuts.text()
+            rendered = page.request.post(f"/api/episodes/{playback_id}/render", data={})
+            assert rendered.status == 202, rendered.text()
+            wait_episode(page, playback_id, "ready", cleaned=True)
+            quality_url = f"**/api/episodes/{playback_id}"
+
+            def intercept_quality(route):
+                response = route.fetch()
+                detail = response.json()
+                detail["transcript"]["quality"] = {
+                    "version": 1, "requires_review": True,
+                    "warning": "Original audio has a gap with no transcript text. It may be silence, music, or missed speech.",
+                    "gaps": [{"start": 16, "end": 20, "duration": 4}],
+                }
+                detail["transcript"]["segments"][0]["asr_recovered"] = True
+                route.fulfill(response=response, content_type="application/json", body=json.dumps(detail))
+
+            page.route(quality_url, intercept_quality)
+            page.goto(base, wait_until="networkidle")
+            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/cleaned'); }", label="playback regression cleaned audio")
+            expect(page.locator("#transcript-quality-notice")).to_be_visible()
+            page.locator("#transcript-version").select_option("original")
+            expect(page.locator("#transcript-lines").get_by_text("Recovered speech - review audio", exact=True)).to_be_visible()
+            page.locator("#listen-transcript-gap").click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/original') && audio.currentTime >= 15 && audio.currentTime < 17; }", label="transcript gap preview on original timeline")
+            page.locator("#audio-player").evaluate("audio => audio.pause()")
+            page.locator("#play-cleaned").click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/cleaned'); }", label="return to cleaned regression audio")
+            page.unroute(quality_url, intercept_quality)
+            page.locator("#audio-player").evaluate("audio => { audio.pause(); audio.currentTime = 9; }")
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return !audio.seeking && Math.abs(audio.currentTime - 9) < .05; }", label="cleaned nine-second playhead")
+            expect(page.locator("#waveform-position")).to_have_text("0:17")
+            page.locator("#tab-cuts").click()
+            page.get_by_label("Cut 1 start in seconds", exact=True).fill("6.25")
+            page.locator("#save-cuts").click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/original') && Math.abs(audio.currentTime - 17) < .05; }", label="original seventeen-second playhead after editing")
+            assert page.locator("#audio-player").evaluate("audio => audio.paused") is True
+            assert page.locator("#audio-player").evaluate("audio => audio.playbackRate") == 1.5
+            regeneration_requests = []
+
+            def intercept_regeneration(route):
+                regeneration_requests.append(route.request.post_data_json)
+                route.fulfill(status=202, content_type="application/json", body='{"queued": true}')
+
+            regeneration_url = f"**/api/episodes/{playback_id}/process"
+            page.route(regeneration_url, intercept_regeneration)
+            page.locator("#detail-retranscribe").click()
+            wait_js(page, "() => !document.querySelector('#detail-retranscribe').disabled", label="regeneration action complete")
+            assert regeneration_requests == [{"retranscribe": True}], regeneration_requests
+            page.unroute(regeneration_url, intercept_regeneration)
+            page.locator("#close-detail").click()
+            wait_js(page, "async id => Math.abs((await (await fetch(`/api/episodes/${id}`)).json()).position - 17) < .05", playback_id, label="saved original position after editing")
+
+            note("Browser: preserve detector evidence and distinguish manually adjusted boundaries")
+            # Explicit fixtures exercise metadata persistence without calling a model.
+            verification = [{"segment_id": 1, "parent_segment_id": 1,
+                             "intent": {"label": "commercial", "confidence": .96, "reason": "Fixture intent evidence"},
+                             "boundary": {"label": "commercial", "confidence": .95, "reason": "Fixture boundary evidence"}}]
+            detected = {
+                "start": 6, "end": 14, "approved": False, "source": "ai", "confidence": .95,
+                "reason": "Verified fixture", "requires_review": False, "label": "commercial",
+                "policy_version": "smoke-fixture-v1", "sources": ["ai", "intent-verifier", "boundary-verifier"],
+                "verification": verification,
+            }
+            recovered = {
+                "start": 16, "end": 20, "approved": False, "source": "ai", "confidence": .94,
+                "reason": "Provisional recovered fixture", "requires_review": True, "label": "uncertain",
+                "policy_version": "smoke-fixture-v1", "verification": verification,
+                "asr_recovered": True, "recovery_provenance": {"segment_ids": [2], "method": "no-vad-gap-recovery"},
+            }
+            seeded = page.request.post(f"/api/episodes/{playback_id}/cuts", data={"cuts": [detected, recovered]})
+            assert seeded.ok, seeded.text()
+            page.goto(base, wait_until="networkidle")
+            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#tab-cuts").click()
+            rows = page.locator("#cut-list .cut-row")
+            expect(rows).to_have_count(2)
+            expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("Both model checks passed")
+            expect(rows.nth(1).locator(".cut-review-status")).to_contain_text("Review required by detector")
+            rows.nth(0).locator("input[type=checkbox]").check()
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST") as metadata_saved:
+                page.locator("#save-cuts").click()
+            assert metadata_saved.value.ok, metadata_saved.value.text()
+            unchanged = episode(page, playback_id)["cuts"]
+            assert unchanged == [dict(detected, approved=True), recovered], unchanged
+            expect(page.locator("#save-cuts")).to_be_enabled()
+            page.get_by_label("Cut 1 start in seconds", exact=True).fill("6.25")
+            expect(rows.nth(0).locator("input[type=checkbox]")).not_to_be_checked()
+            expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("Manually adjusted")
+            expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("original 6.00 - 14.00 seconds")
+            expect(rows.nth(0).locator(".cut-confidence")).to_have_text("Original 95% confidence")
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            adjusted = episode(page, playback_id)["cuts"][0]
+            assert adjusted["requires_review"] is True and adjusted["approved"] is False
+            assert adjusted["detected_bounds"] == {"start": 6, "end": 14}
+            assert adjusted["manual_adjustment"] == {
+                "kind": "boundary-edit", "verification_scope": "original_detected_bounds",
+                "original_requires_review": False, "original_approved": True,
+            }
+            assert adjusted["verification"] == verification and adjusted["policy_version"] == detected["policy_version"]
+            # Reload, edit again, and approve manually. The first detected bounds
+            # and every unrelated cut's recovery provenance must remain intact.
+            page.reload(wait_until="networkidle")
+            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#tab-cuts").click()
+            page.get_by_label("Cut 1 end in seconds", exact=True).fill("13.75")
+            rows.nth(0).locator("input[type=checkbox]").check()
+            expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("selected by you")
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            final_cuts = episode(page, playback_id)["cuts"]
+            assert final_cuts[0] == dict(adjusted, end=13.75, approved=True), final_cuts[0]
+            assert final_cuts[1] == recovered, final_cuts[1]
+
+            note("Browser: bulk selection preserves review metadata and exports only the final selection")
+            expect(page.locator("#cut-selection-count")).to_have_text("1 of 2 selected")
+            # Prepare a cleaned timeline using the current single approved cut.
+            # Bulk edits must keep its original-time playhead when saving
+            # invalidates that export, just as individual checkbox edits do.
+            page.locator("#render-cuts").click()
+            wait_episode(page, playback_id, "review", cleaned=True)
+            page.locator("#play-cleaned").click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/cleaned'); }", label="cleaned audio before bulk selection")
+            page.locator("#audio-player").evaluate("audio => { audio.pause(); audio.currentTime = 10; }")
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return !audio.seeking && Math.abs(audio.currentTime - 10) < .05; }", label="cleaned playhead before bulk selection")
+            page.locator("#select-all-cuts").click()
+            expect(page.locator("#cut-selection-count")).to_have_text("2 of 2 selected")
+            expect(page.locator("#select-all-cuts")).to_be_disabled()
+            expect(rows.nth(0).locator("input[type=checkbox]")).to_be_checked()
+            expect(rows.nth(1).locator("input[type=checkbox]")).to_be_checked()
+            expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("Manually adjusted")
+            expect(rows.nth(1).locator(".cut-review-status")).to_contain_text("Review required by detector")
+            assert episode(page, playback_id)["cuts"] == final_cuts, "Bulk selection must remain unsaved until requested"
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            assert episode(page, playback_id)["cuts"] == [dict(cut, approved=True) for cut in final_cuts]
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/original') && Math.abs(audio.currentTime - 17.5) < .05; }", label="original playhead after saving bulk selection")
+            assert page.locator("#audio-player").evaluate("audio => audio.paused") is True
+            assert page.locator("#audio-player").evaluate("audio => audio.playbackRate") == 1.5
+
+            page.locator("#clear-cut-selection").click()
+            expect(page.locator("#cut-selection-count")).to_have_text("0 of 2 selected")
+            expect(page.locator("#clear-cut-selection")).to_be_disabled()
+            expect(rows.nth(0).locator("input[type=checkbox]")).not_to_be_checked()
+            expect(rows.nth(1).locator("input[type=checkbox]")).not_to_be_checked()
+            with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
+                page.locator("#save-cuts").click()
+            assert episode(page, playback_id)["cuts"] == [dict(cut, approved=False) for cut in final_cuts]
+            page.reload(wait_until="networkidle")
+            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#tab-cuts").click()
+            expect(page.locator("#cut-selection-count")).to_have_text("0 of 2 selected")
+            expect(rows.nth(0).locator("input[type=checkbox]")).not_to_be_checked()
+            expect(rows.nth(1).locator("input[type=checkbox]")).not_to_be_checked()
+
+            # A per-cut choice after selecting all controls the actual export.
+            page.locator("#select-all-cuts").click()
+            rows.nth(0).locator("input[type=checkbox]").uncheck()
+            expect(page.locator("#cut-selection-count")).to_have_text("1 of 2 selected")
+            expect(page.locator("#cut-summary")).to_contain_text("1 cut selected · 0:04 to remove")
+            page.locator("#render-cuts").click()
+            wait_episode(page, playback_id, "review", cleaned=True)
+            exported = episode(page, playback_id)
+            assert exported["cuts"] == [dict(final_cuts[0], approved=False), dict(final_cuts[1], approved=True)]
+            assert abs(exported["removed_seconds"] - 4) < .01, exported["removed_seconds"]
+            assert abs(exported["cleaned_duration"] - 20) < .15, exported["cleaned_duration"]
+            page.locator("#play-cleaned").click()
+            wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/cleaned') && Math.abs(audio.duration - 20) < .15; }", label="bulk selection export decoding")
+            assert page.locator("#episode-dialog").evaluate("node => node.scrollWidth <= node.clientWidth"), "Bulk controls overflow the mobile dialog"
+            page.locator("#cut-selection-controls").scroll_into_view_if_needed()
+            if artifacts:
+                page.screenshot(path=str(artifacts / "mobile-bulk-review.png"), full_page=False)
             assert not errors, "Browser errors:\n" + "\n".join(errors)
             note("PASS: gallery upload, review, real audio exports/playback, revision recovery, downloads, subscriptions, and desktop/mobile layouts")
         except Exception:

@@ -81,6 +81,29 @@ def test_native_main_does_not_require_python_llama_package(tmp_path, monkeypatch
     assert launched[0][1][0] == str(binary.resolve())
 
 
+def test_qwen3_preset_bounds_thinking_and_preserves_final_content(tmp_path):
+    model = tmp_path / "Qwen3.gguf"
+    binary = tmp_path / "llama-server"
+    model.touch()
+    binary.touch()
+    command = local_ai.server_command(model, server_binary=binary, preset="qwen3")
+    assert command[command.index("--reasoning-format") + 1] == "deepseek"
+    assert command[command.index("--reasoning-budget") + 1] == "1536"
+    assert command[command.index("--n-predict") + 1] == "4096"
+    assert command[command.index("--temp") + 1] == "0.6"
+    assert command[command.index("--min-p") + 1] == "0"
+    no_thinking = local_ai.server_command(model, server_binary=binary, preset="qwen3", thinking=False)
+    assert no_thinking[no_thinking.index("--reasoning") + 1] == "off"
+    assert no_thinking[no_thinking.index("--temp") + 1] == "0.7"
+    assert no_thinking[no_thinking.index("--top-p") + 1] == "0.8"
+    for settings in ({"reasoning_budget": -1}, {"reasoning_budget": 4096},
+                     {"max_tokens": 8192}, {"context": 2048}):
+        with pytest.raises(ValueError, match="reasoning budget"):
+            local_ai.server_command(model, server_binary=binary, preset="qwen3", **settings)
+    with pytest.raises(ValueError, match="native backend"):
+        local_ai.server_command(model, preset="qwen3")
+
+
 def test_missing_model_and_invalid_resource_settings_fail_before_start(tmp_path):
     model = tmp_path / "missing.gguf"
     with pytest.raises(ValueError, match="does not exist"):

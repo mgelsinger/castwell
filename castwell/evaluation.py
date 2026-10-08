@@ -24,7 +24,7 @@ from . import __version__, processing
 APPROVAL_THRESHOLD = 0.90
 DEFAULT_BASE_URL = "http://127.0.0.1:8081/v1"
 DEFAULT_MODEL = "castwell-local"
-BACKENDS = ("heuristic", "local-ai", "jev")
+BACKENDS = ("heuristic", "local-ai", "verified-ai", "kev", "jev")
 
 
 def _number(value):
@@ -157,7 +157,7 @@ def validate_endpoint(base_url, *, allow_remote=False):
     return base_url.rstrip("/")
 
 
-def validate_backends(backends, *, base_url, allow_remote=False, allow_paid_api=False, jev_api_key=None, jev_base_url="https://api.typesafe.ai"):
+def validate_backends(backends, *, base_url, allow_remote=False, allow_paid_api=False, jev_api_key=None, jev_base_url="https://api.typesafe.ai", kev_base_url="http://127.0.0.1:8083"):
     selected = list(dict.fromkeys(backends or ["heuristic"]))
     if any(name not in BACKENDS for name in selected):
         raise ValueError("Unknown comparison backend")
@@ -170,8 +170,11 @@ def validate_backends(backends, *, base_url, allow_remote=False, allow_paid_api=
         validate_endpoint(jev_base_url, allow_remote=True)
         if jev_base_url.rstrip("/") not in ("https://api.typesafe.ai", "https://api.typesafe.ai/v1"):
             raise ValueError("Jev credentials may only be sent to the official https://api.typesafe.ai endpoint")
-    if "local-ai" in selected:
+    if set(selected) & {"local-ai", "verified-ai"}:
         validate_endpoint(base_url, allow_remote=allow_remote)
+    if "kev" in selected:
+        from .jev import _local_endpoint
+        _local_endpoint(kev_base_url)
     return selected
 
 
@@ -193,7 +196,7 @@ def _provenance():
         except importlib.metadata.PackageNotFoundError:
             versions[package] = None
     sources = {}
-    for name in ("processing.py", "evaluation.py", "jev.py"):
+    for name in ("processing.py", "evaluation.py", "jev.py", "ad_review.py"):
         path = Path(__file__).parent / name
         if path.is_file():
             sources[name] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -201,13 +204,18 @@ def _provenance():
             "package_versions": versions, "source_sha256": sources}
 
 
-def _run_backend(name, transcript, *, base_url, model, jev_api_key, jev_base_url, jev_model):
+def _run_backend(name, transcript, *, base_url, model, jev_api_key, jev_base_url, jev_model,
+                 kev_base_url="http://127.0.0.1:8083", kev_model="kev-latest"):
+    if name == "kev":
+        from .jev import classify_local_transcript
+        return classify_local_transcript(transcript, base_url=kev_base_url, model=kev_model)
     if name == "jev":
         from .jev import classify_transcript
         return classify_transcript(transcript, base_url=jev_base_url, model=jev_model, api_key=jev_api_key, allow_paid_api=True)
     cuts = processing.detect_ads(transcript, "heuristic" if name == "heuristic" else "ai", config={
-        "ai_base_url": base_url if name == "local-ai" else "",
-        "ai_model": model if name == "local-ai" else "",
+        "ai_base_url": base_url if name in ("local-ai", "verified-ai") else "",
+        "ai_model": model if name in ("local-ai", "verified-ai") else "",
+        "ai_policy": "verified" if name == "verified-ai" else "legacy",
         "ai_key": "", "ai_allow_redirects": False, "ai_trust_env": False,
         "review_only": False, "auto_approve_threshold": APPROVAL_THRESHOLD,
     })
@@ -265,9 +273,10 @@ def summarize(records):
 def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model=DEFAULT_MODEL,
                      model_label=None, split="eval", allow_remote=False, allow_paid_api=False,
                      jev_api_key=None, jev_base_url="https://api.typesafe.ai", jev_model="jev-1.13.0",
+                     kev_base_url="http://127.0.0.1:8083", kev_model="kev-latest", kev_model_label=None,
                      dataset_sha256=None, on_case=None):
     selected = validate_backends(backends, base_url=base_url, allow_remote=allow_remote,
-                                 allow_paid_api=allow_paid_api, jev_api_key=jev_api_key, jev_base_url=jev_base_url)
+                                 allow_paid_api=allow_paid_api, jev_api_key=jev_api_key, jev_base_url=jev_base_url, kev_base_url=kev_base_url)
     if split not in ("dev", "eval", "all"):
         raise ValueError("Split must be dev, eval, or all")
     validated = validate_dataset(dataset)
@@ -294,19 +303,22 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
             "duration": "Union intersection of authored intervals; all remaining transcript time is non-ad time.",
             "boundary": "Greedy one-to-one positive-overlap matching ranked by IoU, overlap, then indices; report absolute start/end errors. Unmatched spans have counts, no fabricated boundary error.",
             "ambiguity": "category=ambiguous cases are excluded from accuracy denominators. ambiguous_safety reports union seconds/spans and case counts separately; approved selections are unsupported automatic cuts, not established editorial or ad errors. Failed cases remain explicit.",
-            "review_signal": "review_observed is any unapproved/requires_review cut for heuristic/local-ai, but Jev's explicit uncertainty/conflict signal. manual_review_cases separately counts cases containing unapproved cuts for every backend.",
+            "review_signal": "review_observed is any unapproved/requires_review cut for heuristic/local-ai, but Jev/Kev explicit uncertainty/conflict signals. manual_review_cases separately counts cases containing unapproved cuts for every backend.",
             "failure": "Errors are excluded from scored metrics, never counted as successful no-ad predictions; eligible totals include failed cases.",
             "proposed": "All candidate intervals, including unapproved review suggestions.",
-            "approved": "Classifier-approved intervals with the production approval threshold frozen at 0.90. Jev's adapter never auto-approves.",
-            "threshold_shadow": "Hypothetical intervals at confidence >= 0.90, excluding explicit requires_review spans and Jev responses requesting review. Separate from actual approval; provider scores are not interchangeable.",
+            "approved": "Classifier-approved intervals with the production approval threshold frozen at 0.90. Jev and Kev adapters never auto-approve.",
+            "threshold_shadow": "Hypothetical intervals at score >= 0.90: confidence for ordinary/paid backends, selected_probability for local Kev. Excludes explicit requires_review spans and Jev/Kev responses requesting review. Separate from actual approval; scores are not interchangeable or podcast-calibrated.",
             "confidence": "Reported confidence is not measured accuracy or a calibrated probability.",
         },
         "backends": [],
     }
     for backend in selected:
-        config = {"backend": backend, "model": model if backend == "local-ai" else jev_model if backend == "jev" else "cue-rules",
-                  "model_label": model_label if backend == "local-ai" and model_label else model if backend == "local-ai" else jev_model if backend == "jev" else "Castwell heuristic",
-                  "base_url": base_url if backend == "local-ai" else jev_base_url if backend == "jev" else None}
+        local = backend in ("local-ai", "verified-ai")
+        config = {"backend": backend, "model": model if local else jev_model if backend == "jev" else "cue-rules",
+                  "model_label": model_label if local and model_label else model if local else jev_model if backend == "jev" else "Castwell heuristic",
+                  "base_url": base_url if local else jev_base_url if backend == "jev" else None}
+        if backend == "kev":
+            config.update(model=kev_model, model_label=kev_model_label or kev_model, base_url=kev_base_url)
         records = []
         for case in cases:
             began = time.perf_counter()
@@ -315,7 +327,8 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
                           status="error", cuts=None, review=None, metrics=None)
             try:
                 answer = _run_backend(backend, case["transcript"], base_url=base_url, model=model,
-                                      jev_api_key=jev_api_key, jev_base_url=jev_base_url, jev_model=jev_model)
+                                      jev_api_key=jev_api_key, jev_base_url=jev_base_url, jev_model=jev_model,
+                                      kev_base_url=kev_base_url, kev_model=kev_model)
                 cuts = processing.validate_cuts(answer["cuts"], record["duration"])
                 review = answer.get("review", False)
                 if not isinstance(review, bool):
@@ -323,8 +336,8 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
                 views = {
                     "proposed": cuts,
                     "approved": [cut for cut in cuts if cut["approved"]],
-                    "threshold_shadow": [cut for cut in cuts if cut["confidence"] >= APPROVAL_THRESHOLD
-                                         and not cut.get("requires_review", False) and not (backend == "jev" and review)],
+                    "threshold_shadow": [cut for cut in cuts if (cut.get("selected_probability", cut["confidence"]) if backend == "kev" else cut["confidence"]) >= APPROVAL_THRESHOLD
+                                         and not cut.get("requires_review", False) and not (backend in ("jev", "kev") and review)],
                 }
                 record.update(status="ok", cuts=cuts, review=review, intervals={key: union_intervals(value, record["duration"]) for key, value in views.items()},
                               usage=answer.get("usage", {}))
@@ -332,8 +345,9 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
                     record["metrics"] = {key: interval_metrics(value, case["expected_intervals"], record["duration"]) for key, value in views.items()}
                 # Retain only explicitly public provider identity fields, never raw responses or keys.
                 record["provider_metadata"] = {key: answer[key] for key in ("model", "provider", "request_count", "policy_version") if key in answer}
-                if backend == "jev":
+                if backend in ("jev", "kev"):
                     record["decisions"] = answer.get("decisions", [])
+                    record["confidence_semantics"] = answer.get("confidence_semantics", {})
             except Exception as exc:
                 message = str(exc) if isinstance(exc, processing.ProcessingError) else "Classification failed; this case is excluded from accuracy metrics."
                 record.update(status="error", error={"type": type(exc).__name__, "message": message},

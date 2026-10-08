@@ -18,7 +18,7 @@
     detailRequest: 0, actionBusy: false, lastFocus: null, loaded: false,
     podcast: '', sort: 'newest', feeds: [], jobs: [], feedBusy: new Set(),
     waveform: null, waveformKey: '', waveformBusy: false, markStart: null,
-    pendingSeek: null, pendingPlay: false, lastPositionSave: 0, lastPosition: null,
+    pendingSeek: null, pendingPlay: false, playbackCuts: [], lastPositionSave: 0, lastPosition: null,
     transcriptVersion: 'original', cleanedTranscript: null, cleanedKey: '', cleanedBusy: false,
     modelPreparing: false, settingsLoaded: false, settingsBusy: false,
     revisions: [], progressWarning: false,
@@ -360,10 +360,13 @@
     const processLabel = episode.status === 'error' ? 'Retry preparation' : episode.has_transcript ? 'Prepare again' : 'Prepare episode';
     $('detail-process').replaceChildren(icon('spark'), document.createTextNode(busy ? 'Preparing…' : processLabel));
     const usesAI = state.settings.ai_configured && !['heuristic', 'Local rules'].includes(state.settings.detector);
-    $('detail-preparation-note').textContent = usesAI ? 'Transcribe · Analyze context · Create cleaned audio' : 'Transcribe · Find ad cues · Review suggested cuts';
-    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
+    const verifiedAI = usesAI && state.settings.ai_policy !== 'legacy';
+    $('detail-preparation-note').textContent = usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
+    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
     visible('detail-redetect', episode.has_transcript);
     $('detail-redetect').disabled = busy || state.actionBusy;
+    visible('detail-retranscribe', episode.has_transcript && episode.has_audio);
+    $('detail-retranscribe').disabled = busy || state.actionBusy;
     $('render-cuts').disabled = !episode.has_audio || busy || state.actionBusy;
     $('save-cuts').disabled = busy || state.actionBusy;
     $('add-cut').disabled = busy;
@@ -404,9 +407,9 @@
     }
     return Math.max(0, originalTime - removed);
   }
-  function originalTime(cleanedTime) {
+  function originalTime(cleanedTime, cuts = mergedCuts()) {
     let removed = 0;
-    for (const cut of mergedCuts()) {
+    for (const cut of cuts) {
       if (cleanedTime < cut.start - removed) break;
       removed += cut.end - cut.start;
     }
@@ -415,8 +418,15 @@
   function updatePlayer() {
     const episode = state.detail;
     if (!episode) return;
+    const audio = $('audio-player');
+    // The loaded cleaned file still uses its old cuts while an edit replaces
+    // the episode record. Capture that original position before switching.
+    const position = audio.readyState >= 1 ? playhead() : seconds(episode.position);
+    const playing = !audio.paused;
     if (state.audioVersion === 'cleaned' && !episode.has_cleaned) state.audioVersion = 'original';
-    const hasAudio = state.audioVersion === 'cleaned' ? episode.has_cleaned : episode.has_audio;
+    // Library summaries omit cuts; wait for episode detail before loading a
+    // cleaned file so its timeline and initial resume position are known.
+    const hasAudio = state.audioVersion === 'cleaned' ? episode.has_cleaned && Array.isArray(episode.cuts) : episode.has_audio;
     $('play-cleaned').disabled = !episode.has_cleaned;
     $('play-original').disabled = !episode.has_audio;
     for (const variant of ['original', 'cleaned']) {
@@ -430,10 +440,10 @@
     visible('download-cleaned', episode.has_cleaned);
     $('download-cleaned').href = mediaURL(episode.id, 'cleaned');
     const src = hasAudio ? mediaURL(episode.id, state.audioVersion) : '';
-    const audio = $('audio-player');
     if (audio.getAttribute('src') !== src) {
       if (src) {
-        if (state.pendingSeek === null) { state.pendingSeek = audio.readyState >= 1 ? playhead() : seconds(episode.position); state.pendingPlay = !audio.paused; }
+        if (state.pendingSeek === null) { state.pendingSeek = position; state.pendingPlay = playing; }
+        state.playbackCuts = state.audioVersion === 'cleaned' ? mergedCuts() : [];
         audio.src = src;
       }
       else { audio.removeAttribute('src'); audio.load(); }
@@ -441,7 +451,7 @@
   }
   function playhead() {
     const value = seconds($('audio-player').currentTime);
-    return state.audioVersion === 'cleaned' ? originalTime(value) : value;
+    return state.audioVersion === 'cleaned' ? originalTime(value, state.playbackCuts) : value;
   }
   function switchAudio(version) {
     if (state.audioVersion === version || !state.detail) return;
@@ -468,14 +478,28 @@
     const transcript = state.transcriptVersion === 'cleaned' ? state.cleanedTranscript : state.detail?.transcript;
     return Array.isArray(transcript) ? transcript : transcript?.segments || [];
   }
+  function renderTranscriptQuality(quality) {
+    const show = Boolean(quality?.requires_review);
+    visible('transcript-quality-notice', show);
+    if (!show) return;
+    $('transcript-quality-message').textContent = quality.warning || 'Some original audio has no transcript text. Gaps can be silence, music, or missed speech. Listen before choosing cuts.';
+    const gaps = (Array.isArray(quality.gaps) ? quality.gaps : []).filter((gap) => Number.isFinite(gap.start) && Number.isFinite(gap.end) && gap.start >= 0 && gap.end > gap.start);
+    const select = $('transcript-gap'), previous = select.value;
+    select.replaceChildren(...gaps.map((gap) => new Option(`${clock(gap.start)} - ${clock(gap.end)} (original)`, String(gap.start))));
+    if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+    visible('transcript-gap-controls', gaps.length > 0);
+    $('listen-transcript-gap').disabled = !state.detail?.has_audio || gaps.length === 0;
+  }
   function renderTranscript(force = false) {
     const episode = state.detail;
     if (state.transcriptVersion === 'cleaned' && episode?.has_cleaned) ensureCleanedTranscript();
     const segments = transcriptSegments();
     const search = $('transcript-search').value.toLocaleLowerCase();
-    const signature = JSON.stringify([segments, search, episode?.cuts, episode?.has_audio, state.transcriptVersion]);
+    const quality = episode?.transcript?.quality;
+    const signature = JSON.stringify([segments, search, episode?.cuts, episode?.has_audio, state.transcriptVersion, quality]);
     if (!force && state.transcriptSignature === signature) return;
     state.transcriptSignature = signature;
+    renderTranscriptQuality(quality);
     visible('transcript-empty', !segments.length);
     visible('transcript-downloads', segments.length > 0);
     $('transcript-search').disabled = segments.length === 0;
@@ -498,6 +522,7 @@
       timestamp.disabled = !episode.has_audio;
       timestamp.addEventListener('click', () => seek(originalStart));
       line.append(timestamp, el('p', '', String(segment.text || '').trim()));
+      if (segment.asr_recovered) line.append(el('span', 'partial-label', 'Recovered speech - review audio'));
       if (segment.partial) line.append(el('span', 'partial-label', 'Partial segment · text may include removed words'));
       lines.push(line);
     }
@@ -519,13 +544,61 @@
     state.cutsDirty = true;
     renderCutSummary(); drawWaveform();
   }
+  function setCutApproval(cut, approved) {
+    const changed = cut.approved !== approved;
+    cut.approved = approved;
+    return changed;
+  }
+  function selectAllCuts(approved) {
+    if (!state.detail || state.actionBusy || ACTIVE.has(state.detail.status)) return;
+    let changed = false;
+    for (const cut of state.cuts) changed = setCutApproval(cut, approved) || changed;
+    if (!changed) return;
+    markCutsDirty();
+    renderCuts();
+  }
   function renderCutSummary() {
     const approved = state.cuts.filter((cut) => cut.approved);
     const secondsRemoved = mergedCuts(state.cuts).reduce((sum, cut) => sum + cut.end - cut.start, 0);
+    const busy = state.actionBusy || ACTIVE.has(state.detail?.status);
+    visible('cut-selection-controls', state.cuts.length > 0);
+    $('cut-selection-count').textContent = `${approved.length} of ${state.cuts.length} selected`;
+    $('select-all-cuts').disabled = busy || approved.length === state.cuts.length;
+    $('clear-cut-selection').disabled = busy || approved.length === 0;
     $('cut-summary').textContent = `${approved.length} cut${approved.length === 1 ? '' : 's'} selected · ${clock(secondsRemoved)} to remove${state.cutsDirty ? ' · Unsaved changes' : ''}`;
     $('save-cuts').textContent = state.cutsDirty ? 'Save changes' : 'Save cuts';
     $('detail-cut-count').textContent = state.cuts.length;
     drawWaveform();
+  }
+  function adjustCutBoundary(cut, key, value) {
+    if (cut[key] === value) return;
+    if ((cut.source && cut.source !== 'manual') || cut.verification) {
+      if (!cut.manual_adjustment) {
+        cut.detected_bounds = { start: cut.start, end: cut.end };
+        cut.manual_adjustment = {
+          kind: 'boundary-edit', verification_scope: 'original_detected_bounds',
+          original_requires_review: Boolean(cut.requires_review), original_approved: Boolean(cut.approved),
+        };
+      }
+      cut.requires_review = true;
+      cut.approved = false;
+    }
+    cut[key] = value;
+  }
+  function renderCutReview(cut, node) {
+    let message;
+    if (cut.manual_adjustment) {
+      message = `Manually adjusted - ${cut.approved ? 'selected by you' : 'listen before selecting'}.`;
+      if (cut.detected_bounds) message += ` Detector evidence applies only to the original ${Number(cut.detected_bounds.start).toFixed(2)} - ${Number(cut.detected_bounds.end).toFixed(2)} seconds.`;
+    } else if (cut.requires_review) {
+      message = `Review required by detector - ${cut.approved ? 'selected by you' : 'listen before selecting'}.`;
+    } else if (cut.requires_review === false && cut.label === 'commercial' && Array.isArray(cut.verification) && cut.verification.length) {
+      message = `Both model checks passed - ${cut.approved ? 'selected for removal' : 'awaiting your approval'}. Model agreement can still be wrong.`;
+    } else {
+      message = cut.source === 'manual' ? 'Manual selection - listen around both boundaries.' : 'Suggestion has no two-pass verification - listen before removing.';
+    }
+    node.textContent = message;
+    node.classList.toggle('needs-review', Boolean(cut.requires_review || cut.manual_adjustment));
   }
   function renderCuts() {
     const rows = state.cuts.map((cut, index) => {
@@ -533,16 +606,26 @@
       const top = el('div', 'cut-top');
       const label = el('label', 'cut-toggle');
       const checkbox = el('input');
+      const review = el('p', 'cut-review-status');
       checkbox.type = 'checkbox';
       checkbox.checked = cut.approved;
-      checkbox.addEventListener('change', () => { cut.approved = checkbox.checked; row.classList.toggle('unapproved', !cut.approved); markCutsDirty(); });
+      checkbox.addEventListener('change', () => { setCutApproval(cut, checkbox.checked); row.classList.toggle('unapproved', !cut.approved); renderCutReview(cut, review); markCutsDirty(); });
       label.append(checkbox, document.createTextNode(`Cut ${index + 1}`));
       const confidence = typeof cut.confidence === 'number' ? `${Math.round(cut.confidence * 100)}% confidence` : 'Manual cut';
+      const confidenceLabel = el('span', 'cut-confidence', cut.source === 'manual' ? 'Manual cut' : `${cut.manual_adjustment ? 'Original ' : ''}${confidence}`);
       const remove = el('button', 'icon-button');
       remove.setAttribute('aria-label', `Delete cut ${index + 1}`);
       remove.append(icon('trash'));
       remove.addEventListener('click', () => { state.cuts.splice(index, 1); markCutsDirty(); renderCuts(); });
-      top.append(label, el('span', 'cut-confidence', cut.source === 'manual' ? 'Manual cut' : confidence), remove);
+      top.append(label, confidenceLabel, remove);
+      const changeBoundary = (key, value) => {
+        adjustCutBoundary(cut, key, value);
+        checkbox.checked = cut.approved;
+        confidenceLabel.textContent = cut.source === 'manual' ? 'Manual cut' : `${cut.manual_adjustment ? 'Original ' : ''}${confidence}`;
+        row.classList.toggle('unapproved', !cut.approved);
+        renderCutReview(cut, review);
+        markCutsDirty();
+      };
       const times = el('div', 'cut-times');
       for (const key of ['start', 'end']) {
         const timeLabel = el('label', '', `${key === 'start' ? 'Start' : 'End'} · seconds`);
@@ -550,12 +633,12 @@
         input.type = 'number'; input.min = '0'; input.step = '0.01'; input.required = true;
         input.value = Number.isFinite(Number(cut[key])) ? Number(cut[key]) : '';
         input.setAttribute('aria-label', `Cut ${index + 1} ${key} in seconds`);
-        input.addEventListener('input', () => { cut[key] = input.value === '' ? null : Number(input.value); markCutsDirty(); });
+        input.addEventListener('input', () => changeBoundary(key, input.value === '' ? null : Number(input.value)));
         const setTime = el('button', 'set-playhead', 'Use playhead');
         setTime.type = 'button';
         setTime.setAttribute('aria-label', `Set cut ${index + 1} ${key} to playhead`);
         setTime.disabled = !state.detail?.has_audio;
-        setTime.addEventListener('click', () => { cut[key] = Number(playhead().toFixed(2)); input.value = cut[key]; markCutsDirty(); });
+        setTime.addEventListener('click', () => { changeBoundary(key, Number(playhead().toFixed(2))); input.value = cut[key]; });
         timeLabel.append(input, setTime); times.append(timeLabel);
       }
       const preview = el('button', 'button subtle');
@@ -569,7 +652,8 @@
       reason.setAttribute('aria-label', `Reason for cut ${index + 1}`);
       reason.addEventListener('input', () => { cut.reason = reason.value; markCutsDirty(); });
       reasonLabel.append(reason);
-      row.append(top, times, reasonLabel);
+      renderCutReview(cut, review);
+      row.append(top, review, times, reasonLabel);
       return row;
     });
     $('cut-list').replaceChildren(...rows);
@@ -581,7 +665,7 @@
       if (cut.start === null || cut.end === null || !Number.isFinite(Number(cut.start)) || !Number.isFinite(Number(cut.end)) || Number(cut.start) < 0 || Number(cut.end) <= Number(cut.start)) throw new Error(`Cut ${index + 1} needs a valid start and a later end, in seconds.`);
       if (state.detail.duration && Number(cut.end) > Number(state.detail.duration) + 0.1) throw new Error(`Cut ${index + 1} extends beyond the end of the episode.`);
     }
-    return state.cuts.map((cut) => ({ start: Number(cut.start), end: Number(cut.end), approved: Boolean(cut.approved), confidence: Number.isFinite(cut.confidence) ? cut.confidence : 1, reason: cut.reason || 'Manual cut', source: cut.source || 'manual' }));
+    return state.cuts.map((cut) => ({ ...cut, start: Number(cut.start), end: Number(cut.end), approved: Boolean(cut.approved), confidence: Number.isFinite(cut.confidence) ? cut.confidence : 1, reason: cut.reason || 'Manual cut', source: cut.source || 'manual' }));
   }
   async function saveCuts(silent = false) {
     const cuts = validateCuts();
@@ -625,6 +709,11 @@
         state.cutsDirty = false;
         state.cutsSignature = '';
         toast('Finding ads again. New suggestions will replace the previous cuts.');
+      }
+      if (action === 'retranscribe') {
+        if (state.cutsDirty) await saveCuts(true);
+        await api(episodeURL(state.detail.id, '/process'), { method: 'POST', body: { retranscribe: true } });
+        toast('Regenerating the transcript with the current speech settings. Your saved cuts stay available.');
       }
       await refreshLibrary();
     } catch (error) { showError('detail-error', error); }
@@ -961,7 +1050,7 @@
     try {
       const settings = await api('/api/settings');
       state.settings = { ...state.settings, ...settings }; state.settingsLoaded = true;
-      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: false, ai_base_url: '', ai_model: '' };
+      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '' };
       for (const [key, id] of Object.entries(settingFields)) {
         const input = $(id), value = settings[key] ?? defaults[key];
         if (input.type === 'checkbox') input.checked = Boolean(value);
@@ -974,6 +1063,9 @@
       }
       $('ai-key-status').textContent = settings.key_configured ? 'An API key is securely configured on the server.' : 'No server API key configured. Local AI servers may not need one. For a hosted service, set CASTWELL_AI_KEY in the server environment.';
       $('ai-configured-indicator').textContent = settings.ai_base_url && settings.ai_model ? 'Connected settings' : 'Optional';
+      $('detection-policy-help').textContent = settings.ai_policy === 'legacy'
+        ? 'This server uses legacy AI detection. Review suggestions carefully: detection can miss ads or flag conversation.'
+        : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
       $('settings-overrides').textContent = settings.env_overrides?.length ? 'Some settings are managed by the server environment.' : 'Settings are stored locally on this server.';
       $('save-settings').disabled = false;
       await Promise.allSettled([loadDiagnostics(), pollModelStatus()]);
@@ -1069,6 +1161,7 @@
   });
   $('cut-history-button').addEventListener('click', () => { if ($('cut-history').hidden) loadCutHistory(); else visible('cut-history', false); });
   $('transcript-version').addEventListener('change', () => { state.transcriptVersion = $('transcript-version').value; renderTranscript(true); });
+  $('listen-transcript-gap').addEventListener('click', () => seek(Math.max(0, seconds($('transcript-gap').value) - 1), true));
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, button, a, audio, summary, [contenteditable=true], [role=tab]') || [...document.querySelectorAll('dialog[open]')].some((dialog) => dialog.id !== 'episode-dialog') || !state.detail?.has_audio) return;
     if (event.code === 'Space') { event.preventDefault(); togglePlayback(); }
@@ -1129,8 +1222,11 @@
     if ((state.cuts.length || state.cutsDirty) && !window.confirm('Find ads again? This will replace the current cuts, including saved decisions and unsaved changes, with new suggestions. Your original audio will be preserved.')) return;
     detailAction('redetect');
   });
+  $('detail-retranscribe').addEventListener('click', () => detailAction('retranscribe'));
   $('save-cuts').addEventListener('click', () => detailAction('save'));
   $('render-cuts').addEventListener('click', () => detailAction('render'));
+  $('select-all-cuts').addEventListener('click', () => selectAllCuts(true));
+  $('clear-cut-selection').addEventListener('click', () => selectAllCuts(false));
   $('add-cut').addEventListener('click', () => {
     const start = Number(Math.min(playhead(), Math.max(0, seconds(state.detail?.duration) - 0.1) || playhead()).toFixed(2));
     const end = Math.max(start + 0.1, Math.min(start + 30, state.detail?.duration || start + 30));

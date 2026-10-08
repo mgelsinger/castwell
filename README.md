@@ -60,7 +60,7 @@ For a private deployment using another hostname, set `CASTWELL_ALLOWED_HOSTS=cas
 
 1. **Add a podcast or upload audio.** Use an RSS feed, import subscriptions from OPML, or upload MP3, WAV, M4A, MP4, FLAC, OGG, Opus, or AAC recordings up to 2 GB. Identical uploads are deduplicated.
 2. **Prepare the speech model.** In Settings & models, choose a Whisper model, save settings, and select **Download model**. The default `base` model runs locally on the CPU. Environment check reports whether its files are available.
-3. **Prepare episodes.** Process an episode or a batch. Castwell downloads the original, makes a waveform and transcript, proposes ad cuts, and exports approved cuts. **Audio only** downloads a recording without running transcription or detection.
+3. **Prepare episodes.** Process an episode or a batch. Castwell downloads the original, makes a waveform and transcript, proposes ad cuts for review. Review is enabled by default; only selections you approve are exported. **Audio only** downloads a recording without running transcription or detection.
 4. **Review and listen.** Open Ad review, listen around the suggested boundaries, adjust timestamps, or use **Mark start / Mark end** while listening. Select the cuts you want, then export cleaned audio.
 
 The gallery supports podcast and status filters, favorites, archived episodes, played/unplayed state, search, and sorting. Playback resumes at your saved position; change speed, skip 15 seconds, or keep listening through the mini player after closing the episode. The waveform shows the original timeline and proposed cuts. Search transcript text and click timestamps to hear the passage.
@@ -79,7 +79,7 @@ Episode tools provide:
 - A JSON decision export containing the transcript, original timestamps, and cut decisions.
 - **Library RSS**, at `/api/export/feed`, for prepared episodes. It includes cleaned copies and completed, no-cut analyses; archived episodes are excluded. Audio links point to this Castwell server, so the player reading the feed must be able to reach it.
 
-Changing cuts or importing a replacement transcript invalidates the previous cleaned export. Downloads and rendered audio are published atomically. Jobs run one at a time, expose progress, and can be cancelled; cancellation retains completed work. Retrying reuses downloaded audio and valid transcripts, including an explicitly reviewed empty set of cuts. A fresh detection must be requested explicitly to replace prior decisions. After a restart, interrupted jobs are marked for retry.
+Changing cuts or importing a replacement transcript invalidates the previous cleaned export. Downloads and rendered audio are published atomically. Jobs run one at a time, expose progress, and can be cancelled; cancellation retains completed work. Retrying reuses downloaded audio and valid transcripts, including an explicitly reviewed empty set of cuts. A fresh detection must be requested explicitly to replace prior decisions. **Regenerate transcript** runs speech recognition again while preserving reviewed cuts unless you also request new detection. After a restart, interrupted jobs are marked for retry.
 
 ## Advertisement detection
 
@@ -88,33 +88,36 @@ Two detection methods are available:
 | Method | Behavior |
 | --- | --- |
 | Local rules | Recognizes English sponsorship language, commercial calls to action, and familiar transitions. Available without an AI service; subtle or unfamiliar ads need review. |
-| Contextual AI | Sends overlapping transcript windows to an OpenAI-compatible model, which identifies complete commercial passages by validated segment IDs. Can help with host-read ads and ads without bumpers. |
+| Contextual AI | Checks commercial intent and edit boundaries in two separate passes, with verbatim transcript evidence for every unit. The policy distinguishes paid humor from unpaid parody and editorial quotations, but models can still confuse them. Disagreements and mixed speech require review. |
 
-**Automatic** uses contextual AI when an endpoint and model are configured, otherwise local rules. With AI enabled, unmatched commercial cues are retained as review suggestions. An AI failure, incomplete configuration, or invalid response produces an error; it does not count as a successful no-ad result.
+**Automatic** uses contextual AI when an endpoint and model are configured, otherwise local rules. The default verified policy reviews every transcript unit, including possible negatives. Agreed editorial judgments suppress keyword-only false positives. Local rules produce unapproved suggestions under this policy. An AI failure, incomplete configuration, or invalid response produces an error; it does not count as a successful no-ad result.
 
-The automatic approval threshold defaults to **0.90** and is adjustable in Settings. Enable **Review every suggestion** to select cuts yourself. Confidence is a model estimate, not a measured probability. No model can guarantee removal of every advertisement: blended editorial promotions, music-only ads, unclear speech, and timestamp errors can all produce mistakes. Review a representative set of your podcasts before relying on automatic exports.
+**Review every suggestion is on by default.** Listen and select the cuts yourself. If you turn review off, automatic approval still requires both AI passes to label the entire unit commercial at the adjustable threshold, initially **0.90**, with usable speech alignment. Recovered speech and conflicting judgments remain unapproved. Confidence is a model estimate, not a measured probability. The [measured results](docs/readiness-2026-10-08.md) include editorial speech passing both checks; this release does not establish safe unattended removal. Blended promotions, music-only ads, unclear speech, and timestamp errors can all produce mistakes.
 
 Approved overlaps are merged. FFmpeg trims decoded audio and writes a separate 192 kbps MP3; a selection that would remove the entire recording is rejected. The classifier uses word-aligned sentence boundaries when available to reduce cuts that include surrounding conversation. For imported transcripts without word timestamps, a partially cut segment retains its text with a partial-text warning; its remaining words cannot be inferred precisely.
 
 ### Run the classifier locally
 
-An optional helper runs a classifier using a pinned official **Qwen 2.5 Instruct** GGUF model, with either native llama.cpp or a Python server. The default 7B download is approximately 4.7 GB; `--size 3b` selects a smaller, approximately 2.1 GB model. Downloads are pinned to repository revisions and checked against the publisher's SHA256 before loading. Allow several GB of free RAM in addition to the model files. The local classifier is separate from the Whisper speech model.
+The stronger local candidate is **Qwen3.5-35B-A3B** with native llama.cpp. The tested Q4_K_M file is approximately 21.2 GB, converted locally from a pinned 36.9 GB ggml-org Q8 release. Allow at least 60 GB of disk for both files. Requantization can lose quality compared with conversion from original BF16 weights; this is a measured local candidate, not a Qwen-published Q4 release. See the [results and limitations](docs/readiness-2026-10-08.md). The classifier is separate from the Whisper speech model.
 
-For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Extract both into `.local/llama.cpp` so `llama-server.exe` and its DLLs are together. This path does not require Ollama or `llama-cpp-python`. Download the pinned model and start it with:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/local_ai.py --download --size 7b --cache-dir .local/models --backend native --server-binary .local/llama.cpp/llama-server.exe --threads 8
-```
-
-Model downloads need `huggingface-hub`, which is included with Castwell's transcription dependencies. After downloading, use the Windows launcher for subsequent starts:
+For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Extract both into `.local/llama.cpp` so `llama-server.exe`, `llama-quantize.exe`, and their DLLs are together. This path does not require Ollama or `llama-cpp-python`. Download, verify and convert the pinned model, then start the measured 24 GB GPU profile:
 
 ```powershell
-.\scripts\start_local_ai.ps1 -Background
+.\.venv\Scripts\python.exe scripts/setup_qwen35_local.py
+.\scripts\start_qwen35_local.ps1 -NoThinking -GpuLayers all -CpuMoeLayers 4 -Background
 ```
 
-The launcher binds to loopback, uses all available GPU layers by default, and records its process ID and logs under `.local/logs`. Omit `-Background` to keep the server in the current terminal, or use `-GpuLayers 0` for CPU inference. It refuses to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop the process ID returned by the launcher.
+Model downloads need `huggingface-hub`, which is included with Castwell's transcription dependencies. The setup verifies source and quantizer hashes and records the converted model's hash. Four expert layers run on CPU in this RTX 3090 Ti profile, leaving about 2.1 GB of GPU memory free after the startup check. Other machines may need different offload settings. After preparation, start the model with the same launcher command and start Castwell in another terminal:
 
-On Linux, install a C/C++ build toolchain, then build the optional dependency. `llama-cpp-python` is pinned to `0.3.16`; limit compiler parallelism to avoid excessive memory use:
+```powershell
+.\scripts\start_castwell.ps1 -Background
+```
+
+The launchers bind to loopback and record process IDs and logs under `.local/logs`. Omit `-Background` to keep a server in the current terminal. They refuse to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop its process; for the Python app on Windows, the HTTP listener can be a child of the recorded launcher PID.
+
+The smaller **Qwen3-14B Q6_K** profile remains available with `.\.venv\Scripts\python.exe scripts/local_ai.py --download --size 14b --cache-dir .local/models --backend native --server-binary .local/llama.cpp/llama-server.exe --threads 8`, followed on later starts by `.\scripts\start_local_ai.ps1`. Its download is approximately 12.1 GB. Qwen2.5 7B and 3B variants are also available, but the recorded comparisons found consequential detection errors in the smaller candidates. Run only one model server on the shared endpoint.
+
+For the older Qwen2.5 profile on Linux, install a C/C++ build toolchain, then build the optional dependency. This Python runtime is not the tested Qwen3.5 setup. `llama-cpp-python` is pinned to `0.3.16`; limit compiler parallelism to avoid excessive memory use:
 
 ```bash
 sudo apt-get install build-essential cmake ninja-build
@@ -138,9 +141,11 @@ For a small CPU classifier, shorter transcript windows can reduce latency. Set `
 
 The helper is intended for a native installation. Docker's `127.0.0.1` is the container itself; a container must use an AI endpoint reachable from its own network. The default Docker image does not compile or run the optional classifier.
 
+For the complete pinned Windows setup, app launcher, and the separate free **Kev** typed-decision experiment, see [local model setup](docs/local-models.md). Kev is a Jev-like local model, not a local release of TypeSafe Jev. It is available in the evaluation CLI; it does not replace the main detector automatically.
+
 ### Use an existing or hosted classifier
 
-An existing OpenAI-compatible provider must support `/chat/completions` and return JSON text responses. Save its API base URL and model in Settings, or set environment overrides before starting Castwell. For example, with an existing local Ollama instance and a downloaded instruction model:
+An existing OpenAI-compatible provider must support `/chat/completions` and strict JSON-schema responses for the default verified policy. Save its API base URL and model in Settings, or set environment overrides before starting Castwell. For example, with an existing local Ollama instance and a downloaded instruction model:
 
 ```bash
 export CASTWELL_AI_BASE_URL=http://127.0.0.1:11434/v1
@@ -214,9 +219,10 @@ Settings are saved in SQLite. Nonempty environment overrides take precedence and
 | `CASTWELL_MODEL_CACHE` | Downloaded speech-model directory; default `<data-dir>/models` |
 | `CASTWELL_AI_BASE_URL` | Override the classifier API base URL |
 | `CASTWELL_AI_MODEL` | Override the classifier model name |
+| `CASTWELL_AI_POLICY` | `verified` by default; `legacy` retains the earlier single-pass detector for comparison |
 | `CASTWELL_AI_KEY` | Optional classifier credential, read only from the environment |
-| `CASTWELL_AI_WINDOW_CHARS` | Maximum central transcript-window characters; default `18000` |
-| `CASTWELL_AI_CONTEXT_SEGMENTS` | Neighboring context segments on each side; default `12` |
+| `CASTWELL_AI_WINDOW_CHARS` | Requested central-window limit; default `18000`, capped at `4500` by verified review |
+| `CASTWELL_AI_CONTEXT_SEGMENTS` | Requested neighbors on each side; default `12`, capped at `4` by verified review |
 | `CASTWELL_AI_TIMEOUT` | Classifier request timeout in seconds; default `180` |
 
 The data directory contains the SQLite library, original recordings, and derived audio. Transcripts, cut history, subscriptions, playback state, and preferences are stored in SQLite. Schema upgrades are additive. Run **one server worker per data directory**, using a local filesystem suitable for SQLite.
@@ -237,15 +243,15 @@ node --check castwell/static/app.js
 
 The core test suite can also run with only `.[dev]` plus system FFmpeg. Tests use local feed/audio fixtures, simulated speech output, and simulated classifier responses; they do not download model weights or call paid APIs. Audio integration tests actually decode and trim recordings. The suite covers migrations, subscription privacy, uploaded audio, cancellation/retry, cut revisions, word timing, exports, settings, and API behavior. CI runs on Python 3.10 and 3.12 and checks JavaScript syntax. Model accuracy requires separate representative listening checks.
 
-The [ad-read challenge](docs/ad-read-evaluation.md) compares local rules and contextual AI on a frozen set of 27 authored transcripts: genuine ads, humorous paid reads, unpaid parody, quotations, ordinary brand mentions, self-promotion, and uncertain boundaries. Development and evaluation groups are separate. Results include editorial seconds wrongly selected, missed commercial seconds, boundary errors, review decisions, latency, failures, and input/code hashes. It never edits audio or changes your library:
+The [ad-read challenge](docs/ad-read-evaluation.md) compares detectors on authored transcripts covering genuine ads, humorous paid reads, unpaid parody, quotations, ordinary brand mentions, self-promotion, and uncertain boundaries. The original 27 cases are now development examples. A separately authored 33-case set was held out for its first comparison and has since been inspected; subsequent runs are regression checks. Results include editorial seconds wrongly selected, missed commercial seconds, boundary errors, review decisions, latency, failures, and input/code hashes. It never edits audio or changes your library:
 
 ```bash
-python scripts/compare_detectors.py --backend heuristic --backend local-ai --split dev --model-label "Qwen2.5-7B-Instruct Q4_K_M, llama.cpp b11146" --output development-comparison.json
+python scripts/compare_detectors.py --backend heuristic --backend verified-ai --split dev --model-label "Exact model, quantization and runtime in use" --output development-comparison.json
 ```
 
-The local model must already be running at `http://127.0.0.1:8081/v1`. Omit `--backend local-ai` for a fully offline rule baseline. Choose settings on development cases before running `--split eval`; these synthetic transcripts cannot establish accuracy on real podcasts or the benefit of vocal delivery. An optional Jev adapter is available only in this evaluation harness. It requires both `--allow-paid-api` and an explicitly named API-key environment variable; paid requests are disabled by default, and Jev proposals are always unapproved.
+The local model must already be running at `http://127.0.0.1:8081/v1`. Omit `--backend verified-ai` for a fully offline rule baseline. Choose settings before collecting new evaluation predictions; rerunning an inspected set does not create fresh evidence. These synthetic transcripts cannot establish accuracy on real podcasts or the benefit of vocal delivery. Free local Kev and paid TypeSafe Jev adapters are separate evaluation backends. Jev requires both `--allow-paid-api` and an explicitly named API-key environment variable; paid requests are disabled by default. Both adapters leave proposals unapproved.
 
-The [recorded GPU comparison](docs/evaluations/README.md) found all 144 authored commercial seconds in the held-out set, but Qwen also approved 53 editorial seconds, compared with 45 for local rules. It handled the humorous paid reads and still mistook unpaid parody for advertising. This candidate is suitable for further review-based evaluation, not unattended removal. The report includes full per-case outputs, runtime/model hashes, and the failed examples.
+The [current readiness report](docs/readiness-2026-10-08.md) records model comparisons, reference limitations and actual recording checks for Stuff They Don't Want You To Know, Stuff You Should Know, Skeptoid and The Diary Of A CEO. The [older Qwen 2.5 7B comparison](docs/evaluations/README.md) remains available as historical evidence. Neither synthetic success nor model confidence establishes that every ad will be removed without losing editorial speech.
 
 A repeatable browser check covers uploads, ad review, actual audio rendering/playback, restored edits, exports, subscriptions, and desktop/mobile layouts using isolated local fixtures:
 

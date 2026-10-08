@@ -2,6 +2,14 @@
 
 These checks establish working application flows; they do not establish universal advertisement detection.
 
+## October 8 review workflow
+
+The Windows checkout passed **373 tests and 117 subtests**, including recovered-speech safeguards, two-pass structured decisions, retry/resume behavior, and the private recording evaluator. The Chromium smoke check passed with preserved cut metadata, manual boundary edits, original/cleaned playback positions, transcript-gap navigation, and desktop/mobile layouts. One upstream Starlette test-client deprecation warning remains.
+
+A separate real-recording export check verified retained PCM samples, word order/timestamps, caption timelines, output durations, and unchanged source hashes. Model comparisons and their limitations are documented in the [October 8 readiness report](readiness-2026-10-08.md). The dated runs below describe earlier versions and are retained as history.
+
+The 0.4.0 wheel built successfully. Its new detector, recording evaluator, transcript-quality module and browser assets matched the checkout byte for byte; private models, recordings, libraries and tests were excluded. The Qwen3.5 setup passed offline source/output verification and independent checks rejecting 19 corrupted provenance cases. PowerShell argument validation and Python 3.10 syntax checks passed without starting additional model servers.
+
 ## Windows publication check
 
 On 2026-10-04, the local Windows checkout passed **133 automated tests and 116 subtests** with Python 3.11.15 and system FFmpeg. The JavaScript syntax check and the complete Chromium smoke test also passed, covering desktop and 390-pixel mobile layouts, uploads, waveform generation, original and cleaned playback, real audio exports, cut history, downloads, and subscriptions. The suite reported one upstream Starlette test-client deprecation warning.

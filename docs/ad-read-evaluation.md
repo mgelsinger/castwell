@@ -2,9 +2,23 @@
 
 This comparison checks whether Castwell can identify complete commercial passages while preserving editorial speech. A humorous paid advertisement is still commercial. An unpaid parody, a quoted advertisement in journalism, and an ordinary brand discussion can use the same words without being ads.
 
-The evaluation uses local rules and, optionally, a locally running classifier through Castwell's existing OpenAI-compatible interface. The supplied challenge needs no speech model, audio download, or paid service. Its transcript text and timestamps are authored fixtures, so it cannot measure whether listening to vocal delivery improves detection.
+The evaluation supports local rules, verified contextual AI and the separate local Kev typed adapter. Synthetic challenges need no speech model, audio download, or paid service. Their text and timestamps are authored, so they cannot measure whether listening to vocal delivery improves detection. See the [October 8 readiness checkpoint](readiness-2026-10-08.md) for the frozen synthetic and real-recording results. Qwen3.5 completed four clips and failed response validation on Skeptoid; Kev completed all five. The failed clip's eligible durations remain explicit. Prospective refinements are outside that frozen checkpoint.
 
-## Frozen challenge
+## Challenge versions and holdout status
+
+The original 27 cases described below are now **development/regression only**, including rows still marked `split: "eval"`. Their predictions have been inspected. Those historical split names remain unchanged so the archived results can be reproduced; they no longer establish a fresh holdout.
+
+The new input is [`tests/fixtures/ad_read_holdout_v2.json`](../tests/fixtures/ad_read_holdout_v2.json): 33 synthetic cases, all marked `eval`, from 11 fictional groups disjoint from the old challenge. It includes three cases each in 11 categories, adding `mixedwordaligned` and `multispan` to the categories below. `mixedwordaligned` supplies authored word timestamps; the ordinary `mixedspan` cases do not. It was frozen before the new candidate predictions:
+
+```text
+SHA256 4581c6c745d33aceaa3dd4e238dc6358c3daf6a1e9ea88c80fa5de1fbabdf051
+```
+
+The [October 8 candidate record](evaluations/2026-10-08-candidate.json) pins the model, code and reference identities. The [Qwen v4 predictions](evaluations/2026-10-08-fresh-holdout-qwen-v4.json) and [Kev v2 companion predictions](evaluations/2026-10-08-fresh-holdout-kev-v2.json) have now been inspected. The first Qwen run was held out; the set is now regression/development material for any subsequent tuning or candidate changes. Neither fictional grouping nor authored word alignment demonstrates generalization to real hosts.
+
+The [Qwen3.5 model-only candidate](evaluations/2026-10-08-qwen35-candidate.json) was chosen after those results. Its [33-case rerun](evaluations/2026-10-08-regression33-qwen35-v4.json) is explicitly a regression: zero simulated approved editorial seconds on these known cases does not restore their held-out status. The same fixed policy/code was used for the subsequent real-recording check.
+
+### Original challenge, retained for reproducibility
 
 The input is [`tests/fixtures/ad_read_challenge.json`](../tests/fixtures/ad_read_challenge.json). It was frozen before running the comparison:
 
@@ -62,7 +76,13 @@ If an existing local classifier is listening on port 8081, compare both variants
 python scripts/compare_detectors.py --backend heuristic --backend local-ai --split dev --base-url http://127.0.0.1:8081/v1 --model castwell-local --model-label "exact model, quantization, and version" --output development-comparison.json
 ```
 
-After freezing the candidate configuration, repeat that command with `--split eval` and a different output path. Use the actual model identity in `--model-label`, rather than the illustrative text above. To evaluate a separate supplied file, add `--fixtures /path/to/ground-truth.json`. The default backend is heuristic only; specify the split explicitly so a development run does not consume the evaluation split by accident.
+For development on all 27 inspected cases, use `--split all`; `--split dev` selects only the original nine-case subset. `local-ai` retains the legacy classifier. The new two-pass policy uses `--backend verified-ai`. To run the separately frozen 33-case challenge, explicitly select its file:
+
+```sh
+python scripts/compare_detectors.py --backend heuristic --backend verified-ai --fixtures tests/fixtures/ad_read_holdout_v2.json --split eval --base-url http://127.0.0.1:8081/v1 --model castwell-local --model-label "exact frozen model and runtime" --output .local/frozen-synthetic-results.json
+```
+
+This command consumes the selected holdout; do not use it for iterative tuning. Use the actual model identity in `--model-label`. The default fixture is still the old 27-case file and the default backend is heuristic only. Use `--fixtures` and `--split` explicitly. Results from synthetic shadow approval are separate from the application's default review requirement.
 
 Change one source of behavior at a time. Replacing transcription, changing a prompt, adding a judge, and lowering the approval threshold in the same comparison would prevent attribution of any improvement. Castwell's current classifier receives transcript text; this challenge compares textual reasoning and boundary selection only.
 
@@ -80,13 +100,33 @@ The harness merges touching or overlapping spans for scoring. For boundary error
 
 For the heuristic and local classifier backends, observed review means at least one proposed cut is unapproved or marked `requires_review`. An empty output therefore does not count as a review decision, even when review was expected. This measures the current interface's review signal, not whether a person actually reviewed the audio.
 
-For Jev, the review signal identifies uncertainty or conflicting answers. All its cut proposals require manual approval even when this signal is false. Compare `manual_review_cases` for cases containing unapproved proposals; do not treat provider review signals as equivalent estimates of a person's workload.
+For Jev and local Kev, the review signal identifies uncertainty or conflicting answers. All their cut proposals require manual approval even when this signal is false. Kev uses selected-class probability for its review threshold and records its normalized confidence margin separately. Compare `manual_review_cases` for cases containing unapproved proposals; do not treat provider review signals as equivalent estimates of a person's workload.
 
 Report seconds alongside rates and their denominators. A high ad/not-ad classification score can hide a missing commercial lead-in or an editorial sentence appended to an otherwise correct ad cut. Display proposed and automatically approved results separately, and preserve the exact failed examples for inspection.
 
 `threshold_shadow` is an additional hypothetical view of cuts with confidence at least `0.90`, retaining explicit review exclusions and any backend review gate. It does not authorize removal or change the actual approval result. Confidence values from different providers are not interchangeable calibrated probabilities, so a shared numeric threshold does not establish equal reliability.
 
 For ambiguous cases, report approved seconds as unsupported automatic removal, not as measured editorial deletion. Do not use their empty references to improve the apparent number of correctly classified negatives.
+
+## Real recordings with partial references
+
+[`scripts/evaluate_recordings.py`](../scripts/evaluate_recordings.py) evaluates private reference/transcript pairs without changing the library or rendering audio. Repeat `--reference` for each clip. The October 8 corpus contains five excerpts from four shows; its v3 references were aligned to the provisional recovery transcripts before classifier predictions. Audio, transcripts and full evidence remain local and ignored by Git.
+
+```sh
+python scripts/evaluate_recordings.py --backend verified-ai --reference .local/real-podcasts/stdwytk-2026-08-27.first-10m.reference-v3.json --base-url http://127.0.0.1:8081/v1 --model castwell-local --model-label "exact frozen model and runtime" --model-file .local/models/qwen3-14b/Qwen3-14B-Q6_K.gguf --candidate-config docs/evaluations/2026-10-08-candidate.json --output .local/evaluations/recording-private.json --summary-output .local/evaluations/recording-summary.json
+```
+
+The reference identifies a transcript and its SHA256, `commercial_units`, `protected_units` and `unverified_intervals`. The local source manifest identifies audio hashes and clip offsets. Commercial and protected intervals may not conflict outside excluded ranges. The evaluator checks these identities and records model-artifact/code hashes; changing them prevents resuming the same checkpoint. Use `--resume` only to continue unfinished clips with matching inputs. Successful and failed clips remain recorded; a failure is not silently retried as a new successful case.
+
+Scoring uses interval unions and subtracts unverified ranges from both reference classes. It reports commercial seconds covered/missed, protected seconds selected, any/full coverage of each annotated unit, and selected unverified or unlabeled seconds. Unlabeled audio is never presumed editorial. Failed and unfinished clips retain explicit eligible-duration totals; per-view measured totals cover successful clips. These provisional references do not support exact acoustic boundary claims or whole-episode ad recall.
+
+The recording report separates **candidates**, **verified** suggestions and **approved** cuts. Review is enabled for these runs, so approval should be empty even when useful ads are found. Qwen's verified view requires intent/boundary agreement plus alignment safeguards. Both judgments come from the same model and are correlated. For Kev, verified metrics are `null` with `view_availability.verified: false`; this means no such verifier exists, not that Kev failed to find any ads.
+
+The independently derived [October 8 word-time supplement](evaluations/2026-10-08-real-word-time-coverage.json) intersects the union of provisional ASR word intervals with labeled commercial/protected spans, excluding unverified ranges. It reports selected and missed word-seconds alongside the unchanged continuous-span metrics. This distinguishes recognized word coverage from timestamp gaps, but cannot score speech absent from ASR or establish listening-verified acoustic truth. The artifact preserves total, successful, failed and unfinished word-time denominators; its direct Qwen/Kev comparison uses the same four successful clips and explicitly excludes the failed Skeptoid prediction. Source-report and input hashes identify the fixed evidence. The five-clip eligible totals still include Skeptoid.
+
+Use `--backend kev --base-url http://127.0.0.1:8083 --model kev-latest` for the local typed adapter. Repeat `--model-file` for its adapter weights, head and base-weight shards, and supply the matching identity in `--model-label`. The private report preserves typed decisions, provider metadata and selected probabilities. The public summary excludes transcript text, model reasons/evidence and raw error bodies. Kev is a separate local model, not official Jev, and its confidence margin is not interchangeable with Qwen's self-reported confidence.
+
+Only literal loopback endpoints are allowed by this recording tool. It follows no redirects and inherits no provider credentials or proxy configuration. There is no paid-provider switch. The separate synthetic Jev adapter below remains disabled without explicit paid opt-in; no paid requests were made for the October 8 work.
 
 ## Optional Jev comparison and cost
 
