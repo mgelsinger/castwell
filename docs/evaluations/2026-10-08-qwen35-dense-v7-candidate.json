@@ -1,0 +1,442 @@
+{
+  "frozen_at_utc": "2026-10-08T04:16:20.573274+00:00",
+  "purpose": "Freeze dense Qwen3.5-27B with bounded reasoning and generic source-credit qualification before complete consumed regressions and first inference on the separate source-credit8 challenge.",
+  "git_base": "80e573d617ab2bd101c5fab6e6da522d54cd156e",
+  "working_tree_changes": true,
+  "source_hash_basis": "working-tree file bytes, preserved by exact-path Git attributes",
+  "source_sha256": {
+    "castwell/processing.py": "685d6219f347320a2de466f121ec50e2c996646ef6c9258667408d3128166c38",
+    "castwell/ad_review.py": "ac84d39917b4c463c426d10dd725a9347a2beb21c5817ed36f96a17a53984041",
+    "castwell/jev.py": "f8f4bf4cc8471bcbcb23a3ba06a00071e5342fd93bac06343ea63321ce286947",
+    "castwell/evaluation.py": "9a2204e1561baa4e099d6a7a2c71358938ab6db6cdd8c08252c577310747691f",
+    "castwell/transcript_quality.py": "196442416a7d1cc47ed7a0032da6dd342e678a4c12ab87d0d204563288b7aa16",
+    "castwell/recording_evaluation.py": "3c172443ce51c30027c408125116a8e042aa3754df2229b6f21e5ea89bb7ed48",
+    "scripts/evaluate_recordings.py": "23207d42875cc88f1a47704f58432a84a8a9b409c78db42978a5d45444305c98"
+  },
+  "detector_configuration": {
+    "policy": "intent-boundary-v7",
+    "ai_reasoning": true,
+    "request_profile": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "seed": 42,
+      "max_tokens": 4096,
+      "chat_template_kwargs": {
+        "enable_thinking": true
+      },
+      "reasoning_budget_tokens": 1024,
+      "reasoning_format": "deepseek",
+      "top_k": 20,
+      "min_p": 0,
+      "presence_penalty": 1.5,
+      "repeat_penalty": 1.0
+    },
+    "review_only_in_application_and_recording_evaluation": true,
+    "synthetic_approval_simulation_review_only": false,
+    "approval_threshold": 0.9,
+    "confidence_semantics": "Uncalibrated model self-report. Two requests to one model are correlated and not independent verification.",
+    "ai_window_chars": 18000,
+    "effective_window_chars": 4500,
+    "max_targets": 24,
+    "max_context_units_per_side": 4,
+    "invalid_output_subdivision_depth": 5,
+    "ai_timeout_seconds": 180,
+    "prompts_sha256": {
+      "intent": "e7ac65b67c0783e1d65d4c40342155939e0109fcf50fe41c0d91b69927cf4c0e",
+      "boundary": "31f9de65cba559b546aacab1a29f8a6feaf1213d663b5ab63fe41b8faa8bdebf"
+    }
+  },
+  "synthetic_regression": {
+    "file": "tests/fixtures/ad_read_holdout_v2.json",
+    "sha256": "4581c6c745d33aceaa3dd4e238dc6358c3daf6a1e9ea88c80fa5de1fbabdf051",
+    "cases": 33,
+    "predictions_inspected_before_freeze": true,
+    "scope": "Consumed development/regression cases; previous Qwen14B, Kev and Qwen35 outcomes and selected private probes were inspected."
+  },
+  "source_credit_challenge": {
+    "file": "tests/fixtures/ad_read_source_credit_v1.json",
+    "sha256": "a3505bbb1bb5226f8c54240e235ad54e96bfeef9b89121941bdc1d86b0c6ee0d",
+    "cases": 8,
+    "predictions_inspected_before_freeze": false,
+    "scope": "Separately authored fictional source-credit and promotion challenge. Root has not read case contents or predictions before freeze. Narrow challenge, not a real-host population holdout."
+  },
+  "real_references": {
+    "doac-2026-09-25.first-10m.reference-v3.json": "cdc4f8632b98282af8eb84be435550902b1fce7116319f2647b9f2c4e74e3ce3",
+    "doac-2026-09-25.last-10m.reference-v3.json": "659f64f29c02d5d2adb7544763db92a384ff789913e42b1894794413dcee6bf6",
+    "skeptoid-2026-10-06.first-10m.reference-v3.json": "9343b28cc3733cbfba7d631ad46e1259a107281ea506488d8bf271dbeb922279",
+    "stdwytk-2026-08-27.first-10m.reference-v3.json": "0fdff267aeab03596230e1be67810d3b2bde318c2cd355f27007d757ae3bda1e",
+    "sysk-2026-10-07.first-10m.reference-v3.json": "9b2d3448f804efc1f59e5b3376addcda95cc0debe7f9315f5e3b9b4792f36595"
+  },
+  "real_reference_scope": "Five consumed clips from four shows, about50minutes. Partial assistant annotations from ASR and publisher context, without human acoustic verification; unlabeled audio excluded from accuracy claims.",
+  "qwen": {
+    "upstream": "Qwen/Qwen3.5-27B",
+    "gguf_repository": "unsloth/Qwen3.5-27B-GGUF",
+    "revision": "3221f178a6b842d04f1fb42f1c413534adcc0a6a",
+    "file": "Qwen3.5-27B-Q4_K_M.gguf",
+    "path": "D:\\Projects\\castwell\\.local\\models\\qwen3.5-27b\\Qwen3.5-27B-Q4_K_M.gguf",
+    "bytes": 16740812704,
+    "sha256": "84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806",
+    "sha256_verified": true,
+    "download_url": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/3221f178a6b842d04f1fb42f1c413534adcc0a6a/Qwen3.5-27B-Q4_K_M.gguf",
+    "quantization": "Unsloth Q4_K_M, third-party quantization of Qwen dense27B weights",
+    "runtime": "llama.cpp b11146 7fe450e19 CUDA12.4",
+    "context": 8192,
+    "parallel": 1,
+    "gpu_layers": "all65layers; no CPU expert offload",
+    "license": "apache-2.0",
+    "conversion_limitation": "Publisher artifact declares the original Qwen base and publishes BF16 exports in the same revision. The exact conversion chain was not independently attested. No local requantization was performed.",
+    "runtime_record": {
+      "captured_at_utc": "2026-10-08T00:05:26.653276-04:00",
+      "status": "Healthy and physical headroom verified; no dense inference yet.",
+      "model": {
+        "upstream": "Qwen/Qwen3.5-27B",
+        "gguf_repository": "unsloth/Qwen3.5-27B-GGUF",
+        "revision": "3221f178a6b842d04f1fb42f1c413534adcc0a6a",
+        "file": "Qwen3.5-27B-Q4_K_M.gguf",
+        "path": "D:\\Projects\\castwell\\.local\\models\\qwen3.5-27b\\Qwen3.5-27B-Q4_K_M.gguf",
+        "bytes": 16740812704,
+        "sha256": "84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806",
+        "sha256_verified": true,
+        "download_url": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/3221f178a6b842d04f1fb42f1c413534adcc0a6a/Qwen3.5-27B-Q4_K_M.gguf",
+        "quantization": "Unsloth Q4_K_M, third-party quantization of Qwen dense27B weights"
+      },
+      "artifact_provenance_path": "D:\\Projects\\castwell\\.local\\models\\qwen3.5-27b\\provenance.json",
+      "artifact_provenance_sha256": "1ad8338f78bf28d1df2ee996a82b4e2a9724a898c0f12604428d0478b1540fa8",
+      "artifact_provenance": {
+        "schema_version": 1,
+        "verified_at_utc": "2026-10-08T00:03:47.906213-04:00",
+        "repository": "unsloth/Qwen3.5-27B-GGUF",
+        "revision": "3221f178a6b842d04f1fb42f1c413534adcc0a6a",
+        "filename": "Qwen3.5-27B-Q4_K_M.gguf",
+        "url": "https://huggingface.co/unsloth/Qwen3.5-27B-GGUF/resolve/3221f178a6b842d04f1fb42f1c413534adcc0a6a/Qwen3.5-27B-Q4_K_M.gguf",
+        "metadata_url": "https://huggingface.co/api/models/unsloth/Qwen3.5-27B-GGUF/revision/3221f178a6b842d04f1fb42f1c413534adcc0a6a?blobs=true",
+        "size_bytes": 16740812704,
+        "sha256": "84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806",
+        "license": "apache-2.0",
+        "license_evidence": "Pinned publisher cardData.license",
+        "base_model": [
+          "Qwen/Qwen3.5-27B"
+        ],
+        "quantization": "Q4_K_M",
+        "origin_note": "Publisher artifact declares the original Qwen base and publishes BF16 exports in the same revision. The exact conversion chain was not independently attested. No local requantization was performed.",
+        "bf16_artifacts_at_same_revision": [
+          "BF16/Qwen3.5-27B-BF16-00001-of-00002.gguf",
+          "BF16/Qwen3.5-27B-BF16-00002-of-00002.gguf"
+        ],
+        "download_credentials": "none; requests trust_env=False disables ambient credentials and proxies",
+        "runtime_validation": "Not loaded or executed; llama.cpp b11146 contains the qwen35 dense architecture implementation.",
+        "runtime_source": "https://github.com/ggml-org/llama.cpp/blob/b11146/src/models/qwen35.cpp",
+        "stored_file_verification": {
+          "method": "SHA256 over complete saved file after download handle closed",
+          "size_bytes": 16740812704,
+          "sha256": "84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806",
+          "elapsed_seconds": 12.53,
+          "verified_at_utc": "2026-10-08T00:04:09.767503-04:00"
+        },
+        "gguf_header": {
+          "version": 3,
+          "tensor_count": 851,
+          "architecture": "qwen35",
+          "block_count": 64,
+          "native_context": 262144,
+          "quantized_by": "Unsloth",
+          "license": "apache-2.0",
+          "general_file_type": 15
+        }
+      },
+      "native": {
+        "release": "b11146",
+        "version": "0.5.0-dev (build 11146, commit 7fe450e19)",
+        "release_url": "https://github.com/ggml-org/llama.cpp/releases/tag/b11146",
+        "assets": [
+          {
+            "name": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/cudart-llama-bin-win-cuda-12.4-x64.zip",
+            "sha256": "8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+            "sha256_verified": true
+          },
+          {
+            "name": "llama-b11146-bin-win-cuda-12.4-x64.zip",
+            "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-cuda-12.4-x64.zip",
+            "sha256": "3c806a6ceccc3dae1c743ceb1a1fb2cce5b76f40bfbd4c6b7b8afb6ef45a5807",
+            "sha256_verified": true
+          }
+        ],
+        "binary_path": "D:\\Projects\\castwell\\.local\\llama.cpp\\llama-server.exe",
+        "cuda_runtime": "12.4 (bundled portable runtime)"
+      },
+      "binary_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "launch_script": "D:\\Projects\\castwell\\.local\\start_qwen35_dense.ps1",
+      "launch_script_sha256": "702f1ace00fda4465cd82eb52890d864d59b7ebf2dc220c0cb115f2f24fe0c6a",
+      "powershell_command": ".\\.local\\start_qwen35_dense.ps1",
+      "arguments": [
+        "--model",
+        "D:\\Projects\\castwell\\.local\\models\\qwen3.5-27b\\Qwen3.5-27B-Q4_K_M.gguf",
+        "--alias",
+        "castwell-local",
+        "--offline",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8081",
+        "--threads",
+        "8",
+        "--threads-batch",
+        "8",
+        "--ctx-size",
+        "8192",
+        "--parallel",
+        "1",
+        "--n-gpu-layers",
+        "all",
+        "--fit",
+        "on",
+        "--fit-target",
+        "1536",
+        "--batch-size",
+        "512",
+        "--ubatch-size",
+        "128",
+        "--flash-attn",
+        "on",
+        "--jinja",
+        "--reasoning",
+        "off",
+        "--reasoning-format",
+        "deepseek",
+        "--reasoning-budget",
+        "0",
+        "--n-predict",
+        "4096",
+        "--temp",
+        "0.7",
+        "--top-p",
+        "0.8",
+        "--top-k",
+        "20",
+        "--min-p",
+        "0",
+        "--presence-penalty",
+        "1.5",
+        "--repeat-penalty",
+        "1.0",
+        "--log-verbosity",
+        "4"
+      ],
+      "pid": 23484,
+      "endpoint": "http://127.0.0.1:8081/v1",
+      "model_alias": "castwell-local",
+      "health": {
+        "status": "ok"
+      },
+      "models_response": {
+        "models": [
+          {
+            "name": "castwell-local",
+            "model": "castwell-local",
+            "modified_at": "",
+            "size": "",
+            "digest": "",
+            "type": "model",
+            "description": "",
+            "tags": [
+              ""
+            ],
+            "capabilities": [
+              "completion"
+            ],
+            "parameters": "",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "",
+              "families": [
+                ""
+              ],
+              "parameter_size": "",
+              "quantization_level": ""
+            }
+          }
+        ],
+        "object": "list",
+        "data": [
+          {
+            "id": "castwell-local",
+            "aliases": [
+              "castwell-local"
+            ],
+            "tags": [],
+            "object": "model",
+            "created": 1791432326,
+            "owned_by": "llamacpp",
+            "meta": {
+              "vocab_type": 2,
+              "n_vocab": 248320,
+              "n_ctx": 8192,
+              "n_ctx_train": 262144,
+              "n_embd": 5120,
+              "n_params": 26895998464,
+              "size": 16729819136,
+              "ftype": "Q4_K - Medium"
+            }
+          }
+        ]
+      },
+      "app_jobs_after_load": {
+        "jobs": []
+      },
+      "gpu_after_load": {
+        "name": "NVIDIA GeForce RTX 3090 Ti",
+        "total_mib": 24564,
+        "used_mib": 19701,
+        "free_mib": 4613,
+        "driver": "610.47"
+      },
+      "allocation_log_lines": [
+        "0.01.923.641 I load_tensors: offloaded 65/65 layers to GPU",
+        "0.01.923.646 I load_tensors:   CPU_Mapped model buffer size =   682.03 MiB",
+        "0.01.923.647 I load_tensors:        CUDA0 model buffer size = 15272.77 MiB",
+        "0.06.754.117 I llama_context: n_ctx                 = 8192",
+        "0.06.754.118 I llama_context: n_batch               = 512",
+        "0.06.754.118 I llama_context: n_ubatch              = 128",
+        "0.06.754.120 I llama_context: flash_attn            = enabled",
+        "0.06.754.600 I llama_context:  CUDA_Host  output buffer size =     0.95 MiB",
+        "0.06.755.446 I llama_kv_cache:      CUDA0 KV buffer size =   512.00 MiB",
+        "0.06.788.609 I llama_memory_recurrent:      CUDA0 RS buffer size =   149.62 MiB",
+        "0.06.798.018 I sched_reserve:      CUDA0 compute buffer size =    32.50 MiB",
+        "0.06.798.023 I sched_reserve:  CUDA_Host compute buffer size =     7.00 MiB",
+        "0.06.956.869 I slot   load_model: id  0 | task -1 | new slot, n_ctx = 8192"
+      ],
+      "runtime_defaults": {
+        "thinking": false,
+        "reasoning_budget": 0,
+        "context": 8192,
+        "gpu_layers": "all",
+        "cpu_moe": "omitted for dense model"
+      },
+      "probe_override": {
+        "thinking": true,
+        "reasoning_budget_tokens": 1024,
+        "reasoning_format": "deepseek",
+        "max_tokens": 4096,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "top_k": 20,
+        "min_p": 0,
+        "presence_penalty": 1.5,
+        "repeat_penalty": 1.0,
+        "seed": 42
+      },
+      "native_command_line": "\"D:\\Projects\\castwell\\.local\\llama.cpp\\llama-server.exe\" --model D:\\Projects\\castwell\\.local\\models\\qwen3.5-27b\\Qwen3.5-27B-Q4_K_M.gguf --alias castwell-local --offline --host 127.0.0.1 --port 8081 --threads 8 --threads-batch 8 --ctx-size 8192 --parallel 1 --n-gpu-layers all --fit on --fit-target 1536 --batch-size 512 --ubatch-size 128 --flash-attn on --jinja --reasoning off --reasoning-format deepseek --reasoning-budget 0 --n-predict 4096 --temp 0.7 --top-p 0.8 --top-k 20 --min-p 0 --presence-penalty 1.5 --repeat-penalty 1.0 --log-verbosity 4",
+      "listener": {
+        "LocalAddress": "127.0.0.1",
+        "LocalPort": 8081,
+        "OwningProcess": 23484
+      },
+      "gpu_before_load_csv": "24564, 3451, 20863",
+      "switch_preflight": {
+        "checked_at_utc": "2026-10-08T00:05:01.404735-04:00",
+        "app_jobs": {
+          "jobs": []
+        },
+        "native_slots": [
+          {
+            "id": 0,
+            "n_ctx": 8192,
+            "speculative": false,
+            "is_processing": false,
+            "id_task": 398080,
+            "n_prompt_tokens": 3455,
+            "n_prompt_tokens_processed": 0,
+            "n_prompt_tokens_cache": 0,
+            "params": {
+              "seed": 42,
+              "temperature": 1.0,
+              "dynatemp_range": 0.0,
+              "dynatemp_exponent": 1.0,
+              "top_k": 20,
+              "top_p": 0.949999988079071,
+              "min_p": 0.0,
+              "top_n_sigma": -1.0,
+              "xtc_probability": 0.0,
+              "xtc_threshold": 0.10000000149011612,
+              "typical_p": 1.0,
+              "repeat_last_n": 64,
+              "repeat_penalty": 1.0,
+              "presence_penalty": 1.5,
+              "frequency_penalty": 0.0,
+              "dry_multiplier": 0.0,
+              "dry_base": 1.75,
+              "dry_allowed_length": 2,
+              "dry_penalty_last_n": 64,
+              "mirostat": 0,
+              "mirostat_tau": 5.0,
+              "mirostat_eta": 0.10000000149011612,
+              "adaptive_target": -1.0,
+              "adaptive_decay": 0.8999999761581421,
+              "max_tokens": 4096,
+              "n_predict": 4096,
+              "n_keep": 0,
+              "n_discard": 0,
+              "ignore_eos": false,
+              "stream": false,
+              "n_probs": 0,
+              "min_keep": 0,
+              "chat_format": "peg-native",
+              "reasoning_format": "deepseek",
+              "reasoning_in_content": false,
+              "generation_prompt": "<|im_start|>assistant\n<think>\n",
+              "samplers": [
+                "penalties",
+                "dry",
+                "top_n_sigma",
+                "top_k",
+                "typ_p",
+                "top_p",
+                "min_p",
+                "xtc",
+                "temperature"
+              ],
+              "speculative.types": "none",
+              "timings_per_token": false,
+              "post_sampling_probs": false,
+              "backend_sampling": false,
+              "lora": []
+            },
+            "next_token": [
+              {
+                "has_next_token": false,
+                "has_new_line": false,
+                "n_remain": -1,
+                "n_decoded": 0
+              }
+            ]
+          }
+        ],
+        "owned_old_pid": 28616
+      }
+    },
+    "runtime_record_sha256": "cc73130a5d6fdcbd4defbb6d49c17645949ff72c178b9e8304c45dbeaa20a334"
+  },
+  "selection_evidence": {
+    "private_dense_probe_sha256": "1f25cae327daec165efaef80ecb6f21ab54234730578cfff567081331d3f6f43",
+    "private_dense_plan_sha256": "ffb03f414566476f1c6454e10fcab9084a54cb8a1c0e79808c8cd905c56a64cb",
+    "probe_requests": 10,
+    "validated_requests": 10,
+    "elapsed_seconds": 490.3750000000582,
+    "selection": "Private same-context probes compared v6 nonthinking, MoE thinking, added source-credit qualification, smaller target batches, and dense model-only substitution. Dense preserved all SYSK source-credit window units; paid-event and DOAC spoken-ad proposal coverage remained complete in those windows. Some protected introduction speech remained review proposals. Case11 stayed review-only and case25 unpaid parody had no proposals. This selection is development evidence, not an accuracy estimate.",
+    "payload_equivalence": "Integrated v7 prompts and enabled request settings exactly match the completed dense probe; sentence assembly, windows and decision selection are unchanged."
+  },
+  "pre_inference_validation": {
+    "unit_tests": 436,
+    "subtests": 121,
+    "seconds": 27.94,
+    "warning": "One upstream Starlette TestClient/httpx deprecation warning."
+  },
+  "limitations": [
+    "No paid Jev or hosted inference was called. Local Kev is a separate project and did not reliably protect the rutabaga parody.",
+    "The1024token reasoning budget is a latency cap, not an established optimal budget; the focused probe exhausted it.",
+    "No zero-miss or zero-extra-deletion guarantee is established. Review remains on; original media is preserved.",
+    "Complete recording and synthetic results are not known at this freeze and must be reported separately, including failures."
+  ]
+}

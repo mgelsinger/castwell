@@ -47,16 +47,18 @@ class SettingsTests(unittest.TestCase):
         self.assertIsNone(settings["language"])
         self.assertTrue(settings["review_only"])
         self.assertEqual(settings["ai_policy"], "verified")
+        self.assertFalse(settings["ai_reasoning"])
         self.assertFalse(settings["ai_configured"])
         self.assertFalse(settings["key_configured"])
         self.assertEqual(settings["model_cache"], str(self.root / "models"))
 
     def test_update_persists_and_merges_preferences(self):
-        self.settings.update({"language": "EN", "review_only": True, "auto_approve_threshold": 0.95})
+        self.settings.update({"language": "EN", "review_only": True, "auto_approve_threshold": 0.95, "ai_reasoning": True})
         self.settings.update({"transcription_model": "small", "ai_base_url": "http://localhost:11434/v1/", "ai_model": "local-model"})
         reopened = config.Settings(Library(self.root)).get()
         self.assertEqual(reopened["language"], "en")
         self.assertTrue(reopened["review_only"])
+        self.assertTrue(reopened["ai_reasoning"])
         self.assertEqual(reopened["auto_approve_threshold"], 0.95)
         self.assertEqual(reopened["transcription_model"], "small")
         self.assertEqual(reopened["ai_base_url"], "http://localhost:11434/v1")
@@ -70,7 +72,7 @@ class SettingsTests(unittest.TestCase):
             {"transcription_model": "model\x00name"}, {"detector": "made-up"},
             {"auto_approve_threshold": float("nan")}, {"auto_approve_threshold": True},
             {"auto_approve_threshold": 0.49}, {"auto_approve_threshold": 1.1},
-            {"review_only": "false"}, {"ai_policy": "made-up"}, {"ai_base_url": 42}, {"ai_model": None},
+            {"review_only": "false"}, {"ai_reasoning": "false"}, {"ai_reasoning": 1}, {"ai_policy": "made-up"}, {"ai_base_url": 42}, {"ai_model": None},
             {"model_cache": "/elsewhere"}, {"key_configured": True}, {"unknown": "value"},
         ]
         for values in invalid:

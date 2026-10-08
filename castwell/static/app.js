@@ -611,8 +611,9 @@
       checkbox.checked = cut.approved;
       checkbox.addEventListener('change', () => { setCutApproval(cut, checkbox.checked); row.classList.toggle('unapproved', !cut.approved); renderCutReview(cut, review); markCutsDirty(); });
       label.append(checkbox, document.createTextNode(`Cut ${index + 1}`));
-      const confidence = typeof cut.confidence === 'number' ? `${Math.round(cut.confidence * 100)}% confidence` : 'Manual cut';
+      const confidence = typeof cut.confidence === 'number' ? `Score ${cut.confidence.toFixed(2)}` : 'Manual cut';
       const confidenceLabel = el('span', 'cut-confidence', cut.source === 'manual' ? 'Manual cut' : `${cut.manual_adjustment ? 'Original ' : ''}${confidence}`);
+      confidenceLabel.title = 'Detector score, not measured accuracy or the probability that this is an ad.';
       const remove = el('button', 'icon-button');
       remove.setAttribute('aria-label', `Delete cut ${index + 1}`);
       remove.append(icon('trash'));
@@ -1044,13 +1045,13 @@
     } catch (error) { showError('opml-error', error); }
     finally { $('opml-submit').disabled = false; $('opml-submit').textContent = 'Import subscriptions'; }
   }
-  const settingFields = { transcription_model: 'setting-model', language: 'setting-language', detector: 'setting-detector', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model' };
+  const settingFields = { transcription_model: 'setting-model', language: 'setting-language', detector: 'setting-detector', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model', ai_reasoning: 'setting-ai-reasoning' };
   async function openSettings() {
     showDialog('settings-dialog'); showError('settings-error', null); $('save-settings').disabled = true;
     try {
       const settings = await api('/api/settings');
       state.settings = { ...state.settings, ...settings }; state.settingsLoaded = true;
-      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '' };
+      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '', ai_reasoning: false };
       for (const [key, id] of Object.entries(settingFields)) {
         const input = $(id), value = settings[key] ?? defaults[key];
         if (input.type === 'checkbox') input.checked = Boolean(value);

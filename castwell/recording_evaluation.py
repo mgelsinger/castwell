@@ -231,10 +231,14 @@ def _save(path, data):
 
 def evaluate_recordings(references, *, output, summary_output, base_url, model, model_label,
                         model_files, candidate_config=None, resume=False, on_progress=None,
-                        detector=None, backend="verified-ai"):
+                        detector=None, backend="verified-ai", ai_reasoning=False):
     """Run an explicit local verified-AI or Kev backend, with review enabled."""
+    from .ad_review import inference_settings
+    request_profile = inference_settings(ai_reasoning)
     if backend not in {"verified-ai", "kev"}:
         raise ValueError("Recording backend must be verified-ai or kev")
+    if ai_reasoning and backend != "verified-ai":
+        raise ValueError("AI reasoning requires the verified-ai backend")
     base_url = validate_endpoint(base_url)  # No remote or paid override exists.
     if backend == "kev":
         from . import jev
@@ -259,6 +263,9 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
         {"file": Path(path).name, "sha256": sha256(path), "bytes": Path(path).stat().st_size} for path in model_files]}
     if candidate_config:
         candidate = json.loads(Path(candidate_config).read_text(encoding="utf-8"))
+        expected_profile = candidate.get("detector_configuration", {}).get("request_profile")
+        if expected_profile is not None and expected_profile != request_profile:
+            raise ValueError("Inference profile differs from frozen candidate configuration")
         for name, expected in candidate.get("source_sha256", {}).items():
             matching = next((actual for key, actual in hashes.items() if Path(key).name == Path(name).name), None)
             if matching is not None and matching != expected:
@@ -280,6 +287,8 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
                          "review_threshold": .90,
                          "interpretation": "Self-reported confidence is not a calibrated probability; approval also requires intent/boundary agreement and alignment safeguards."
                      }}
+    if backend == "verified-ai":
+        configuration.update(ai_reasoning=ai_reasoning, request_profile=request_profile)
     backend_limit = ("Kev has no two-pass intent/boundary verifier. Its verified view is unavailable (null), not a failed quality score. All Kev cuts require manual approval."
                      if backend == "kev" else "Verified suggestions passed both model checks and alignment safeguards; actual approval remains off during this run.")
     report = {"schema_version": 1, "started_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -319,7 +328,8 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
             else:
                 cuts = run(transcript, "ai", config={"ai_base_url": base_url, "ai_model": model,
                     "ai_key": "", "ai_allow_redirects": False, "ai_trust_env": False,
-                    "ai_policy": "verified", "review_only": True, "auto_approve_threshold": .90},
+                    "ai_policy": "verified", "ai_reasoning": ai_reasoning,
+                    "review_only": True, "auto_approve_threshold": .90},
                     progress=(lambda message: on_progress(row["id"], message)) if on_progress else None)
             row["cuts"] = processing.validate_cuts(cuts, transcript["duration"])
             row["metrics"] = score_cuts(row["cuts"], reference, transcript["duration"], backend=backend)

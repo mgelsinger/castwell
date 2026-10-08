@@ -1,5 +1,11 @@
 # Castwell readiness checkpoint, October 8, 2026
 
+**Dense v7 evaluation is pending.** The [new frozen candidate](evaluations/2026-10-08-qwen35-dense-v7-candidate.json) uses pinned Unsloth Qwen3.5-27B Q4_K_M, the v7 source-credit qualification and explicit reasoning with a 1,024-token budget. Its five known recordings and 33 inspected synthetic cases are regressions; a separate eight-case source-credit challenge was frozen before this candidate's predictions. Their full outcomes are not yet reported here. The completed v6 and earlier results below remain unchanged.
+
+The v7 candidate SHA256 is `428639c0b550ad4addfb38fec0c12c87e0e2b84a54d208fd7ebcedbfb4405d16`. An independent check matched its source, prompts, exact client profile, model bytes, native runtime, fixed references and fixture hashes. This confirms reproducibility inputs, not detection correctness. The [setup instructions](local-models.md#qwen35-27b-dense-v7-candidate) explain the required app reasoning setting and recorded server defaults.
+
+Dense inference trades time for a different model/profile: ten focused development requests took 490.375 seconds versus approximately 200 seconds for the earlier 35B-A3B model, with roughly 42 generated tokens per second observed. Focused probes are not a production benchmark or evidence of general accuracy. The app continues to require approval by default.
+
 **The evaluated v6 candidate is inadequate for unattended ad removal.** It completed all five recording excerpts, preserved the rutabaga parody and recovered two previously missed commercial introductions. It also proposed substantial editorial speech, mistakenly verified an editorial source credit as commercial, and missed most of a paid-event promotion. Use Castwell as a review-assisted editor. All recording-run cuts remained unapproved because review was enabled; that is a policy setting, not an accuracy result.
 
 ## Completed v6 recording regression

@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from .processing import ProcessingError
 
-POLICY_VERSION = "intent-boundary-v6"
+POLICY_VERSION = "intent-boundary-v7"
 LABELS = ("commercial", "editorial", "mixed", "uncertain")
 
 
@@ -48,12 +48,14 @@ _LEAD_IN = "\nA contiguous problem statement, personal anecdote, or rhetorical s
 
 _QUALIFICATION = "\nDistinguish the product's persuasive setup from program navigation. Announcing a break, promising to resume discussion, or introducing a guest is editorial unless that unit itself sells or endorses something.\nA supplied product, possible collaboration, or undisclosed arrangement alone does not establish an actual commercial read. When the excerpt leaves whether this mention is paid, obligated, or a sales pitch unresolved, label uncertain; do not infer missing terms.\n"
 
+_CREDITS = "\nDo not infer sponsorship, affiliate status, or a paid arrangement from a URL, source credit, research citation, or a joke about a website. Those are editorial unless the transcript explicitly places them in an actual promotional offer or sponsorship disclosure. A sponsored show or topic does not make the surrounding reporting commercial.\n"
+
 _INTENT = _COMMON + """
 Your task is commercial INTENT. Establish what the speakers are doing in this scene before labeling lines.
 For instance, a comedy sketch selling an impossible service is not an actual offer just because it mimics
 an ad. Conversely, a host teasing a real paying sponsor and then giving its offer is a commercial read.
 Use the editorial framing both before and after the quoted or performed passage.
-""" + _LEAD_IN + _QUALIFICATION
+""" + _LEAD_IN + _QUALIFICATION + _CREDITS
 
 _BOUNDARY = _COMMON + """
 Your task is to independently audit EDIT BOUNDARIES. Imagine deleting each target unit in its entirety.
@@ -62,7 +64,7 @@ A later 'back to the show' marker does not make preceding editorial sentences co
 and resumed conversation belong to editorial speech. Never join separate ads across an editorial unit.
 Preserve unpaid parody and quotations. Reassess actual intent using all context, not commercial keywords.
 If deleting the entire unit would remove meaningful editorial material with an actual pitch, label mixed.
-""" + _LEAD_IN + _QUALIFICATION
+""" + _LEAD_IN + _QUALIFICATION + _CREDITS
 
 
 def _review_units(segments):
@@ -167,13 +169,27 @@ def _parse(answer, core, context):
     return decisions
 
 
-def _pass(core, context, *, prompt, base_url, model, key, timeout, allow_redirects, trust_env, should_cancel):
+def inference_settings(ai_reasoning=False):
+    """Resolved request options, shared by inference and evaluation provenance."""
+    if not isinstance(ai_reasoning, bool):
+        raise ValueError("AI reasoning must be a boolean")
+    settings = {"temperature": 0.7, "top_p": 0.8, "seed": 42, "max_tokens": 4096,
+                "chat_template_kwargs": {"enable_thinking": False}}
+    if ai_reasoning:
+        settings.update(chat_template_kwargs={"enable_thinking": True},
+                        reasoning_budget_tokens=1024, reasoning_format="deepseek",
+                        temperature=1.0, top_p=.95, top_k=20, min_p=0,
+                        presence_penalty=1.5, repeat_penalty=1.0)
+    return settings
+
+
+def _pass(core, context, *, prompt, base_url, model, key, timeout, allow_redirects, trust_env, should_cancel,
+          ai_reasoning=False):
     import requests
     from .processing import ProcessingError, _classifier_request, _check_cancel
 
     payload = {
-        "model": model, "temperature": 0.7, "top_p": 0.8, "seed": 42, "max_tokens": 4096,
-        "chat_template_kwargs": {"enable_thinking": False},
+        "model": model, **inference_settings(ai_reasoning),
         "response_format": {"type": "json_schema", "json_schema": {"name": "podcast_review", "strict": True, "schema": _schema(core, context)}},
         "messages": [
             {"role": "system", "content": prompt},
@@ -211,9 +227,10 @@ def _pass(core, context, *, prompt, base_url, model, key, timeout, allow_redirec
 
 def classify_verified(transcript, *, base_url, model, key="", threshold=.90, review_only=True,
                       progress=None, should_cancel=None, window_chars=18000, context_segments=12,
-                      request_timeout=180, allow_redirects=True, trust_env=True):
+                      request_timeout=180, allow_redirects=True, trust_env=True, ai_reasoning=False):
     from .processing import _check_cancel, validate_cuts
 
+    inference_settings(ai_reasoning)
     parsed = urlsplit(base_url)
     if (parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password
             or parsed.query or parsed.fragment or any(c.isspace() for c in base_url) or "\\" in base_url):
@@ -234,7 +251,7 @@ def classify_verified(transcript, *, base_url, model, key="", threshold=.90, rev
                     progress(f"Checking ad {stage}: window {index} ({len(pending)} remaining)")
                 passes.append(_pass(core, context, prompt=prompt, base_url=base_url, model=model, key=key,
                                     timeout=request_timeout, allow_redirects=allow_redirects, trust_env=trust_env,
-                                    should_cancel=should_cancel))
+                                    should_cancel=should_cancel, ai_reasoning=ai_reasoning))
         except _InvalidDecisions:
             # Retry only invalid typed output, never silently switch detectors.
             # Smaller target lists leave more room for complete JSON decisions.
@@ -300,6 +317,7 @@ def classify_verified(transcript, *, base_url, model, key="", threshold=.90, rev
         else:
             cuts.append({"start": segment["start"], "end": segment["end"], "source": "ai",
                          "sources": ["ai", "intent-verifier", "boundary-verifier"], "policy_version": POLICY_VERSION,
+                         "inference_profile": "qwen35-reasoning-1024" if ai_reasoning else "standard",
                          **{key: decision[key] for key in ("confidence", "reason", "requires_review", "approved", "label")},
                          "verification": decision["verification"]})
         previous = position

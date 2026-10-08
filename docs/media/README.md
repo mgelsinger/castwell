@@ -10,6 +10,8 @@ The four podcast entries are synthetic demonstration fixtures. The audio is a ge
 
 The tour runs local heuristic detection on the imported transcript, reviews a suggested cut from 6 to 14 seconds, exports actual cleaned audio with FFmpeg, switches playback from the 24-second original to the 16-second cleaned copy, and displays the matching cleaned transcript. The original recording remains available.
 
+The screenshot, GIF and video were refreshed on October 8, 2026 to include the current score labels, review status and bulk-selection controls. The MP4 is 1280 by 848 at 24 fps, about 26 seconds long; the GIF is 960 by 636 at 8 fps. This refresh checks the interface and export workflow, not model accuracy.
+
 ## Reproduce
 
 From a development environment with the project's development dependencies, FFmpeg, and a Playwright Chromium browser available:

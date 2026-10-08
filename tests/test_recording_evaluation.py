@@ -126,6 +126,30 @@ def test_frozen_candidate_hash_mismatch_rejected_before_inference(recording, tmp
                                       detector=lambda *args, **kwargs: pytest.fail("detector called"))
 
 
+def test_reasoning_profile_is_recorded_and_cannot_change_on_resume(recording):
+    from castwell.ad_review import inference_settings
+    calls = []
+    def detector(transcript, method, *, config, progress):
+        calls.append(config)
+        return []
+    result = evaluation.evaluate_recordings(**recording, detector=detector, ai_reasoning=True)
+    assert calls[0]["ai_reasoning"] is True
+    assert result["configuration"]["request_profile"] == inference_settings(True)
+    assert result["configuration"]["review_only"] is True
+    with pytest.raises(ValueError, match="Checkpoint inputs or candidate changed"):
+        evaluation.evaluate_recordings(**recording, detector=detector, ai_reasoning=False, resume=True)
+    assert len(calls) == 1
+
+
+def test_frozen_reasoning_profile_mismatch_rejected_before_inference(recording, tmp_path):
+    from castwell.ad_review import inference_settings
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(json.dumps({"detector_configuration": {"request_profile": inference_settings(True)}}))
+    with pytest.raises(ValueError, match="Inference profile differs"):
+        evaluation.evaluate_recordings(**recording, candidate_config=candidate,
+                                      detector=lambda *args, **kwargs: pytest.fail("detector called"))
+
+
 def test_public_url_strips_private_query_and_rejects_credentials():
     assert evaluation._public_url("https://publisher.invalid/episode?token=PRIVATE#PRIVATE") == "https://publisher.invalid/episode"
     assert evaluation._public_url("https://person:PRIVATE@publisher.invalid/episode") is None

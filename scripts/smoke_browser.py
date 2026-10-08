@@ -218,12 +218,19 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#sidebar-settings").click()
             expect(page.locator("#save-settings")).to_be_enabled()
             expect(page.locator("#setting-review-only")).to_be_checked()
+            expect(page.locator("#setting-ai-reasoning")).not_to_be_checked()
+            page.locator(".settings-advanced summary").click()
+            page.locator("#setting-ai-reasoning").check()
             page.locator("#setting-detector").select_option("heuristic")
             page.locator("#setting-review-only").check()
             with page.expect_response(lambda response: response.url.endswith("/api/settings") and response.request.method == "PATCH") as saved:
                 page.locator("#save-settings").click()
             assert saved.value.json()["review_only"] is True
             expect(page.locator("#settings-error")).to_be_hidden()
+            assert page.evaluate("async () => (await (await fetch('/api/settings')).json()).ai_reasoning") is True
+            page.locator("#setting-ai-reasoning").uncheck()
+            with page.expect_response(lambda response: response.url.endswith("/api/settings") and response.request.method == "PATCH"):
+                page.locator("#save-settings").click()
             page.locator('[data-close="settings-dialog"]').click()
 
             note("Browser: queue the episode, review suggestions, and render real cleaned audio")
@@ -469,7 +476,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             expect(rows.nth(0).locator("input[type=checkbox]")).not_to_be_checked()
             expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("Manually adjusted")
             expect(rows.nth(0).locator(".cut-review-status")).to_contain_text("original 6.00 - 14.00 seconds")
-            expect(rows.nth(0).locator(".cut-confidence")).to_have_text("Original 95% confidence")
+            expect(rows.nth(0).locator(".cut-confidence")).to_have_text("Original Score 0.95")
             with page.expect_response(lambda response: response.url.endswith(f"/{playback_id}/cuts") and response.request.method == "POST"):
                 page.locator("#save-cuts").click()
             adjusted = episode(page, playback_id)["cuts"][0]

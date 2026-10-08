@@ -205,7 +205,7 @@ def _provenance():
 
 
 def _run_backend(name, transcript, *, base_url, model, jev_api_key, jev_base_url, jev_model,
-                 kev_base_url="http://127.0.0.1:8083", kev_model="kev-latest"):
+                 kev_base_url="http://127.0.0.1:8083", kev_model="kev-latest", ai_reasoning=False):
     if name == "kev":
         from .jev import classify_local_transcript
         return classify_local_transcript(transcript, base_url=kev_base_url, model=kev_model)
@@ -216,6 +216,7 @@ def _run_backend(name, transcript, *, base_url, model, jev_api_key, jev_base_url
         "ai_base_url": base_url if name in ("local-ai", "verified-ai") else "",
         "ai_model": model if name in ("local-ai", "verified-ai") else "",
         "ai_policy": "verified" if name == "verified-ai" else "legacy",
+        "ai_reasoning": ai_reasoning if name == "verified-ai" else False,
         "ai_key": "", "ai_allow_redirects": False, "ai_trust_env": False,
         "review_only": False, "auto_approve_threshold": APPROVAL_THRESHOLD,
     })
@@ -274,9 +275,13 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
                      model_label=None, split="eval", allow_remote=False, allow_paid_api=False,
                      jev_api_key=None, jev_base_url="https://api.typesafe.ai", jev_model="jev-1.13.0",
                      kev_base_url="http://127.0.0.1:8083", kev_model="kev-latest", kev_model_label=None,
-                     dataset_sha256=None, on_case=None):
+                     dataset_sha256=None, on_case=None, ai_reasoning=False):
+    from .ad_review import inference_settings
+    request_profile = inference_settings(ai_reasoning)
     selected = validate_backends(backends, base_url=base_url, allow_remote=allow_remote,
                                  allow_paid_api=allow_paid_api, jev_api_key=jev_api_key, jev_base_url=jev_base_url, kev_base_url=kev_base_url)
+    if ai_reasoning and "verified-ai" not in selected:
+        raise ValueError("AI reasoning requires the verified-ai backend")
     if split not in ("dev", "eval", "all"):
         raise ValueError("Split must be dev, eval, or all")
     validated = validate_dataset(dataset)
@@ -319,6 +324,8 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
                   "base_url": base_url if local else jev_base_url if backend == "jev" else None}
         if backend == "kev":
             config.update(model=kev_model, model_label=kev_model_label or kev_model, base_url=kev_base_url)
+        if backend == "verified-ai":
+            config.update(ai_reasoning=ai_reasoning, request_profile=request_profile)
         records = []
         for case in cases:
             began = time.perf_counter()
@@ -328,7 +335,7 @@ def evaluate_dataset(dataset, *, backends=None, base_url=DEFAULT_BASE_URL, model
             try:
                 answer = _run_backend(backend, case["transcript"], base_url=base_url, model=model,
                                       jev_api_key=jev_api_key, jev_base_url=jev_base_url, jev_model=jev_model,
-                                      kev_base_url=kev_base_url, kev_model=kev_model)
+                                      kev_base_url=kev_base_url, kev_model=kev_model, ai_reasoning=ai_reasoning)
                 cuts = processing.validate_cuts(answer["cuts"], record["duration"])
                 review = answer.get("review", False)
                 if not isinstance(review, bool):

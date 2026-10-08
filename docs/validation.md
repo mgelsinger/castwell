@@ -2,7 +2,17 @@
 
 These checks establish working application flows; they do not establish universal advertisement detection.
 
-## October 8 review workflow
+## October 8 v7 application checks
+
+The v7 Windows checkout passed **436 tests and 121 subtests** on Python 3.12 in 27.94 seconds. The Chromium smoke check passed in 25.4 seconds, including persistence of the optional reasoning setting, raw detector-score labels, review and bulk selection, manual-boundary provenance, desktop/mobile layouts, and actual FFmpeg exports. The first browser attempt required the test to expand the advanced settings disclosure before interacting with its checkbox; after that test correction, the complete check passed. One existing upstream Starlette/httpx warning remains.
+
+The README's ad-review screenshot, GIF and MP4 were refreshed from this interface using `scripts/record_demo.py`. The isolated synthetic library exercised an eight-second approved cut from 24 seconds of generated tone audio, a real FFmpeg export, and the cleaned transcript. The silent MP4 is 1280 by 848 at 24 fps for 26.08 seconds; the looping GIF is 960 by 636 at 8 fps. No speech model or classifier model was called. These assets illustrate the review controls and raw score wording, not detection accuracy.
+
+An isolated PEP 517 wheel build, isolated import and CLI-help check passed. All 17 packaged source/assets matched the checkout, with no private library or model files included. That preliminary wheel predates the final documentation edits, so its hash is not presented as the final publication artifact. A `--no-build-isolation` attempt lacked setuptools in the main environment; the normal isolated build supplied its build dependencies successfully.
+
+These software checks do not establish detection accuracy. Full dense v7 model results remain pending in the [readiness report](readiness-2026-10-08.md). Earlier fixed validation records follow.
+
+## October 8 v6 review workflow
 
 The final v6 Windows checkout passed **403 tests and 117 subtests** on Python 3.12 in 26.69 seconds, including recovered-speech safeguards, source-ID evidence resolution, bounded subdivision to individual targets, sentence assembly, retry/resume behavior, and the private recording evaluator. The Chromium smoke check passed with preserved cut metadata, manual boundary edits, bulk selection and clearing, original/cleaned playback positions, transcript-gap navigation, actual audio exports, and desktop/mobile layouts. The browser code was unchanged during v5/v6 work, so its passing 26.3-second run was retained. One upstream Starlette test-client deprecation warning remains.
 

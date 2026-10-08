@@ -279,3 +279,18 @@ def test_verified_backend_receives_new_policy():
     with patch("castwell.evaluation.processing.detect_ads", return_value=[]) as detector:
         evaluate_dataset(dataset(), backends=["verified-ai"])
     assert detector.call_args.kwargs["config"]["ai_policy"] == "verified"
+
+
+def test_reasoning_profile_reaches_verified_detector_and_report():
+    from castwell.ad_review import inference_settings
+    with patch("castwell.evaluation.processing.detect_ads", return_value=[]) as detector:
+        result = evaluate_dataset(dataset(), backends=["verified-ai"], ai_reasoning=True)
+    assert detector.call_args.kwargs["config"]["ai_reasoning"] is True
+    assert result["backends"][0]["config"]["request_profile"] == inference_settings(True)
+
+
+@pytest.mark.parametrize("value", [True, "false", 1])
+def test_reasoning_rejects_invalid_or_unused_profile_before_inference(value):
+    with patch("castwell.evaluation._run_backend") as run, pytest.raises(ValueError):
+        evaluate_dataset(dataset(), backends=["heuristic"], ai_reasoning=value)
+    run.assert_not_called()

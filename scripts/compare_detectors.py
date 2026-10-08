@@ -23,6 +23,7 @@ def main(argv=None):
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Local OpenAI-compatible API base URL")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--model-label", help="Exact local model name, quantization, and version for provenance")
+    parser.add_argument("--ai-reasoning", action="store_true", help="Use the bounded local Qwen3.5 reasoning profile for verified-ai")
     parser.add_argument("--fixtures", type=Path, default=ROOT / "tests" / "fixtures" / "ad_read_challenge.json")
     parser.add_argument("--split", choices=("dev", "eval", "all"), default="eval")
     parser.add_argument("--output", type=Path)
@@ -42,7 +43,8 @@ def main(argv=None):
                                model_label=args.model_label, split=args.split, allow_remote=args.allow_remote,
                                allow_paid_api=args.allow_paid_api, jev_api_key=os.environ.get(args.jev_api_key_env) if args.jev_api_key_env else None,
                                jev_base_url=args.jev_base_url, jev_model=args.jev_model,
-                               kev_base_url=args.kev_base_url, kev_model=args.kev_model, kev_model_label=args.kev_model_label, on_case=progress)
+                               kev_base_url=args.kev_base_url, kev_model=args.kev_model, kev_model_label=args.kev_model_label,
+                               ai_reasoning=args.ai_reasoning, on_case=progress)
     except (ValueError, OSError) as exc:
         parser.error(str(exc))
     serialized = json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False) + "\n"

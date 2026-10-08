@@ -129,6 +129,106 @@ class JobsTests(unittest.TestCase):
         self.assertEqual(detect.call_args.kwargs['detector'], 'ai')
         self.assertEqual(detect.call_args.kwargs['config'], settings)
 
+    @staticmethod
+    def policy_candidate(transcript, detector, *, config, **kwargs):
+        return [dict(CUT, source='ai', confidence=.95,
+                     approved=not config['review_only'] and .95 >= config['auto_approve_threshold'])]
+
+    def test_queued_jobs_keep_review_and_threshold_despite_later_settings_changes(self):
+        for name, review, threshold in (('review', True, .90), ('threshold', False, .97)):
+            with self.subTest(control=name):
+                identifier = self.episode(name, transcript=TRANSCRIPT)
+                settings = {'review_only': review, 'auto_approve_threshold': threshold,
+                            'ai_key': 'private-test-key', 'ai_base_url': 'https://example.test/v1'}
+                self.jobs.settings_getter = lambda: dict(settings)
+                release = threading.Event()
+                self.jobs.pool.submit(lambda: release.wait(3))
+                with patch('castwell.processing.detect_ads', side_effect=self.policy_candidate) as detect, \
+                     patch('castwell.processing.render_audio') as render:
+                    try:
+                        self.jobs.submit(identifier, 'process')
+                        queued = self.library.get(identifier)
+                        self.assertEqual(queued['pending_job']['approval_policy'],
+                                         {'review_only': review, 'auto_approve_threshold': threshold})
+                        self.assertNotIn('private-test-key', json.dumps(queued['pending_job']))
+                        self.assertNotIn('ai_base_url', json.dumps(queued['pending_job']))
+                        settings.update(review_only=False, auto_approve_threshold=.50)
+                    finally:
+                        release.set()
+                    finished = self.wait(identifier)
+                self.assertEqual(finished['status'], 'review', finished['error'])
+                self.assertFalse(finished['cuts'][0]['approved'])
+                self.assertEqual(detect.call_args.kwargs['config']['auto_approve_threshold'], threshold)
+                render.assert_not_called()
+
+    def test_failed_job_preserves_approval_policy_after_reopening_and_retry(self):
+        identifier = self.episode(transcript=TRANSCRIPT)
+        settings = {'review_only': True, 'auto_approve_threshold': .97, 'ai_model': 'before'}
+        self.jobs.settings_getter = lambda: dict(settings)
+        with patch('castwell.processing.detect_ads', side_effect=processing.ProcessingError('Unavailable')):
+            self.jobs.submit(identifier, 'process')
+            failed = self.wait()
+        expected = {'review_only': True, 'auto_approve_threshold': .97}
+        self.assertEqual(failed['pending_job']['approval_policy'], expected)
+        self.jobs.shutdown()
+        self.jobs.pool.shutdown(wait=True)
+        self.library = Library(self.library.root)
+        self.library.recover()
+        settings.update(review_only=False, auto_approve_threshold=.50, ai_model='after')
+        self.jobs = Jobs(self.library, 'base', settings_getter=lambda: dict(settings))
+        self.addCleanup(self.jobs.pool.shutdown, wait=True, cancel_futures=True)
+        self.addCleanup(self.jobs.shutdown)
+        with patch('castwell.processing.detect_ads', side_effect=self.policy_candidate) as detect, \
+             patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'review', finished['error'])
+        self.assertFalse(finished['cuts'][0]['approved'])
+        self.assertEqual({key: detect.call_args.kwargs['config'][key] for key in expected}, expected)
+        self.assertEqual(detect.call_args.kwargs['config']['ai_model'], 'after')
+        render.assert_not_called()
+
+    def test_legacy_pending_job_without_policy_keeps_current_settings_behavior(self):
+        identifier = self.episode(transcript=TRANSCRIPT, status='error', pending_job={
+            'operation': 'process', 'options': {'remove_ads': True, 'detector': None,
+                'redetect': False, 'retranscribe': False, 'download_only': False},
+            'prior_status': 'available', 'prior_progress': ''})
+        self.jobs.settings_getter = lambda: {'review_only': False, 'auto_approve_threshold': .90}
+        with patch('castwell.processing.detect_ads', side_effect=self.policy_candidate), \
+             patch('castwell.processing.render_audio', return_value={'duration': 9, 'removed_seconds': 3}) as render:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertTrue(finished['cuts'][0]['approved'])
+        render.assert_called_once()
+
+    def test_new_policy_never_changes_existing_reviewed_cut_decisions(self):
+        reviewed = [dict(CUT, approved=False, requires_review=True)]
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=reviewed, analysis_done=True)
+        self.jobs.settings_getter = lambda: {'review_only': False, 'auto_approve_threshold': .50}
+        with patch('castwell.processing.detect_ads') as detect, patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['cuts'], reviewed)
+        detect.assert_not_called()
+        render.assert_not_called()
+
+    def test_explicit_new_redetection_replaces_a_failed_jobs_policy(self):
+        identifier = self.episode(transcript=TRANSCRIPT)
+        settings = {'review_only': True, 'auto_approve_threshold': .97}
+        self.jobs.settings_getter = lambda: dict(settings)
+        with patch('castwell.processing.detect_ads', side_effect=processing.ProcessingError('Unavailable')):
+            self.jobs.submit(identifier, 'process')
+            self.assertEqual(self.wait()['status'], 'error')
+        settings.update(review_only=False, auto_approve_threshold=.90)
+        with patch('castwell.processing.detect_ads', side_effect=self.policy_candidate), \
+             patch('castwell.processing.render_audio', return_value={'duration': 9, 'removed_seconds': 3}) as render:
+            self.jobs.submit(identifier, 'process', {'redetect': True})
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertTrue(finished['cuts'][0]['approved'])
+        render.assert_called_once()
+
     def test_silent_transcript_never_claims_successful_ad_detection(self):
         identifier = self.episode(transcript={'duration': 12, 'segments': []})
         with patch('castwell.processing.transcribe') as transcribe, patch('castwell.processing.detect_ads') as detect:

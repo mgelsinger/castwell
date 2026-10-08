@@ -98,22 +98,28 @@ Approved overlaps are merged. FFmpeg trims decoded audio and writes a separate 1
 
 ### Run the classifier locally
 
-The stronger local candidate is **Qwen3.5-35B-A3B** with native llama.cpp. The tested Q4_K_M file is approximately 21.2 GB, converted locally from a pinned 36.9 GB ggml-org Q8 release. Allow at least 60 GB of disk for both files. Requantization can lose quality compared with conversion from original BF16 weights; this is a measured local candidate, not a Qwen-published Q4 release. See the [results and limitations](docs/readiness-2026-10-08.md). The classifier is separate from the Whisper speech model.
+The newest frozen candidate is **Qwen3.5-27B dense**, using a pinned 16.7 GB Unsloth Q4_K_M file and native llama.cpp. It adds bounded reasoning to the two-pass detector. **Full v7 detection results are pending**; model size and successful setup do not establish reliable ad removal. Earlier candidates made consequential errors, documented in the [results and limitations](docs/readiness-2026-10-08.md). The classifier is separate from the Whisper speech model.
 
-For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Extract both into `.local/llama.cpp` so `llama-server.exe`, `llama-quantize.exe`, and their DLLs are together. This path does not require Ollama or `llama-cpp-python`. Download, verify and convert the pinned model, then start the measured 24 GB GPU profile:
+For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Follow the [archive verification instructions](docs/local-models.md#prepare-native-llamacpp) and extract both into `.local/llama.cpp`. This path does not require Ollama or `llama-cpp-python`. Download and verify the pinned dense model, then start the frozen server profile:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/setup_qwen35_local.py
-.\scripts\start_qwen35_local.ps1 -NoThinking -GpuLayers all -CpuMoeLayers 4 -Background
+.\.venv\Scripts\python.exe scripts/setup_qwen35_dense_local.py
+.\scripts\start_qwen35_dense_local.ps1 -NoThinking -LogVerbosity 4 -Background
 ```
 
-Model downloads need `huggingface-hub`, which is included with Castwell's transcription dependencies. The setup verifies source and quantizer hashes and records the converted model's hash. Four expert layers run on CPU in this RTX 3090 Ti profile, leaving about 2.1 GB of GPU memory free after the startup check. Other machines may need different offload settings. After preparation, start the model with the same launcher command and start Castwell in another terminal:
+This profile loaded all 65 layers on an RTX 3090 Ti with 24 GB VRAM, leaving about 4.6 GB free in the observed session. Other machines may need different offload settings. The setup checks the publisher file's pinned hash; no local requantization is performed. Start Castwell in another terminal:
 
 ```powershell
 .\scripts\start_castwell.ps1 -Background
 ```
 
+In **Settings > Contextual AI connection**, enable **Use local Qwen3.5 reasoning** and keep **Require my approval for every cut** enabled. The saved `ai_reasoning` setting defaults to false. The evaluated profile explicitly enables reasoning per request with a 1,024-token budget and 4,096-token output cap, even though the frozen server was started with `-NoThinking`. Omitting that launcher switch changes the server default; it does not override the app's setting. See [the exact profile and provenance](docs/local-models.md#qwen35-27b-dense-v7-candidate).
+
+Dense inference is slower on this machine: about 42 generated tokens per second, with ten focused development requests taking 490 seconds versus approximately 200 seconds for the earlier 35B-A3B model. This is a runtime observation on selected requests, not a full-episode benchmark or evidence of better detection.
+
 The launchers bind to loopback and record process IDs and logs under `.local/logs`. Omit `-Background` to keep a server in the current terminal. They refuse to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop its process; for the Python app on Windows, the HTTP listener can be a child of the recorded launcher PID.
+
+The earlier **Qwen3.5-35B-A3B** profile remains available through `scripts/setup_qwen35_local.py` and `scripts/start_qwen35_local.ps1`. Its locally requantized Q4 model uses four CPU expert layers in the measured 24 GB GPU setup. Its v6 results do not support unattended removal. Preparation needs at least 60 GB for source and converted files; [local model setup](docs/local-models.md#earlier-qwen35-35b-a3b-candidate) preserves the exact commands and identities.
 
 The smaller **Qwen3-14B Q6_K** profile remains available with `.\.venv\Scripts\python.exe scripts/local_ai.py --download --size 14b --cache-dir .local/models --backend native --server-binary .local/llama.cpp/llama-server.exe --threads 8`, followed on later starts by `.\scripts\start_local_ai.ps1`. Its download is approximately 12.1 GB. Qwen2.5 7B and 3B variants are also available, but the recorded comparisons found consequential detection errors in the smaller candidates. Run only one model server on the shared endpoint.
 
@@ -134,6 +140,8 @@ Keep that terminal running. In Castwell Settings, save these values and use **Te
 | API base URL | `http://127.0.0.1:8081/v1` |
 | Model name | `castwell-local` |
 | Detection method | Contextual AI or Automatic |
+| Use local Qwen3.5 reasoning | On for the dense v7 profile; off for the earlier nonthinking profiles |
+| Require my approval for every cut | On |
 
 The helper listens only on `127.0.0.1` and needs no API key. `--port`, `--threads`, and `--context` adjust the server; the default context is 8192 tokens. Use `python scripts/local_ai.py --help` for options. To use an existing Qwen-compatible GGUF file instead, run `python scripts/local_ai.py --model /path/to/model.gguf`; for a split model, point to its first shard and keep the other shard beside it. Checksum verification is automatic for the pinned `--download` models; verify the provenance of a custom file yourself.
 
@@ -210,6 +218,8 @@ The CA bundle is used only during package installation and is not stored in the 
 ## Configuration and backups
 
 Settings are saved in SQLite. Nonempty environment overrides take precedence and are identified in the settings view; remove or change an override before editing that setting in the UI.
+
+The optional `ai_reasoning` preference is saved through Settings or `/api/settings`, defaults to `false`, and has no environment-variable override. It selects the bounded local Qwen3.5 request profile for the verified detector. Leave it off for a provider that does not support those request fields.
 
 | Variable | Purpose |
 | --- | --- |

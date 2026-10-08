@@ -2,7 +2,7 @@
 
 This setup runs speech recognition and classification on your own machine. Model downloads are public and free; no hosted inference, API key, Ollama, or Modal deployment is needed. The application and model servers bind to `127.0.0.1`.
 
-The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The stronger Qwen3.5 profile uses an 8,192-token context and four CPU expert layers. Run Qwen and Kev separately on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
+The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The newest Qwen3.5-27B dense candidate uses an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
 
 ## Application environment
 
@@ -43,7 +43,43 @@ foreach ($asset in $assets) {
 }
 ```
 
-After preparing the runtime, choose one model profile. For the stronger tested setup, skip the following optional 14B section and continue to [Qwen3.5](#qwen35-as-a-separate-candidate).
+After preparing the runtime, choose one model profile. The latest frozen experiment is [Qwen3.5-27B dense](#qwen35-27b-dense-v7-candidate), with full detection results pending. The smaller and earlier profiles remain below for reproducibility.
+
+## Qwen3.5-27B dense v7 candidate
+
+This candidate uses the third-party [Unsloth Qwen3.5-27B GGUF](https://huggingface.co/unsloth/Qwen3.5-27B-GGUF), based on [Qwen3.5-27B](https://huggingface.co/Qwen/Qwen3.5-27B). It downloads Q4_K_M directly, with no local requantization. The repository identifies the base model and Apache 2.0 license; the publisher's complete conversion process has not been independently reproduced. The [v7 candidate record](evaluations/2026-10-08-qwen35-dense-v7-candidate.json) fixes the model, source, prompts and request profile before full inference. Full results are pending; focused development probes do not establish accuracy.
+
+| Pinned artifact | Identity |
+| --- | --- |
+| Repository revision | `3221f178a6b842d04f1fb42f1c413534adcc0a6a` |
+| Filename | `Qwen3.5-27B-Q4_K_M.gguf` |
+| Download size | 16,740,812,704 bytes, approximately 16.7 GB |
+| SHA256 | `84b5f7f112156d63836a01a69dc3f11a6ba63b10a23b8ca7a7efaf52d5a2d806` |
+
+Allow room for this file, the application, and the native runtime. From the project environment, download and verify it once:
+
+```powershell
+.venv\Scripts\python.exe scripts\setup_qwen35_dense_local.py
+.venv\Scripts\python.exe scripts\setup_qwen35_dense_local.py --verify-only
+```
+
+The default directory is `.local/models/qwen3.5-27b`; `--directory` selects another location. `--verify-only` hashes existing files without network access or writes. Interrupted `.partial` files and corrupt existing models are preserved and refused, so inspect them or choose a new directory before retrying. A completed download records its provenance beside the model.
+
+Stop the other model server first. To reproduce the frozen server defaults:
+
+```powershell
+.\scripts\start_qwen35_dense_local.ps1 -NoThinking -LogVerbosity 4 -Background
+```
+
+The launcher verifies both the model and b11146 server binary before loading, requires the matching runtime DLLs, and binds offline to `http://127.0.0.1:8081/v1` with alias `castwell-local`. It uses one slot, 8,192 context tokens, eight CPU threads, all GPU layers, batch 512 and microbatch 128. `-ValidateOnly` verifies files and prints arguments without starting a model. `-Background` starts hidden and writes unique logs and a PID under `.local/logs`; omit it for a foreground process. It does not stop an existing listener.
+
+The observed RTX 3090 Ti load offloaded all 65 layers, using 15,272.77 MiB for CUDA weights, 512 MiB for KV state, 149.62 MiB for recurrent state and 32.5 MiB for compute; CPU-mapped weights occupied 682.03 MiB. Total observed GPU usage including desktop processes was 19,701 MiB, leaving 4,613 MiB free. These are one machine's startup measurements, not a guarantee for other hardware or inputs.
+
+**Enable the client profile separately.** After starting Castwell, open **Settings > Contextual AI connection**, turn on **Use local Qwen3.5 reasoning**, and keep **Require my approval for every cut** enabled. The persisted `ai_reasoning` preference defaults to false and has no environment override. It is supported by the verified detector, not the legacy policy. Both evaluation CLIs require `--backend verified-ai --ai-reasoning` to select the same profile.
+
+The v7 client sends temperature 1.0, top-p 0.95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1.0 and seed 42. It explicitly enables thinking with a 1,024-token reasoning budget, `deepseek` reasoning format and a 4,096-token output cap. These request fields override the frozen server's nonthinking defaults. The new launcher's default, without `-NoThinking`, enables reasoning for clients that omit a choice; Castwell always sends its own choice. A server startup alone therefore does not enable reasoning in the app. Reports record the actual request profile, and another profile needs its own evaluation.
+
+The dense model generated roughly 42 tokens per second during local probes. Ten focused development requests took 490.375 seconds versus approximately 200 seconds for the earlier 35B-A3B model. These selected-request timings exclude model preparation and full episode processing, and do not prove better classification. See the [readiness report](readiness-2026-10-08.md) for completed results and remaining limitations.
 
 ### Optional smaller Qwen3-14B profile
 
@@ -63,11 +99,11 @@ For later starts, use:
 
 The endpoint is `http://127.0.0.1:8081/v1` and model alias is `castwell-local`. The launcher uses all GPU layers, one inference slot, 8,192 context tokens, a default 4,096-token output limit, and a 1,536-token reasoning budget. A client's explicit `max_tokens` overrides llama.cpp's default output limit, so clients must also set their own bound.
 
-Thinking mode follows [Qwen's sampling guidance](https://huggingface.co/Qwen/Qwen3-14B-GGUF): temperature 0.6, top-p 0.95, top-k 20, min-p 0, and presence penalty 1.5. The model's native Jinja template and `deepseek` reasoning parser keep `message.reasoning_content` separate from schema-constrained `message.content`. The verified detector explicitly requests nonthinking inference through `chat_template_kwargs.enable_thinking=false`, with temperature 0.7, top-p 0.8, seed 42 and a 4,096-token output cap. Its reason fields precede each label. This request overrides the server thinking default. `-NoThinking` also selects nonthinking defaults for other clients. Changing the evaluated request configuration requires a new evaluation.
+Thinking mode follows [Qwen's sampling guidance](https://huggingface.co/Qwen/Qwen3-14B-GGUF): temperature 0.6, top-p 0.95, top-k 20, min-p 0, and presence penalty 1.5. The model's native Jinja template and `deepseek` reasoning parser keep `message.reasoning_content` separate from schema-constrained `message.content`. With the default `ai_reasoning=false`, the verified detector explicitly requests nonthinking inference through `chat_template_kwargs.enable_thinking=false`, with temperature 0.7, top-p 0.8, seed 42 and a 4,096-token output cap. Its reason fields precede each label. This request overrides the server thinking default. `-NoThinking` also selects nonthinking defaults for other clients. Keep the setting off to reproduce these older runs; the optional Qwen3.5 reasoning profile above is a different experiment.
 
 The previous official Qwen2.5 3B and 7B downloads remain available through `local_ai.py --size 3b` or `--size 7b`. To start an existing older GGUF with the PowerShell launcher, pass its `-Model` path and `-Preset default`.
 
-## Qwen3.5 as a separate candidate
+## Earlier Qwen3.5-35B-A3B candidate
 
 The optional candidate is [Qwen3.5-35B-A3B](https://huggingface.co/Qwen/Qwen3.5-35B-A3B), a hybrid model with 35 billion total parameters and 3 billion active parameters. It uses the [ggml-org GGUF source](https://huggingface.co/ggml-org/Qwen3.5-35B-A3B-GGUF) and the same verified native runtime. The setup converts the publisher's Q8_0 GGUF to Q4_K_M locally on the CPU. This is requantization, which can lose quality compared with quantizing original BF16 weights; the result is not a Qwen-published Q4 release. A larger model does not establish ad-detection accuracy.
 
@@ -142,7 +178,7 @@ Recheck downloaded weights without network access:
 The comparison harness is separate from the app's processing queue and only writes reports. With Qwen running:
 
 ```powershell
-.venv\Scripts\python.exe scripts\compare_detectors.py --backend verified-ai --split dev --model-label 'Qwen3.5-35B-A3B local Q8-to-Q4_K_M; llama.cpp b11146; CPU expert layers4; verified nonthinking' --output .local\evaluations\qwen35-development.json
+.venv\Scripts\python.exe scripts\compare_detectors.py --backend verified-ai --ai-reasoning --split dev --model-label 'Qwen3.5-27B Unsloth Q4_K_M; llama.cpp b11146; all GPU layers; intent-boundary-v7; reasoning1024' --output .local\evaluations\qwen35-dense-development.json
 ```
 
 Stop Qwen, start Kev, then run:
@@ -151,4 +187,4 @@ Stop Qwen, start Kev, then run:
 .venv\Scripts\python.exe scripts\compare_detectors.py --backend kev --split dev --kev-model-label 'Kev4B 6cfce5c2; Torch2.8 cu128 BF16 unfused' --output .local\evaluations\kev-development.json
 ```
 
-Use development cases to adjust prompts and thresholds. Freeze the full configuration before evaluating a fresh held-out set. These transcript fixtures do not replace end-to-end testing of speech recognition, timing boundaries, and listening quality. See [the evaluation notes](ad-read-evaluation.md) for results and limitations.
+Use development cases to adjust prompts and thresholds. Freeze the full configuration before evaluating a fresh held-out set. Recording evaluations additionally need the exact `--model-file` and `--candidate-config` so their artifact and request-profile identities are checked. These transcript fixtures do not replace end-to-end testing of speech recognition, timing boundaries, and listening quality. See [the evaluation notes](ad-read-evaluation.md) for commands, results and limitations.

@@ -122,7 +122,7 @@ def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)
     assert source == original
-    assert cuts[0]['policy_version'] == 'intent-boundary-v6'
+    assert cuts[0]['policy_version'] == 'intent-boundary-v7'
     assert len(evidence) > 160
     assert len(cuts[0]['verification']) == 2
     for record in cuts[0]['verification']:
@@ -469,3 +469,35 @@ def test_schema_enforces_confidence_vocabulary_and_explicit_scale():
     assert schema["properties"]["decisions"]["items"]["properties"]["confidence"]["enum"] == [0, .5, .8, .9, .95, .99, 1]
     assert "number from 0 to 1" in payload["messages"][0]["content"]
     assert payload["chat_template_kwargs"]["enable_thinking"] is False
+
+
+def test_reasoning_is_explicit_bounded_and_preserves_manual_approval():
+    provider = Provider('commercial')
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(transcript('A paid promotion.'), config={'ai_reasoning': True, 'review_only': True})
+    for _, _, payload, *_ in provider.calls:
+        assert payload['chat_template_kwargs'] == {'enable_thinking': True}
+        assert payload['reasoning_budget_tokens'] == 1024
+        assert payload['reasoning_format'] == 'deepseek'
+        assert payload['max_tokens'] == 4096
+        assert payload['temperature'] == 1.0
+        assert payload['top_p'] == .95
+        assert payload['response_format']['json_schema']['strict'] is True
+    assert cuts[0]['inference_profile'] == 'qwen35-reasoning-1024'
+    assert cuts[0]['requires_review'] is False
+    assert cuts[0]['approved'] is False
+
+
+@pytest.mark.parametrize('value', ['false', 1, None])
+def test_invalid_reasoning_flag_never_reaches_provider(value):
+    with patch('castwell.processing._classifier_request') as request:
+        with pytest.raises(ValueError, match='reasoning'):
+            classify(transcript('Some speech.'), config={'ai_reasoning': value})
+    request.assert_not_called()
+
+
+def test_reasoning_cannot_be_silently_ignored_by_legacy_ai():
+    with patch('castwell.processing._classifier_request') as request:
+        with pytest.raises(ValueError, match='verified'):
+            classify(transcript('Some speech.'), config={'ai_reasoning': True, 'ai_policy': 'legacy'})
+    request.assert_not_called()

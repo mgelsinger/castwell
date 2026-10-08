@@ -593,6 +593,9 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     ai_policy = config.get("ai_policy", "legacy")
     if ai_policy not in {"legacy", "verified"}:
         raise ValueError("AI policy must be legacy or verified")
+    ai_reasoning = config.get("ai_reasoning", False)
+    if not isinstance(ai_reasoning, bool):
+        raise ValueError("AI reasoning must be a boolean")
     threshold = _number(config.get("auto_approve_threshold", .90), "auto approval threshold")
     review_only = config.get("review_only", False)
     if not 0 <= threshold <= 1 or not isinstance(review_only, bool):
@@ -610,6 +613,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     key = key.strip()
     baseline = _heuristic_ads(transcript)
     if detector != "heuristic" and (base_url or model or key or detector == "ai"):
+        if ai_reasoning and ai_policy != "verified":
+            raise ValueError("AI reasoning requires the verified detection policy")
         if not base_url or not model:
             raise ProcessingError("AI ad detection requires both CASTWELL_AI_BASE_URL and CASTWELL_AI_MODEL. CASTWELL_AI_KEY is optional for local servers.")
         try:
@@ -630,7 +635,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
                                      progress=progress, should_cancel=should_cancel,
                                      window_chars=window_chars, context_segments=context_segments,
                                      request_timeout=request_timeout,
-                                     allow_redirects=allow_redirects, trust_env=trust_env)
+                                     allow_redirects=allow_redirects, trust_env=trust_env,
+                                     ai_reasoning=ai_reasoning)
         cuts = _ai_ads(transcript, base_url, model, key, threshold=threshold, review_only=review_only,
                        progress=progress, should_cancel=should_cancel, window_chars=window_chars,
                        context_segments=context_segments, request_timeout=request_timeout,

@@ -25,6 +25,7 @@ _DEFAULTS = {
     "auto_approve_threshold": 0.90,
     "review_only": True,
     "ai_policy": "verified",
+    "ai_reasoning": False,
     "ai_base_url": "",
     "ai_model": "",
 }
@@ -75,6 +76,8 @@ def _validated(values: dict) -> dict:
         result["auto_approve_threshold"] = float(threshold)
     if "review_only" in result and not isinstance(result["review_only"], bool):
         raise ValueError("Review only must be a boolean")
+    if "ai_reasoning" in result and not isinstance(result["ai_reasoning"], bool):
+        raise ValueError("AI reasoning must be a boolean")
     if "ai_model" in result:
         result["ai_model"] = _text(result["ai_model"], "Classifier model", allow_empty=True, limit=256)
     if "ai_base_url" in result:

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from concurrent.futures import Future
 import json
+import math
 import os
 from pathlib import Path
 import queue
@@ -108,6 +109,8 @@ class Jobs:
             else:
                 request = {'operation': operation, 'options': supplied,
                            'prior_status': episode['status'], 'prior_progress': episode['progress']}
+                request['approval_policy'] = self._approval_policy(
+                    self.settings_getter() if self.settings_getter else {})
             self.library.update(episode_id, status='queued', error=None, progress='Waiting to process', pending_job=request)
             self.pending.add(episode_id)
             self._cancellations[episode_id] = threading.Event()
@@ -171,6 +174,17 @@ class Jobs:
         return default if value is None else value
 
     @staticmethod
+    def _approval_policy(settings):
+        # Persist only the two approval controls, never connection credentials.
+        review = settings.get('review_only', False)
+        threshold = settings.get('auto_approve_threshold', .90)
+        if (not isinstance(review, bool) or isinstance(threshold, bool)
+                or not isinstance(threshold, (int, float)) or not math.isfinite(threshold)
+                or not 0 <= threshold <= 1):
+            raise ValueError('Invalid approval policy')
+        return {'review_only': review, 'auto_approve_threshold': float(threshold)}
+
+    @staticmethod
     def _check_cancel(cancel):
         if cancel.is_set():
             raise processing.ProcessingCancelled('Processing cancelled')
@@ -195,6 +209,10 @@ class Jobs:
         try:
             self._check_cancel(cancel)
             settings = dict(self.settings_getter() if self.settings_getter else {})
+            request = self.library.get(episode_id).get('pending_job') or {}
+            if 'approval_policy' in request:
+                # Queued work and retries keep the listener's original policy.
+                settings.update(self._approval_policy(request['approval_policy']))
             if operation in ('process', 'download'):
                 self._process(episode_id, options, settings, cancel, download_only=operation == 'download')
             else:
