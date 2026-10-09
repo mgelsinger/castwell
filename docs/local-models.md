@@ -2,7 +2,7 @@
 
 This setup runs speech recognition and classification on your own machine. Model downloads are public and free; no hosted inference, API key, Ollama, or Modal deployment is needed. The application and model servers bind to `127.0.0.1`.
 
-The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The retained Qwen3.5-27B dense profile uses an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
+The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The Qwen3.8 and Qwen3.5 dense profiles use an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
 
 ## Application environment
 
@@ -43,9 +43,33 @@ foreach ($asset in $assets) {
 }
 ```
 
-After preparing the runtime, choose one model profile. The retained profile is [Qwen3.5-27B dense](#qwen35-27b-dense-v8-candidate), recommended only with manual review. The [completed local comparison](local-model-round2-2026-10-08.md) rejected both role-first alternatives; these setup commands and the production v8 policy remain unchanged. The smaller and earlier profiles remain below for reproducibility.
+After preparing the runtime, choose one model profile and run only one server on the shared endpoint. The [compact standardized comparison](standardized-model-comparison-2026-10-08.md) favors Qwen3.8 for preserving editorial speech, with manual approval. Qwen3.5 and the earlier profiles remain available below for comparison and historical reproduction.
 
-The later [compact standardized comparison](standardized-model-comparison-2026-10-08.md) uses eight shared cases with matched Qwen settings, both Kev sizes, official paid Jev and combinations. See that report for the measured tradeoffs, request counts and cost. Its evaluation-specific typed prompts and combination policy do not automatically replace the application's detector or the older CLI backends.
+## Qwen3.8-27B reviewed profile
+
+This profile uses the published [Unsloth Qwen3.8-27B GGUF](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF), ordinary Q4_K_M, without local requantization. Its native template and quantization calibration differ from Qwen3.5, so comparisons concern deployed packages. The pinned Apache 2.0 artifact is:
+
+| Identity | Value |
+| --- | --- |
+| Revision | `2c80088ea5e6033bed6a180e28a6573d98e8c0cf` |
+| File | `Qwen3.8-27B-Q4_K_M.gguf` |
+| Size | 17,106,775,008 bytes, approximately 17.1 GB |
+| SHA256 | `7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169` |
+
+Prepare and verify the file, then start the model after stopping any other listener on port 8081:
+
+```powershell
+.venv\Scripts\python.exe scripts\setup_qwen38_dense_local.py
+.\scripts\start_qwen38_dense_local.ps1 -NoThinking -LogVerbosity 4 -Background
+```
+
+Use `--verify-only` with the setup helper to check the existing file without downloads or writes. Use `-ValidateOnly` with the launcher to verify its model and runtime arguments without starting a process. Existing models and incomplete downloads are preserved.
+
+The launcher uses llama.cpp b11146, loopback port 8081, alias `castwell-local`, 8,192 context tokens, one request slot and all GPU layers. All 66 layers loaded on the tested RTX 3090 Ti. It verifies the exact model and server hashes before loading. Its command options match the earlier dense launcher.
+
+In Castwell, enable **Use local Qwen reasoning** and **Require my approval for every cut**. The application explicitly requests thinking with a 1,024-token reasoning budget, 4,096-token output allowance, temperature 1, top-p .95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1 and seed 42. The request overrides the server's nonthinking default. A running model server alone does not enable this client setting.
+
+The matched comparison and [later policy pilot](policy-pilot-2026-10-09.md) use the same model file and request settings. The pilot retained the existing v8 policy after v9 caused a regression. Their results remain limited by provisional transcript timing and reference labels; model confidence does not establish safe unattended cuts.
 
 ## Qwen3.5-27B dense v8 candidate
 
@@ -79,7 +103,7 @@ The launcher verifies both the model and b11146 server binary before loading, re
 
 The observed RTX 3090 Ti load offloaded all 65 layers, using 15,272.77 MiB for CUDA weights, 512 MiB for KV state, 149.62 MiB for recurrent state and 32.5 MiB for compute; CPU-mapped weights occupied 682.03 MiB. Total observed GPU usage including desktop processes was 19,701 MiB, leaving 4,613 MiB free. These are one machine's startup measurements, not a guarantee for other hardware or inputs.
 
-**Enable the client profile separately.** After starting Castwell, open **Settings > Contextual AI connection**, turn on **Use local Qwen3.5 reasoning**, and keep **Require my approval for every cut** enabled. The persisted `ai_reasoning` preference defaults to false and has no environment override. It is supported by the verified detector, not the legacy policy. Both evaluation CLIs require `--backend verified-ai --ai-reasoning` to select the same profile.
+**Enable the client profile separately.** After starting Castwell, open **Settings > Contextual AI connection**, turn on **Use local Qwen reasoning**, and keep **Require my approval for every cut** enabled. The persisted `ai_reasoning` preference defaults to false and has no environment override. It is supported by the verified detector, not the legacy policy. Both evaluation CLIs require `--backend verified-ai --ai-reasoning` to select the same profile.
 
 The v7 and v8 clients send temperature 1.0, top-p 0.95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1.0 and seed 42. Each request explicitly enables thinking with a 1,024-token reasoning budget, `deepseek` reasoning format and a 4,096-token output cap. These request fields override the frozen server's nonthinking defaults. The new launcher's default, without `-NoThinking`, enables reasoning for clients that omit a choice; Castwell always sends its own choice. A server startup alone therefore does not enable reasoning in the app. Reports record the actual request profile, and another profile needs its own evaluation.
 

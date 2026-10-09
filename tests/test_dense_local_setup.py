@@ -23,9 +23,10 @@ POWERSHELL = shutil.which("powershell") or shutil.which("pwsh")
 ARTIFACT = b"GGUF tiny offline setup test artifact\n"
 
 
-@pytest.fixture
-def setup(monkeypatch):
-    spec = importlib.util.spec_from_file_location("dense_setup_under_test", SETUP_PATH)
+@pytest.fixture(params=["qwen35", "qwen38"])
+def setup(monkeypatch, request):
+    path = ROOT / f"scripts/setup_{request.param}_dense_local.py"
+    spec = importlib.util.spec_from_file_location("dense_setup_under_test", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     monkeypatch.setattr(module, "MODEL_SIZE", len(ARTIFACT))

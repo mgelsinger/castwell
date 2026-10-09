@@ -542,7 +542,7 @@ def test_reasoning_is_explicit_bounded_and_preserves_manual_approval():
         assert payload['temperature'] == 1.0
         assert payload['top_p'] == .95
         assert payload['response_format']['json_schema']['strict'] is True
-    assert cuts[0]['inference_profile'] == 'qwen35-reasoning-1024'
+    assert cuts[0]['inference_profile'] == 'qwen-dense-reasoning-1024'
     assert cuts[0]['requires_review'] is False
     assert cuts[0]['approved'] is False
 

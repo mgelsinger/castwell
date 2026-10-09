@@ -317,7 +317,7 @@ def classify_verified(transcript, *, base_url, model, key="", threshold=.90, rev
         else:
             cuts.append({"start": segment["start"], "end": segment["end"], "source": "ai",
                          "sources": ["ai", "intent-verifier", "boundary-verifier"], "policy_version": POLICY_VERSION,
-                         "inference_profile": "qwen35-reasoning-1024" if ai_reasoning else "standard",
+                         "inference_profile": "qwen-dense-reasoning-1024" if ai_reasoning else "standard",
                          **{key: decision[key] for key in ("confidence", "reason", "requires_review", "approved", "label")},
                          "verification": decision["verification"]})
         previous = position

@@ -98,28 +98,26 @@ Approved overlaps are merged. FFmpeg trims decoded audio and writes a separate 1
 
 ### Run the classifier locally
 
-The retained local profile uses **Qwen3.5-27B dense**, a pinned 16.7 GB Unsloth Q4_K_M file, bounded reasoning and native llama.cpp. Its v8 selection policy is intended for use with manual review. The classifier is separate from the Whisper speech model.
+The reviewed local candidate uses **Qwen3.8-27B dense**, a pinned 17.1 GB Unsloth Q4_K_M file, bounded reasoning and native llama.cpp. The [matched comparison](docs/standardized-model-comparison-2026-10-08.md) found its proposals better at preserving conversation, with a small missed-ad tradeoff. Keep manual approval enabled. The classifier is separate from the Whisper speech model.
 
-On five known excerpts, unchanged v8 proposals select **408.96 of 410.24 annotated ad-word seconds** under the original labels. The **1.28-second difference** was later identified as an editorial reference-label error. Corrected labels give **408.96 of 408.96**, with **11.68 protected-word seconds** still proposed. This is a reference correction, not improved predictions. The known results use exact replay of 60 saved v7 responses with **zero new model calls**; [original tables and replay provenance](docs/readiness-2026-10-08.md) remain available.
-
-On three fresh excerpts, actual v8 inference proposes all **32.72 primary ad-word seconds** but also **16.30 protected-word seconds**. The tested parody scripts remain intact. Both role-first alternatives were rejected, so the [completed local comparison](docs/local-model-round2-2026-10-08.md) retains v8 and manual review. These are provisional ASR measurements without human listening verification, not reliable unattended removal. Earlier [eight-case](docs/evaluations/2026-10-08-source-credit8-qwen35-dense-v8.json) and [33-case](docs/evaluations/2026-10-08-regression33-qwen35-dense-v8.json) synthetic runs remain historical regression evidence.
+The [Qwen3.5 setup](docs/local-models.md#qwen35-27b-dense-v8-candidate) remains available as a baseline. Earlier results and their reference corrections are preserved in the [historical comparison](docs/local-model-round2-2026-10-08.md).
 
 For Windows with an NVIDIA GPU, use the standalone **llama.cpp** server. The exercised version is [b11146](https://github.com/ggml-org/llama.cpp/releases/tag/b11146), using its Windows CUDA 12.4 x64 server and matching CUDA runtime archives. Follow the [archive verification instructions](docs/local-models.md#prepare-native-llamacpp) and extract both into `.local/llama.cpp`. This path does not require Ollama or `llama-cpp-python`. Download and verify the pinned dense model, then start the frozen server profile:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/setup_qwen35_dense_local.py
-.\scripts\start_qwen35_dense_local.ps1 -NoThinking -LogVerbosity 4 -Background
+.\.venv\Scripts\python.exe scripts/setup_qwen38_dense_local.py
+.\scripts\start_qwen38_dense_local.ps1 -NoThinking -LogVerbosity 4 -Background
 ```
 
-This profile loaded all 65 layers on an RTX 3090 Ti with 24 GB VRAM, leaving about 4.6 GB free in the observed session. Other machines may need different offload settings. The setup checks the publisher file's pinned hash; no local requantization is performed. Start Castwell in another terminal:
+This profile loaded all 66 layers on the tested RTX 3090 Ti with 24 GB VRAM. Other machines may need different offload settings. The setup checks the publisher file's pinned hash; no local requantization is performed. Start Castwell in another terminal:
 
 ```powershell
 .\scripts\start_castwell.ps1 -Background
 ```
 
-In **Settings > Contextual AI connection**, enable **Use local Qwen3.5 reasoning** and keep **Require my approval for every cut** enabled. The saved `ai_reasoning` setting defaults to false. The evaluated profile explicitly enables reasoning per request with a 1,024-token budget and 4,096-token output cap, even though the frozen server was started with `-NoThinking`. Omitting that launcher switch changes the server default; it does not override the app's setting. See [the exact profile and provenance](docs/local-models.md#qwen35-27b-dense-v8-candidate).
+In **Settings > Contextual AI connection**, enable **Use local Qwen reasoning** and keep **Require my approval for every cut** enabled. The saved `ai_reasoning` setting defaults to false. The evaluated profile explicitly enables reasoning per request with a 1,024-token budget and 4,096-token output cap, even though the frozen server was started with `-NoThinking`. Omitting that launcher switch changes the server default; it does not override the app's setting. See [the exact profile and provenance](docs/local-models.md#qwen38-27b-reviewed-profile).
 
-The original dense run took **59.02 minutes of classifier time for approximately 50 minutes of excerpts** on an RTX 3090 Ti. Download, transcription, model startup and rendering are additional. The v8 replay took 23.953 seconds to reprocess saved responses; it is not a faster inference result. About 42 generated tokens per second was observed in focused development requests.
+Reasoning classification can take time: the matched Qwen3.8 run recorded about 16.8 minutes across 18 requests. Downloads, speech recognition and model startup are additional. This small workload does not establish full-episode processing speed.
 
 The launchers bind to loopback and record process IDs and logs under `.local/logs`. Omit `-Background` to keep a server in the current terminal. They refuse to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop its process; for the Python app on Windows, the HTTP listener can be a child of the recorded launcher PID.
 
@@ -144,7 +142,7 @@ Keep that terminal running. In Castwell Settings, save these values and use **Te
 | API base URL | `http://127.0.0.1:8081/v1` |
 | Model name | `castwell-local` |
 | Detection method | Contextual AI or Automatic |
-| Use local Qwen3.5 reasoning | On for the dense v8 profile; off for the earlier nonthinking profiles |
+| Use local Qwen reasoning | On for the supported Qwen3.5/3.8 dense profiles; off for the earlier nonthinking profiles |
 | Require my approval for every cut | On |
 
 The helper listens only on `127.0.0.1` and needs no API key. `--port`, `--threads`, and `--context` adjust the server; the default context is 8192 tokens. Use `python scripts/local_ai.py --help` for options. To use an existing Qwen-compatible GGUF file instead, run `python scripts/local_ai.py --model /path/to/model.gguf`; for a split model, point to its first shard and keep the other shard beside it. Checksum verification is automatic for the pinned `--download` models; verify the provenance of a custom file yourself.
@@ -223,7 +221,7 @@ The CA bundle is used only during package installation and is not stored in the 
 
 Settings are saved in SQLite. Nonempty environment overrides take precedence and are identified in the settings view; remove or change an override before editing that setting in the UI.
 
-The optional `ai_reasoning` preference is saved through Settings or `/api/settings`, defaults to `false`, and has no environment-variable override. It selects the bounded local Qwen3.5 request profile for the verified detector. Leave it off for a provider that does not support those request fields.
+The optional `ai_reasoning` preference is saved through Settings or `/api/settings`, defaults to `false`, and has no environment-variable override. It selects the bounded local Qwen3.5/3.8 request profile for the verified detector. Leave it off for a provider that does not support those request fields.
 
 | Variable | Purpose |
 | --- | --- |
@@ -266,6 +264,8 @@ python scripts/compare_detectors.py --backend heuristic --backend verified-ai --
 The local model must already be running at `http://127.0.0.1:8081/v1`. Omit `--backend verified-ai` for a fully offline rule baseline. Choose settings before collecting new evaluation predictions; rerunning an inspected set does not create fresh evidence. These synthetic transcripts cannot establish accuracy on real podcasts or the benefit of vocal delivery. Free local Kev and paid TypeSafe Jev adapters are separate evaluation backends. Jev requires both `--allow-paid-api` and an explicitly named API-key environment variable; paid requests are disabled by default. Both adapters leave proposals unapproved.
 
 The [compact standardized comparison](docs/standardized-model-comparison-2026-10-08.md) compares Qwen3.5, Qwen3.8, Kev4B, Kev9B, official paid Jev and six combinations on eight shared cases. It separates missed ads, wrongly selected editorial speech, review workload and cost. Its official Jev run cost approximately one cent at documented rates. This is a focused diagnostic, not a production accuracy guarantee.
+
+The [follow-up policy pilot](docs/policy-pilot-2026-10-09.md) compares Qwen3.8 and official Jev on eight cases with fixed v8 and v9 instructions, including four new recording windows. The proposed revision caused a commercial-boundary regression and was withheld. Qwen3.8 with v8 and manual approval is the selected local setup; the pilot used 25 new paid requests costing approximately 2.3 cents.
 
 The [earlier local model comparison](docs/local-model-round2-2026-10-08.md) records the retained v8 recommendation, fresh recording results and rejected alternatives. The [historical readiness report](docs/readiness-2026-10-08.md) preserves the original four-show checks and their reference limitations. The [older Qwen 2.5 7B comparison](docs/evaluations/README.md) remains available as historical evidence. Neither synthetic success nor model confidence establishes that every ad will be removed without losing editorial speech.
 
