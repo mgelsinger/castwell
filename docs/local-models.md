@@ -45,6 +45,8 @@ foreach ($asset in $assets) {
 
 After preparing the runtime, choose one model profile. The retained profile is [Qwen3.5-27B dense](#qwen35-27b-dense-v8-candidate), recommended only with manual review. The [completed local comparison](local-model-round2-2026-10-08.md) rejected both role-first alternatives; these setup commands and the production v8 policy remain unchanged. The smaller and earlier profiles remain below for reproducibility.
 
+The later [compact standardized comparison](standardized-model-comparison-2026-10-08.md) uses eight shared cases with matched Qwen settings, both Kev sizes, official paid Jev and combinations. See that report for the measured tradeoffs, request counts and cost. Its evaluation-specific typed prompts and combination policy do not automatically replace the application's detector or the older CLI backends.
+
 ## Qwen3.5-27B dense v8 candidate
 
 Known-recording v8 proposals remain 408.96 of 410.24 annotated ad-word seconds under original labels. The later correction of a 1.28-second editorial reference error gives 408.96 of 408.96, while 11.68 protected-word seconds remain proposed. This changes labels, not predictions. Actual fresh inference proposes all 32.72 primary ad-word seconds plus 16.30 protected-word seconds. See the [reference correction and fresh results](local-model-round2-2026-10-08.md); this setup is not an unattended-removal guarantee.
