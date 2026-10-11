@@ -3,6 +3,8 @@ import json
 import hashlib
 import re
 import tempfile
+import shutil
+import zipfile
 from datetime import datetime, timezone
 from xml.etree import ElementTree as ET
 import mimetypes
@@ -12,13 +14,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
-from . import processing
+from . import processing, __version__
 from .feeds import read_feed
 from .library import ACTIVE_STATUSES, Library
 from .jobs import Jobs, SerialWorker
@@ -26,12 +28,15 @@ from .config import Settings, warm_transcription_model
 from .middleware import AllowedHosts, RequestSizeLimit
 
 
+MAX_ARCHIVE_AUDIO_BYTES = 10 * 1024**3
+
+
 class FeedRequest(BaseModel):
     url: str = Field(min_length=1, max_length=8192)
 
 
 class ProcessRequest(BaseModel):
-    remove_ads: bool = True
+    remove_ads: bool | None = Field(default=None, strict=True)
     detector: str | None = None
     redetect: bool = False
     retranscribe: bool = False
@@ -40,6 +45,49 @@ class ProcessRequest(BaseModel):
 
 class BatchRequest(ProcessRequest):
     ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class IdsRequest(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class PodcastPreference(BaseModel):
+    ad_mode: str
+
+
+class BatchPodcastPreference(PodcastPreference, IdsRequest):
+    pass
+
+
+class ArchiveRequest(IdsRequest):
+    version: str = 'preferred'
+    include_transcripts: bool = Field(default=False, strict=True)
+
+
+class BatchEpisodeState(IdsRequest):
+    model_config = ConfigDict(extra='forbid')
+    favorite: bool | None = Field(default=None, strict=True)
+    archived: bool | None = Field(default=None, strict=True)
+    played: bool | None = Field(default=None, strict=True)
+
+
+class ManagedArchiveResponse(FileResponse):
+    """Release owned archive snapshots even if a client disconnects mid-transfer."""
+
+    def __init__(self, *args, cleanup, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._cleanup = cleanup
+        self._cleanup_lock = threading.Lock()
+        self._released = False
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            with self._cleanup_lock:
+                if not self._released:
+                    self._released = True
+                    self._cleanup()
 
 
 class CutsRequest(BaseModel):
@@ -129,6 +177,11 @@ def create_app(data_dir=None):
     os.environ.setdefault('HF_XET_CACHE', str(Path(settings.get()['model_cache']) / '.xet'))
     jobs = Jobs(library, model, settings_getter=settings.get)
     model_work = ModelPreparation(settings)
+    started_at = _timestamp_now()
+    feed_refresh_pool = SerialWorker(name='castwell-feeds')
+    feed_refresh_lock = threading.Lock()
+    feed_refresh_state = {'status': 'idle', 'results': [], 'total': 0, 'completed': 0}
+    export_slots = threading.BoundedSemaphore(2)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -136,6 +189,7 @@ def create_app(data_dir=None):
         yield
         jobs.shutdown()
         model_work.shutdown()
+        feed_refresh_pool.shutdown(wait=False, cancel_futures=True)
 
     app = FastAPI(title='Castwell', lifespan=lifespan)
     app.add_middleware(RequestSizeLimit)
@@ -159,7 +213,10 @@ def create_app(data_dir=None):
                 return JSONResponse({'detail': 'Invalid content length'}, status_code=400)
         response = await call_next(request)
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['Referrer-Policy'] = 'no-referrer'
+        # Chromium gives native POST forms Origin:null under no-referrer.
+        # Same-origin retains useful form provenance while sending no referrer
+        # to external podcast artwork or other external destinations.
+        response.headers['Referrer-Policy'] = 'same-origin'
         response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: http: data:; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         return response
 
@@ -186,14 +243,71 @@ def create_app(data_dir=None):
         if episode_id in jobs.pending:
             raise HTTPException(409, 'This episode is processing. Wait for it to finish.')
 
+    def batch_response(results):
+        response = {name: sum(item['status'] == name for item in results)
+                    for name in ('queued', 'skipped', 'failed', 'updated', 'cancelled')}
+        response['results'] = results
+        return response
+
+    def selected_records(ids):
+        records, results = [], []
+        for episode_id in dict.fromkeys(ids):
+            try:
+                records.append(library.get(episode_id, include_large=False))
+            except KeyError:
+                results.append({'episode_id': episode_id, 'status': 'failed', 'detail': 'Episode not found'})
+        return records, results
+
+    @app.get('/api/health')
+    def health():
+        snapshot = jobs.snapshot()
+        with feed_refresh_lock:
+            refresh = {key: feed_refresh_state[key] for key in ('status', 'total', 'completed')}
+        return {'status': 'ok', 'version': __version__, 'startup_time': started_at,
+                'refresh': refresh, 'refresh_running': refresh['status'] == 'running',
+                'queue': {'total': len(snapshot), 'queued': sum(item['status'] == 'queued' for item in snapshot),
+                          'active': sum(item['status'] != 'queued' for item in snapshot)}}
+
+    @app.get('/api/podcasts')
+    def podcasts():
+        return {'podcasts': library.podcasts()}
+
+    @app.patch('/api/podcasts')
+    def batch_podcast_preference(body: BatchPodcastPreference):
+        if body.ad_mode not in ('remove', 'keep'):
+            raise ValueError('Ad mode must be remove or keep.')
+        existing = {record['id'] for record in library.podcasts()}
+        valid, results = [], []
+        for podcast_id in dict.fromkeys(body.ids):
+            if podcast_id in existing:
+                valid.append(podcast_id)
+            else:
+                results.append({'podcast_id': podcast_id, 'status': 'failed', 'detail': 'Podcast not found'})
+        library.set_podcast_mode(valid, body.ad_mode)
+        results.extend({'podcast_id': podcast_id, 'status': 'updated', 'ad_mode': body.ad_mode} for podcast_id in valid)
+        return batch_response(results)
+
+    @app.patch('/api/podcasts/{podcast_id}')
+    def podcast_preference(podcast_id: str, body: PodcastPreference):
+        library.set_podcast_mode([podcast_id], body.ad_mode)
+        return next((record for record in library.podcasts() if record['id'] == podcast_id), {'id': podcast_id, 'ad_mode': body.ad_mode})
+
     @app.get('/api/episodes')
-    def episodes():
+    def episodes(request: Request):
         records = library.summaries()
-        return {'episodes': records, 'settings': settings.get(), 'stats': {
+        payload = {'episodes': records, 'settings': settings.get(), 'stats': {
             'episodes': len(records), 'ready': sum(item['status'] == 'ready' for item in records),
             'processing': sum(item['status'] in ACTIVE_STATUSES for item in records),
             'removed_seconds': sum(item['removed_seconds'] for item in records),
         }}
+        response = JSONResponse(payload)
+        etag = '"' + hashlib.sha256(response.body).hexdigest() + '"'
+        headers = {'ETag': etag, 'Cache-Control': 'private, no-cache'}
+        matches = request.headers.get('if-none-match', '').split(',')
+        if any(candidate.strip() == '*' or candidate.strip().removeprefix('W/') == etag for candidate in matches):
+            return Response(status_code=304, headers=headers)
+        response.headers.update(headers)
+        return response
 
     @app.get('/api/episodes/{episode_id}')
     def episode(episode_id: str):
@@ -209,6 +323,54 @@ def create_app(data_dir=None):
     @app.get('/api/feeds')
     def feeds():
         return {'feeds': library.feeds()}
+
+    @app.post('/api/feeds/refresh', status_code=202)
+    def refresh_subscriptions():
+        """Refresh a whole subscription library without holding an HTTP request open."""
+        feeds_to_refresh = library.feeds(public=False)
+        with feed_refresh_lock:
+            if feed_refresh_state['status'] == 'running':
+                return {'started': False, 'total': feed_refresh_state['total']}
+            feed_refresh_state.update(status='running', results=[], total=len(feeds_to_refresh), completed=0)
+
+        def run_refresh():
+            for feed in feeds_to_refresh:
+                try:
+                    # Removed subscriptions are not recreated by a queued refresh.
+                    current = library.get_feed(feed['id'])
+                    entries = read_feed(current['url'])
+                    with jobs.lock:
+                        library.get_feed(feed['id'])
+                        values = {'last_checked': _timestamp_now(), 'error': None}
+                        if entries:
+                            values.update(title=entries[0]['podcast'], image=entries[0].get('image', ''))
+                        library.mark_feed(feed['id'], **values)
+                        result = {'feed_id': feed['id'], 'status': 'updated', 'added': library.import_entries(entries), 'total': len(entries)}
+                except KeyError:
+                    result = {'feed_id': feed['id'], 'status': 'skipped', 'detail': 'Subscription was removed'}
+                except Exception:
+                    result = {'feed_id': feed['id'], 'status': 'failed', 'detail': 'Could not refresh this subscription. Check its address and access credentials.'}
+                    try:
+                        library.mark_feed(feed['id'], last_checked=_timestamp_now(), error=result['detail'])
+                    except KeyError:
+                        pass
+                with feed_refresh_lock:
+                    feed_refresh_state['results'].append(result)
+                    feed_refresh_state['completed'] += 1
+            with feed_refresh_lock:
+                feed_refresh_state['status'] = 'complete'
+        try:
+            feed_refresh_pool.submit(run_refresh)
+        except RuntimeError:
+            with feed_refresh_lock:
+                feed_refresh_state.update(status='error')
+            raise HTTPException(503, 'The subscription worker is unavailable') from None
+        return {'started': True, 'total': len(feeds_to_refresh)}
+
+    @app.get('/api/feeds/refresh/status')
+    def refresh_subscriptions_status():
+        with feed_refresh_lock:
+            return {**feed_refresh_state, 'results': [dict(item) for item in feed_refresh_state['results']]}
 
     @app.post('/api/feeds/opml')
     def import_opml(body: OpmlRequest):
@@ -245,18 +407,24 @@ def create_app(data_dir=None):
         feed = library.get_feed(feed_id)
         try:
             entries = read_feed(feed['url'])
-            values = {'last_checked': _timestamp_now(), 'error': None}
-            if entries:
-                values.update(title=entries[0]['podcast'], image=entries[0].get('image', ''))
-            library.mark_feed(feed_id, **values)
-            return {'added': library.import_entries(entries), 'total': len(entries)}
+            with jobs.lock:
+                # Fetch outside the lock, then respect an unsubscribe that
+                # completed while the network request was in progress.
+                library.get_feed(feed_id)
+                values = {'last_checked': _timestamp_now(), 'error': None}
+                if entries:
+                    values.update(title=entries[0]['podcast'], image=entries[0].get('image', ''))
+                library.mark_feed(feed_id, **values)
+                return {'added': library.import_entries(entries), 'total': len(entries)}
         except ValueError as exc:
-            library.mark_feed(feed_id, last_checked=_timestamp_now(), error=str(exc))
+            with jobs.lock:
+                library.mark_feed(feed_id, last_checked=_timestamp_now(), error=str(exc))
             raise
 
     @app.delete('/api/feeds/{feed_id}')
     def unsubscribe(feed_id: str):
-        library.delete_feed(feed_id)
+        with jobs.lock:
+            library.delete_feed(feed_id)
         return {'unsubscribed': True}
 
     @app.post('/api/audio', status_code=201)
@@ -301,6 +469,17 @@ def create_app(data_dir=None):
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
             file.file.close()
+
+    @app.patch('/api/episodes/batch/state')
+    def batch_episode_state(body: BatchEpisodeState):
+        values = body.model_dump(exclude={'ids'}, exclude_none=True)
+        if not values:
+            raise ValueError('Choose favorite, archived, or played for a batch update.')
+        records, results = selected_records(body.ids)
+        ids = [record['id'] for record in records]
+        library.batch_episode_flags(ids, **values)
+        results.extend({'episode_id': episode_id, 'status': 'updated'} for episode_id in ids)
+        return batch_response(results)
 
     @app.patch('/api/episodes/{episode_id}/state')
     def episode_state(episode_id: str, body: EpisodeState):
@@ -353,6 +532,16 @@ def create_app(data_dir=None):
     def queue():
         return {'jobs': jobs.snapshot()}
 
+    @app.post('/api/episodes/batch/cancel')
+    def batch_cancel(body: IdsRequest):
+        with jobs.lock:
+            records, results = selected_records(body.ids)
+            for record in records:
+                cancelled = jobs.cancel(record['id'])
+                results.append({'episode_id': record['id'], 'status': 'cancelled' if cancelled else 'skipped',
+                                'detail': 'Cancellation requested' if cancelled else 'Episode is not processing'})
+        return batch_response(results)
+
     @app.post('/api/episodes/{episode_id}/cancel')
     def cancel(episode_id: str):
         library.get(episode_id)
@@ -386,18 +575,68 @@ def create_app(data_dir=None):
         if detector not in (None, 'auto', 'heuristic', 'ai'):
             raise ValueError('Detector must be auto, heuristic, or ai')
 
+    def check_process_options(body):
+        check_detector(body.detector)
+        if body.download_only and (body.redetect or body.retranscribe):
+            raise ValueError('Audio-only downloads cannot also request transcription or ad detection')
+
+    def queue_selection(ids, operation, options=None, retry=False):
+        with jobs.lock:
+            records, results = selected_records(ids)
+            for record in records:
+                episode_id = record['id']
+                detail = None
+                if episode_id in jobs.pending:
+                    detail = 'Episode is already processing'
+                elif retry and record['status'] not in ('error', 'cancelled'):
+                    detail = 'Only failed or cancelled episodes need a retry'
+                elif operation == 'download' and record['audio'] and Path(record['audio']).is_file():
+                    detail = 'Original audio is already downloaded'
+                elif operation == 'render':
+                    if record.get('ad_mode') == 'keep':
+                        detail = 'Podcast keeps ads; the original audio is used'
+                    elif not record['audio'] or not Path(record['audio']).is_file():
+                        results.append({'episode_id': episode_id, 'status': 'failed', 'detail': 'Download original audio before exporting cuts'})
+                        continue
+                    elif not record.get('analysis_done') and not record['cuts']:
+                        detail = 'Prepare and review this episode before exporting cuts'
+                    elif record['cuts'] and not any(cut.get('approved') for cut in record['cuts']):
+                        detail = 'Approve the proposed cuts before exporting'
+                if detail:
+                    results.append({'episode_id': episode_id, 'status': 'skipped', 'detail': detail})
+                    continue
+                try:
+                    queued = jobs.submit(episode_id, operation, options)
+                except Exception:
+                    results.append({'episode_id': episode_id, 'status': 'failed', 'detail': 'Could not queue this episode. Completed work is preserved.'})
+                    continue
+                request = library.get(episode_id, include_large=False).get('pending_job') or {}
+                remove_ads = request.get('options', {}).get('remove_ads', record.get('ad_mode') == 'remove')
+                results.append({'episode_id': episode_id, 'status': 'queued' if queued else 'skipped',
+                                'remove_ads': remove_ads, 'ad_mode': 'remove' if remove_ads else 'keep'})
+        return batch_response(results)
+
     @app.post('/api/episodes/{episode_id}/process', status_code=202)
     def process(episode_id: str, body: ProcessRequest):
-        check_detector(body.detector)
+        check_process_options(body)
         return {'queued': jobs.submit(episode_id, 'process', body)}
 
     @app.post('/api/process', status_code=202)
     def batch(body: BatchRequest):
-        check_detector(body.detector)
-        ids = list(dict.fromkeys(body.ids))
-        for episode_id in ids:
-            library.get(episode_id)
-        return {'queued': sum(jobs.submit(episode_id, 'process', body) for episode_id in ids)}
+        check_process_options(body)
+        return queue_selection(body.ids, 'process', body)
+
+    @app.post('/api/download', status_code=202)
+    def batch_download(body: IdsRequest):
+        return queue_selection(body.ids, 'download')
+
+    @app.post('/api/render', status_code=202)
+    def batch_render(body: IdsRequest):
+        return queue_selection(body.ids, 'render')
+
+    @app.post('/api/episodes/batch/retry', status_code=202)
+    def batch_retry(body: IdsRequest):
+        return queue_selection(body.ids, 'process', retry=True)
 
     @app.post('/api/episodes/{episode_id}/cuts')
     def save_cuts(episode_id: str, body: CutsRequest):
@@ -417,6 +656,8 @@ def create_app(data_dir=None):
         record = library.get(episode_id)
         if not record['audio']:
             raise ValueError('Process the episode to download audio first')
+        if not record.get('analysis_done') and not record['cuts']:
+            raise ValueError('Prepare and review this episode before exporting cuts')
         return {'queued': jobs.submit(episode_id, 'render')}
 
     @app.post('/api/episodes/{episode_id}/transcript')
@@ -456,6 +697,164 @@ def create_app(data_dir=None):
         name = re.sub(r'[^\w .-]', '', record['title']).strip()[:100] or episode_id
         return FileResponse(path, media_type=mimetypes.guess_type(path)[0] or 'audio/mpeg', filename=f"{name}-{version}{Path(path).suffix}", content_disposition_type='inline')
 
+    def build_archive(body):
+        """Disk-backed export snapshots published audio without loading it into RAM."""
+        if body.version not in ('preferred', 'original', 'cleaned'):
+            raise ValueError('Archive version must be preferred, original, or cleaned')
+        if not export_slots.acquire(blocking=False):
+            raise HTTPException(429, 'Two archive downloads are already active. Retry after a download finishes.')
+        maximum = MAX_ARCHIVE_AUDIO_BYTES
+        export_root = library.root / '.exports'
+        try:
+            export_root.mkdir(exist_ok=True)
+            workspace = tempfile.TemporaryDirectory(prefix='archive-', dir=export_root)
+        except OSError:
+            export_slots.release()
+            raise ValueError('The archive workspace is unavailable. Check library disk space and permissions.') from None
+        temporary = Path(workspace.name)
+        report = {'format': 'castwell-batch-export', 'version': 1, 'created_at': _timestamp_now(),
+                  'requested_version': body.version, 'included': [], 'omitted': [],
+                  'maximum_audio_bytes': maximum, 'maximum_payload_bytes': maximum,
+                  'review_policy': 'Only listener-approved cuts are present in edited audio.'}
+        snapshots, total_bytes, transcript_bytes = [], 0, 0
+        try:
+            with jobs.lock:
+                records, failures = selected_records(body.ids)
+                report['omitted'].extend(failures)
+                for index, record in enumerate(records):
+                    info = {'episode_id': record['id'], 'title': record.get('title', 'Episode'),
+                            'podcast': record.get('podcast', 'Podcast'), 'ad_mode': record.get('ad_mode', 'remove')}
+                    reason = None
+                    public = library.public(record)
+                    variant = public['preferred_version'] if body.version == 'preferred' else body.version
+                    if record['id'] in jobs.pending:
+                        reason = 'Episode is processing; export after it completes'
+                    elif body.version == 'preferred' and not public['export_ready']:
+                        reason = 'Prepare the episode and review its proposed cuts before exporting'
+                    elif variant == 'cleaned' and not any(cut.get('approved') is True for cut in record['cuts']):
+                        reason = 'No approved edited audio is available'
+                    if not reason and variant == 'cleaned':
+                        try:
+                            processing.validate_cuts(record['cuts'], record['duration'])
+                        except (ValueError, TypeError, KeyError):
+                            reason = 'Saved cuts are invalid; review them before exporting edited audio'
+                    path_value = record['cleaned' if variant == 'cleaned' else 'audio']
+                    if not reason and not path_value:
+                        reason = 'Selected audio is not downloaded or exported yet'
+                    if reason:
+                        report['omitted'].append({**info, 'status': 'omitted', 'detail': reason})
+                        continue
+                    try:
+                        path = Path(path_value).resolve(strict=True)
+                        if not path.is_relative_to(library.root) or not path.is_file():
+                            raise OSError('Audio is outside the managed library')
+                        size = path.stat().st_size
+                        if size > maximum - total_bytes:
+                            report['omitted'].append({**info, 'status': 'omitted', 'detail': 'Selection exceeds the 10 GB archive limit; export a smaller batch'})
+                            continue
+                        # Atomic render publication replaces the inode, leaving
+                        # this hard link stable even if a new job starts later.
+                        snapshot = temporary / f'{index:04d}{path.suffix}'
+                        os.link(path, snapshot)
+                    except OSError:
+                        report['omitted'].append({**info, 'status': 'omitted', 'detail': 'Audio could not be safely snapshotted; check its file and filesystem'})
+                        continue
+                    total_bytes += size
+                    safe_show = re.sub(r'[^\w .-]', '', info['podcast']).strip('. ')[:80] or 'Podcast'
+                    safe_title = re.sub(r'[^\w .-]', '', info['title']).strip('. ')[:100] or 'Episode'
+                    archive_name = f'{safe_show}/{index + 1:04d}-{safe_title}-{variant}{path.suffix}'
+                    info.update(status='included', version=variant, file=archive_name, bytes=size,
+                                approved_cut_count=sum(bool(cut.get('approved')) for cut in record['cuts']) if variant == 'cleaned' else 0,
+                                pending_review=any(not cut.get('approved') for cut in record['cuts']))
+                    snapshots.append((snapshot, archive_name, info, record['transcript'] is not None))
+                # Reserve the complete audio selection before deciding which
+                # transcripts fit. Each transcript is serialized to its own
+                # bounded disk snapshot while the same edit lock is held.
+                for index, (snapshot, archive_name, info, has_transcript) in enumerate(snapshots):
+                    transcript_path = None
+                    if body.include_transcripts and has_transcript:
+                        candidate = temporary / f'{index:04d}.transcript.json'
+                        try:
+                            full_record = library.get(info['episode_id'])
+                            source = processing.validate_transcript(full_record['transcript'], full_record['duration'])
+                            if info['version'] == 'cleaned':
+                                source = processing.cleaned_transcript(source, full_record['cuts'])
+                            # Imported metadata is not part of a portable transcript.
+                            transcript = {'duration': source['duration'], 'language': source.get('language') if isinstance(source.get('language'), str) else None,
+                                          'segments': [{key: segment[key] for key in ('id', 'start', 'end', 'text') if key in segment}
+                                                       for segment in source['segments']]}
+                            size, omission = 0, None
+                            individual_limit = 25 * 1024**2
+                            remaining = maximum - total_bytes - transcript_bytes
+                            encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False)
+                            with candidate.open('wb') as stream:
+                                for fragment in encoder.iterencode(transcript):
+                                    encoded = fragment.encode('utf-8')
+                                    if len(encoded) > min(individual_limit, remaining) - size:
+                                        omission = ('Transcript exceeds the 25 MB export limit' if size + len(encoded) > individual_limit else
+                                                    'Transcript would exceed the archive payload limit; audio was retained')
+                                        break
+                                    stream.write(encoded)
+                                    size += len(encoded)
+                            if omission:
+                                info['transcript_omitted'] = omission
+                            else:
+                                transcript_path = candidate
+                                transcript_bytes += size
+                                info['transcript_file'] = str(Path(archive_name).with_suffix('')).replace('\\', '/') + '.transcript.json'
+                                info['transcript_bytes'] = size
+                        except (ValueError, TypeError, KeyError):
+                            info['transcript_omitted'] = 'Transcript timestamps are invalid; audio was retained'
+                        finally:
+                            full_record = source = transcript = None
+                            if transcript_path is None:
+                                candidate.unlink(missing_ok=True)
+                    snapshots[index] = (snapshot, archive_name, info, transcript_path)
+            # Transcript snapshots already occupy disk. The ZIP needs another
+            # complete payload copy, plus room for the manifest and headers.
+            if shutil.disk_usage(export_root).free < total_bytes + transcript_bytes + 16 * 1024**2:
+                raise ValueError('Not enough disk space to build this archive. Export a smaller batch or free space.')
+            archive_path = temporary / 'castwell-episodes.zip'
+            with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
+                for snapshot, archive_name, info, transcript_path in snapshots:
+                    archive.write(snapshot, archive_name)
+                    if transcript_path is not None:
+                        archive.write(transcript_path, info['transcript_file'])
+                    report['included'].append(info)
+                report['included_count'], report['omitted_count'] = len(report['included']), len(report['omitted'])
+                report['audio_bytes'] = total_bytes
+                report['transcript_bytes'] = transcript_bytes
+                report['payload_bytes'] = total_bytes + transcript_bytes
+                archive.writestr('report.json', json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False).encode('utf-8'))
+            def release_archive():
+                try:
+                    workspace.cleanup()
+                finally:
+                    export_slots.release()
+            return ManagedArchiveResponse(archive_path, media_type='application/zip', filename='castwell-episodes.zip',
+                                headers={'X-Castwell-Included': str(len(report['included'])), 'X-Castwell-Omitted': str(len(report['omitted']))},
+                                cleanup=release_archive)
+        except Exception as exc:
+            try:
+                workspace.cleanup()
+            finally:
+                export_slots.release()
+            if isinstance(exc, OSError):
+                raise ValueError('Archive creation failed. Check disk space and filesystem permissions.') from None
+            raise
+
+    @app.post('/api/export/archive')
+    def export_archive(body: ArchiveRequest):
+        return build_archive(body)
+
+    @app.post('/api/export/archive/form')
+    def export_archive_form(payload: str = Form(..., max_length=128 * 1024)):
+        try:
+            body = ArchiveRequest.model_validate_json(payload)
+        except ValidationError:
+            raise ValueError('Choose up to 500 episodes and a supported audio version for export') from None
+        return build_archive(body)
+
     @app.get('/api/export/feed')
     def export_library_feed(request: Request):
         root = ET.Element('rss', version='2.0')
@@ -463,11 +862,13 @@ def create_app(data_dir=None):
         ET.SubElement(channel, 'title').text = 'Castwell · Prepared episodes'
         ET.SubElement(channel, 'link').text = str(request.base_url)
         ET.SubElement(channel, 'description').text = 'Your prepared podcast library. Edited copies include approved cuts; originals are used for reviewed episodes with no cuts.'
-        for record in library.all():
+        for record in library.all(include_large=False):
             if record['archived']:
                 continue
             public = library.public(record)
-            if public['has_cleaned']:
+            if record.get('ad_mode') == 'keep' and public['has_audio']:
+                variant, path = 'original', Path(record['audio'])
+            elif public['preferred_version'] == 'cleaned':
                 variant, path = 'cleaned', Path(record['cleaned'])
             elif public['has_audio'] and record['analysis_done'] and not record['cuts'] and record['status'] == 'ready':
                 variant, path = 'original', Path(record['audio'])
@@ -476,7 +877,7 @@ def create_app(data_dir=None):
             item = ET.SubElement(channel, 'item')
             ET.SubElement(item, 'title').text = record['title']
             ET.SubElement(item, 'guid', isPermaLink='false').text = record['id']
-            ET.SubElement(item, 'description').text = f"{record['podcast']} — {variant} audio. {record.get('description', '')}"
+            ET.SubElement(item, 'description').text = f"{record['podcast']} - {variant} audio. {record.get('description', '')}"
             ET.SubElement(item, 'enclosure', url=str(request.base_url) + f"media/{record['id']}/{variant}", length=str(path.stat().st_size), type=mimetypes.guess_type(path)[0] or 'audio/mpeg')
         return Response(ET.tostring(root, encoding='utf-8', xml_declaration=True), media_type='application/rss+xml', headers={'Content-Disposition': 'attachment; filename="castwell-prepared.xml"'})
 

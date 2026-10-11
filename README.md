@@ -1,21 +1,38 @@
 # Castwell
 
-**Your podcast library, with searchable transcripts and cuts you control.**
+**A complete local podcast library, with show shelves, batch tools, and cuts you control.**
 
-A personal podcast library that downloads episodes, creates searchable transcripts, finds likely advertisements, and exports a listening copy with your approved cuts. Originals stay available, and every cut can be reviewed or restored.
+A personal podcast suite that downloads episodes, creates searchable transcripts, and exports listening copies with your approved cuts. Browse show shelves and continue-listening rows, choose whether each podcast keeps its ads, and prepare or export episodes in batches. Originals stay available, and every cut can be reviewed or restored.
 
-[Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
+[Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
-![Castwell gallery with sample episodes and the mini player](docs/images/gallery.png)
+![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
 
 ## A library built around listening
 
-- **Bring your own shows.** Subscribe by RSS, import OPML, or upload recordings. Filter your library, save favorites, and pick up where you left off.
+- **Browse your shows.** Subscribe by RSS, import OPML, or upload recordings. Explore podcast shelves, new episodes, your review queue, and continue-listening rows. Filter the full library, save favorites, and pick up where you left off.
+- **Choose ads per podcast.** Save **Keep original** or **Remove ads** for each show, or update several shows together. Preparation follows those choices within a mixed batch. Keeping ads skips ad detection; removing ads prepares suggestions for approval.
+- **Manage whole batches.** Select matching episodes or a podcast to download, prepare, retry, cancel, render approved cuts, or update favorites, played status, and archives. Download a ZIP with preferred, original, or cleaned audio and a report for unavailable items.
 - **Find the moment.** Create local Whisper transcripts, search the text, and jump straight to a timestamp. Keep listening with the mini player while you browse.
 - **Review every cut.** Inspect suggested advertisements on the waveform, adjust their boundaries, and export the selections you approve. Originals and recent cut revisions stay available.
 - **Keep your options open.** Use local rules, run an optional local AI classifier, or connect an OpenAI-compatible service. Download audio and transcripts, or use Library RSS in a reachable podcast player.
 
 ## See it in action
+
+<details>
+<summary>Mobile shelves and batch controls</summary>
+
+The same library adapts to your phone, with horizontal podcast and listening shelves:
+
+<img src="docs/images/suite-mobile.png" alt="Castwell mobile podcast shelves and continue listening using synthetic demo episodes" width="390">
+
+Select matching episodes to prepare downloads, apply each show's ad preference, manage your queue, and export saved approvals:
+
+![Castwell suite batch controls with selected synthetic episodes](docs/images/suite-batches.png)
+
+</details>
+
+The following GIF and video demonstrate the earlier gallery layout and its listening and review tools:
 
 [![Animated tour of the Castwell podcast library and ad review](docs/media/castwell-tour.gif)](docs/media/castwell-tour.mp4)
 
@@ -30,7 +47,7 @@ Open an episode to review its transcript, compare original and cleaned playback,
 
 </details>
 
-*Screenshots, GIF, and video show the running application with synthetic local demo data. They demonstrate the interface, not speech-model or advertisement-detection accuracy. See [validation results](docs/validation.md) for the checks performed and their limitations.*
+*The suite screenshots show the running application with a temporary synthetic library, generated tone audio, and manually seeded listening and cut states. No speech or advertisement model was used to make them. The older gallery screenshot, ad-review screenshot, GIF, and video also use synthetic demo data and depict the earlier layout. These media demonstrate the interface, not detection accuracy. See [validation results](docs/validation.md) for the checks performed and their limitations.*
 
 ## Start listening
 
@@ -56,18 +73,22 @@ A fresh checkout includes the application code. Speech models, classifier weight
 
 Open **http://127.0.0.1:8000**. Castwell is a single-user application with no login; its default address is accessible only from the local machine. Keep the service on a trusted machine or behind authenticated private access. `python -m castwell --help` lists the host, port, storage, and speech-model options.
 
+On an already configured Windows installation, `./scripts/start_suite.ps1 -ReviewedProfile` starts the verified local classifier and Castwell together, checks the installed speech model and library, and writes a readiness report. Use `./scripts/stop_suite.ps1` to stop its recorded services while idle. The [production guide](docs/production.md) explains installation checks, custom paths, backups, recovery, and the full-podcast acceptance test.
+
 For a private deployment using another hostname, set `CASTWELL_ALLOWED_HOSTS=castwell.lan,192.168.1.25` to the exact hostnames or IP addresses clients will use. Loopback hosts are always allowed; other request hosts are rejected unless listed. Wildcards are not supported. This setting works alongside the listen address or reverse proxy and does not add authentication.
 
 1. **Add a podcast or upload audio.** Use an RSS feed, import subscriptions from OPML, or upload MP3, WAV, M4A, MP4, FLAC, OGG, Opus, or AAC recordings up to 2 GB. Identical uploads are deduplicated.
 2. **Prepare the speech model.** In Settings & models, choose a Whisper model, save settings, and select **Download model**. The default `base` model runs locally on the CPU. Environment check reports whether its files are available.
-3. **Prepare episodes.** Process an episode or a batch. Castwell downloads the original, makes a waveform and transcript, proposes ad cuts for review. Review is enabled by default; only selections you approve are exported. **Audio only** downloads a recording without running transcription or detection.
+3. **Choose each podcast's ad preference and prepare episodes.** **Keep original** downloads and transcribes without detecting ads. **Remove ads** makes a waveform and transcript, then proposes ad cuts for review. Use an episode, selected batch, or whole podcast. Review is enabled by default; only selections you approve are exported. **Download originals** prepares audio without transcription or detection.
 4. **Review and listen.** Open Ad review, listen around the suggested boundaries, adjust timestamps, or use **Mark start / Mark end** while listening. Select the cuts you want, then export cleaned audio.
 
 The gallery supports podcast and status filters, favorites, archived episodes, played/unplayed state, search, and sorting. Playback resumes at your saved position; change speed, skip 15 seconds, or keep listening through the mini player after closing the episode. The waveform shows the original timeline and proposed cuts. Search transcript text and click timestamps to hear the passage.
 
+The catalogue displays 48 matching episodes at a time; **Show more** adds another page. **Select matching episodes** includes every matching item, including pages you have not opened. Selections of 50 or more episodes ask for confirmation with the full count before downloading or preparing audio. Batch submissions are split into groups of up to 500. Audio ZIPs accept up to 500 episodes with a combined 10 GiB audio and transcript payload limit, so export large listening collections in smaller selections. Unchanged library polls reuse an in-memory response instead of transferring the catalogue again.
+
 ## Subscriptions and exports
 
-Manage subscriptions to refresh one podcast or all podcasts and collect new episodes. Refreshing preserves downloaded audio, transcripts, listening state, and reviewed cuts. Unsubscribing keeps existing episodes. Refresh is manual; there is no background subscription schedule.
+Manage subscriptions to refresh one podcast or all podcasts and collect new episodes. Refresh all reports each subscription's progress and failures while the library stays available. Refreshing preserves downloaded audio, transcripts, listening state, podcast ad preferences, and reviewed cuts. Unsubscribing keeps existing episodes and their show preference. Refresh is manual; there is no background subscription schedule.
 
 OPML imports accept up to 100 feeds per file and report individual failures without discarding successful imports. **Export OPML** omits subscription URLs containing user information or query parameters. The response header `X-Castwell-Private-Feeds-Omitted` gives the omitted count. Some providers place credentials in URL paths, which cannot reliably be recognized; treat exported subscription files as private too.
 
@@ -77,9 +98,12 @@ Episode tools provide:
 - TXT, JSON, SRT, and VTT transcript downloads on the original or cleaned timeline.
 - Editable ad decisions and the last 30 cut revisions per episode. Restoring a revision requires exporting again to apply it to audio.
 - A JSON decision export containing the transcript, original timestamps, and cut decisions.
-- **Library RSS**, at `/api/export/feed`, for prepared episodes. It includes cleaned copies and completed, no-cut analyses; archived episodes are excluded. Audio links point to this Castwell server, so the player reading the feed must be able to reach it.
+- A batch ZIP containing the requested audio versions and `report.json`, including omitted or unavailable items. Preferred exports use each show's ad preference. Audio is snapshotted on disk, with a combined 10 GiB audio and transcript payload limit and two concurrent archives; choose smaller selections for large libraries.
+- **Library RSS**, at `/api/export/feed`, for prepared episodes. It follows each show's preference, using originals for keep shows and cleaned copies or completed no-cut analyses for remove shows; archived episodes are excluded. Audio links point to this Castwell server, so the player reading the feed must be able to reach it.
 
 Changing cuts or importing a replacement transcript invalidates the previous cleaned export. Downloads and rendered audio are published atomically. Jobs run one at a time, expose progress, and can be cancelled; cancellation retains completed work. Retrying reuses downloaded audio and valid transcripts, including an explicitly reviewed empty set of cuts. A fresh detection must be requested explicitly to replace prior decisions. **Regenerate transcript** runs speech recognition again while preserving reviewed cuts unless you also request new detection. After a restart, interrupted jobs are marked for retry.
+
+Batch results identify each queued, skipped, updated, or failed item. A show preference is captured when preparation is queued and retained for durable retries. Changing the preference updates playback and preferred exports without deleting transcripts, cut history, or an existing cleaned recording. Batch rendering follows saved approvals and skips keep-original shows.
 
 ## Advertisement detection
 
@@ -269,7 +293,7 @@ The [follow-up policy pilot](docs/policy-pilot-2026-10-09.md) compares Qwen3.8 a
 
 The [earlier local model comparison](docs/local-model-round2-2026-10-08.md) records the retained v8 recommendation, fresh recording results and rejected alternatives. The [historical readiness report](docs/readiness-2026-10-08.md) preserves the original four-show checks and their reference limitations. The [older Qwen 2.5 7B comparison](docs/evaluations/README.md) remains available as historical evidence. Neither synthetic success nor model confidence establishes that every ad will be removed without losing editorial speech.
 
-A repeatable browser check covers uploads, ad review, actual audio rendering/playback, restored edits, exports, subscriptions, and desktop/mobile layouts using isolated local fixtures:
+A repeatable browser check covers uploads, ad review, actual audio rendering/playback, restored edits, subscriptions, podcast preference persistence, mixed keep/remove batches, ZIP contents and decoded durations, bulk listening state, and desktop/mobile layouts using isolated local fixtures:
 
 ```bash
 python -m playwright install chromium

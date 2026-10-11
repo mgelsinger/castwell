@@ -20,7 +20,7 @@ from . import processing
 from .feeds import download_media
 
 
-PROCESS_DEFAULTS = {'remove_ads': True, 'detector': None, 'redetect': False,
+PROCESS_DEFAULTS = {'remove_ads': None, 'detector': None, 'redetect': False,
                     'retranscribe': False, 'download_only': False}
 
 
@@ -94,19 +94,28 @@ class Jobs:
         if operation not in ('process', 'render', 'download'):
             raise ValueError('Unknown processing operation')
         with self.lock:
-            episode = self.library.get(episode_id)
+            episode = self.library.get(episode_id, include_large=False)
             if self._closed or episode_id in self.pending:
                 return False
             supplied = {key: self._option(options, key, default) for key, default in PROCESS_DEFAULTS.items()}
+            if supplied['remove_ads'] is not None and not isinstance(supplied['remove_ads'], bool):
+                raise ValueError('Ad removal must be true, false, or omitted to use the podcast preference')
             if supplied['download_only'] and (supplied['redetect'] or supplied['retranscribe']):
                 raise ValueError('Audio-only downloads cannot also request transcription or ad detection')
             previous = episode.get('pending_job')
-            if previous and operation == 'process' and supplied == PROCESS_DEFAULTS:
+            retry_defaults = dict(supplied, remove_ads=None)
+            same_ad_choice = previous and (supplied['remove_ads'] is None or
+                                           supplied['remove_ads'] == previous.get('options', {}).get('remove_ads'))
+            if previous and operation == 'process' and retry_defaults == PROCESS_DEFAULTS and same_ad_choice:
                 # Retry resumes the unfinished operation, including after a
                 # restart. Successful stages clear their own redo flags.
                 request = previous
                 operation, supplied = request['operation'], request['options']
             else:
+                # Resolve the show preference before queueing. Later preference
+                # changes cannot alter an in-flight job or its durable retry.
+                if supplied['remove_ads'] is None:
+                    supplied['remove_ads'] = episode.get('ad_mode', 'remove') == 'remove'
                 request = {'operation': operation, 'options': supplied,
                            'prior_status': episode['status'], 'prior_progress': episode['progress']}
                 request['approval_policy'] = self._approval_policy(
@@ -163,9 +172,12 @@ class Jobs:
         with self.lock:
             records = []
             for position, episode_id in enumerate(self._futures, start=1):
-                episode = self.library.get(episode_id)
+                episode = self.library.get(episode_id, include_large=False)
                 records.append({'episode_id': episode_id, 'title': episode.get('title', 'Untitled episode'),
-                                'status': episode['status'], 'progress': episode['progress'], 'position': position})
+                                'status': episode['status'], 'progress': episode['progress'], 'position': position,
+                                'operation': (episode.get('pending_job') or {}).get('operation', 'process'),
+                                'remove_ads': (episode.get('pending_job') or {}).get('options', {}).get('remove_ads'),
+                                'ad_mode': 'remove' if (episode.get('pending_job') or {}).get('options', {}).get('remove_ads') else 'keep'})
             return records
 
     @staticmethod
@@ -197,7 +209,7 @@ class Jobs:
             self.library.update(episode_id, status=status, progress=str(message))
 
     def _complete_stage(self, episode_id, option, **values):
-        request = self.library.get(episode_id).get('pending_job')
+        request = self.library.get(episode_id, include_large=False).get('pending_job')
         if request:
             request['options'][option] = False
             values['pending_job'] = request
@@ -209,7 +221,7 @@ class Jobs:
         try:
             self._check_cancel(cancel)
             settings = dict(self.settings_getter() if self.settings_getter else {})
-            request = self.library.get(episode_id).get('pending_job') or {}
+            request = self.library.get(episode_id, include_large=False).get('pending_job') or {}
             if 'approval_policy' in request:
                 # Queued work and retries keep the listener's original policy.
                 settings.update(self._approval_policy(request['approval_policy']))
@@ -229,7 +241,7 @@ class Jobs:
             if '://' in message or len(message) > 800:
                 message = f'{type(exc).__name__}: processing failed. Check model configuration and media availability.'
             with self.lock:
-                episode = self.library.get(episode_id)
+                episode = self.library.get(episode_id, include_large=False)
                 phase = episode['status']
                 self.library.update(episode_id, status='error', error=message,
                                     progress=f'Failed during {phase}. Completed steps are saved; retry to resume.')
@@ -325,7 +337,7 @@ class Jobs:
         if not self._option(options, 'remove_ads', True):
             has_speech = bool(transcript['segments'])
             self.library.update(episode_id, status='ready' if has_speech else 'review',
-                                progress='Transcript ready' if has_speech else 'No speech detected; review original audio')
+                                progress='Original audio and transcript ready; ads retained' if has_speech else 'No speech detected; review original audio')
             return
 
         episode = self.library.get(episode_id)

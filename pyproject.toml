@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "castwell"
-version = "0.4.0"
-description = "A podcast library with local transcripts and reviewable advertisement removal"
+version = "0.5.0"
+description = "A local podcast suite with batch workflows and reviewable advertisement removal"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

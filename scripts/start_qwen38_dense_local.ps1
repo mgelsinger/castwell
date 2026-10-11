@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$Model = (Join-Path $PSScriptRoot '..\.local\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf'),
-    [string]$ServerBinary = (Join-Path $PSScriptRoot '..\.local\llama.cpp\llama-server.exe'),
+    [string]$Model = '',
+    [string]$ServerBinary = '',
     [ValidateRange(1, 65535)][int]$Port = 8081,
     [ValidateRange(1, 128)][int]$Threads = 8,
     [ValidateRange(4096, 32768)][int]$Context = 8192,
@@ -17,6 +17,8 @@ param(
 # A separate dense-model launcher. It never downloads or stops another server.
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+if (-not $Model) { $Model = Join-Path $projectRoot '.local\models\qwen3.8-27b\Qwen3.8-27B-Q4_K_M.gguf' }
+if (-not $ServerBinary) { $ServerBinary = Join-Path $projectRoot '.local\llama.cpp\llama-server.exe' }
 $modelPath = (Resolve-Path -LiteralPath $Model).Path
 $binaryPath = (Resolve-Path -LiteralPath $ServerBinary).Path
 if (-not (Test-Path -LiteralPath $modelPath -PathType Leaf) -or

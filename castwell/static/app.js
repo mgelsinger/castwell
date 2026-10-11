@@ -11,12 +11,15 @@
     ready: ['Ready to listen', 'check'], review: ['Review suggested cuts', 'info'], error: ['Needs attention', 'info'],
   };
   const PALETTES = [['#5e7364', '#f4e8cb'], ['#cc8065', '#342c31'], ['#c5b985', '#343f37'], ['#6b8093', '#eee5cd'], ['#6c6889', '#f1d5bc'], ['#9f614f', '#f4d8b7']];
+  const CATALOGUE_PAGE_SIZE = 48;
   const state = {
     episodes: [], settings: {}, selected: new Set(), filter: 'all', search: '', detail: null,
     cuts: [], cutsDirty: false, audioVersion: 'original', activeTab: 'transcript',
-    listSignature: '', transcriptSignature: '', cutsSignature: '', refreshBusy: false,
+    listSignature: '', episodesETag: '', episodesPayload: null, transcriptSignature: '', cutsSignature: '', refreshBusy: false,
     detailRequest: 0, actionBusy: false, lastFocus: null, loaded: false,
-    podcast: '', sort: 'newest', feeds: [], jobs: [], feedBusy: new Set(),
+    podcast: '', podcasts: [], visibleEpisodes: [], catalogueLimit: CATALOGUE_PAGE_SIZE, catalogueKey: '',
+    featuredId: null, policyBusy: false, exportBusy: false,
+    sort: 'newest', feeds: [], jobs: [], feedBusy: new Set(), feedRefreshRunning: false,
     waveform: null, waveformKey: '', waveformBusy: false, markStart: null,
     pendingSeek: null, pendingPlay: false, playbackCuts: [], lastPositionSave: 0, lastPosition: null,
     transcriptVersion: 'original', cleanedTranscript: null, cleanedKey: '', cleanedBusy: false,
@@ -50,15 +53,26 @@
     window.setTimeout(() => node.remove(), 6500);
   }
   async function api(path, options = {}) {
+    const libraryRequest = path === '/api/episodes' && (options.method || 'GET').toUpperCase() === 'GET';
     const response = await fetch(path, {
       ...options,
-      headers: { ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...options.headers },
+      ...(libraryRequest ? { cache: 'no-store' } : {}),
+      headers: { ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }), ...(libraryRequest && state.episodesETag ? { 'If-None-Match': state.episodesETag } : {}), ...options.headers },
       ...(options.body !== undefined ? { body: options.body instanceof FormData ? options.body : JSON.stringify(options.body) } : {}),
     });
+    if (libraryRequest && response.status === 304) {
+      if (state.episodesPayload) return state.episodesPayload;
+      state.episodesETag = '';
+      throw new Error('The library refresh did not include episode data. Retrying automatically.');
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const detail = payload.error || payload.detail || `Request failed (${response.status}).`;
       throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    }
+    if (libraryRequest) {
+      state.episodesETag = response.headers.get('ETag') || '';
+      state.episodesPayload = payload;
     }
     return payload;
   }
@@ -131,17 +145,33 @@
   function renderSelection() {
     const count = state.selected.size;
     visible('selection-bar', count > 0);
-    $('selection-count').textContent = `${count} episode${count === 1 ? '' : 's'} selected`;
-    $('process-label').textContent = count ? `Prepare ${count} selected` : 'Prepare all';
-    const processable = state.episodes.some((episode) => !episode.archived && ['available', 'downloaded', 'cancelled', 'error'].includes(episode.status));
+    const matchingSelected = state.visibleEpisodes.reduce((total, episode) => total + Number(state.selected.has(episode.id)), 0);
+    const outside = count - matchingSelected;
+    $('selection-count').textContent = `${count.toLocaleString()} episode${count === 1 ? '' : 's'} selected${outside > 0 ? ` · ${outside.toLocaleString()} outside current filters` : ''}`;
+    const eligibleCount = preparationCandidates().length;
+    $('process-label').textContent = count ? `Prepare ${count.toLocaleString()} selected` : `Prepare all ${eligibleCount.toLocaleString()}`;
+    $('hero-process').replaceChildren(document.createTextNode(count ? `Prepare ${count.toLocaleString()} selected` : eligibleCount ? `Prepare ${eligibleCount.toLocaleString()} episodes` : state.episodes.length ? 'Episodes prepared' : 'Add your first podcast'), icon('arrow'));
+    const processable = eligibleCount > 0;
     $('process-button').disabled = state.actionBusy || (count === 0 && !processable);
     $('hero-process').disabled = state.actionBusy || (state.episodes.length > 0 && !processable && count === 0);
+    for (const control of $('selection-bar').querySelectorAll('button, select')) control.disabled = state.actionBusy || state.policyBusy || state.exportBusy;
+    $('select-visible').disabled = state.actionBusy || !state.visibleEpisodes.length;
+    $('select-visible').setAttribute('aria-label', `Select all ${state.visibleEpisodes.length} matching episodes, including unloaded pages`);
+    $('select-failed').disabled = state.actionBusy || !state.episodes.some((episode) => ['error', 'cancelled'].includes(episode.status));
+    visible('select-podcast', Boolean(state.podcast));
+    $('select-podcast').disabled = state.actionBusy;
+    $('batch-prepare').textContent = `Prepare ${count} selected`;
+    for (const checkbox of document.querySelectorAll('.select-episode input')) {
+      checkbox.checked = state.selected.has(checkbox.dataset.episodeId);
+      checkbox.closest('.episode-card').classList.toggle('is-selected', checkbox.checked);
+    }
   }
   function card(episode) {
     const article = el('article', 'episode-card');
     const select = el('label', 'select-episode');
     const checkbox = el('input');
     checkbox.type = 'checkbox';
+    checkbox.dataset.episodeId = episode.id;
     checkbox.checked = state.selected.has(episode.id);
     checkbox.setAttribute('aria-label', `Select ${episode.title}`);
     checkbox.addEventListener('change', () => {
@@ -151,6 +181,7 @@
     select.append(checkbox);
     const open = el('button', 'card-open');
     open.setAttribute('aria-label', `Open ${episode.title}`);
+    open.dataset.episodeId = episode.id;
     open.addEventListener('click', () => openDetail(episode.id));
     open.append(cover(episode, true));
     const content = el('div', 'card-content');
@@ -167,6 +198,7 @@
     bottom.append(statusBadge(episode), icon(episode.has_transcript ? 'text' : 'arrow'));
     open.append(content, bottom);
     const favorite = el('button', `card-favorite${episode.favorite ? ' selected' : ''}`);
+    favorite.dataset.episodeId = episode.id;
     favorite.append(icon('heart'));
     favorite.setAttribute('aria-label', `${episode.favorite ? 'Unfavorite' : 'Favorite'} ${episode.title}`);
     favorite.setAttribute('aria-pressed', String(Boolean(episode.favorite)));
@@ -179,18 +211,120 @@
       const fill = el('span');
       fill.style.width = `${episode.played ? 100 : Math.min(100, seconds(episode.position) / Math.max(1, seconds(episode.duration)) * 100)}%`;
       progress.append(fill); article.append(progress);
-      if (episode.played) content.append(el('span', 'played-label', '✓ Played'));
+      if (episode.played) content.append(el('span', 'played-label', 'Played'));
     }
+    const policy = el('span', `card-policy ${episode.ad_mode === 'keep' ? 'keep' : 'remove'}`, episode.ad_mode === 'keep' ? 'Original preference' : episode.has_cleaned ? 'Reviewed audio available' : 'Ads require review');
+    policy.title = episode.ad_mode === 'keep' ? 'This podcast keeps the original audio.' : 'Only saved, approved cuts are removed from rendered audio.';
+    content.append(policy);
     return article;
   }
+  function podcastFor(episode) {
+    return state.podcasts.find((podcast) => podcast.id === episode?.podcast_id)
+      || state.podcasts.find((podcast) => podcast.title === episode?.podcast);
+  }
+  function inPodcast(episode, podcast = state.podcast) {
+    return !podcast || episode.podcast_id === podcast || episode.podcast === podcast;
+  }
+  function selectedPodcast() {
+    return state.podcasts.find((podcast) => podcast.id === state.podcast || podcast.title === state.podcast);
+  }
+  function podcastSource(podcast) {
+    return podcast.source === 'local' ? 'Local recordings' : podcast.subscribed ? 'RSS subscription' : 'Retained RSS show';
+  }
+  function episodeCount(count) {
+    return `${Number(count || 0).toLocaleString()} episode${Number(count) === 1 ? '' : 's'}`;
+  }
+  function choosePodcast(id) {
+    state.podcast = id;
+    $('podcast-filter').value = id;
+    renderList();
+    $('collection-title').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }
+  function renderPodcastPanel() {
+    const podcast = selectedPodcast();
+    visible('podcast-panel', Boolean(podcast));
+    if (!podcast) return;
+    $('podcast-panel-cover').replaceChildren(cover({ podcast: podcast.title, image: podcast.image }));
+    $('podcast-panel-title').textContent = podcast.title;
+    $('podcast-panel-meta').textContent = `${podcastSource(podcast)} · ${episodeCount(podcast.episode_count)} · ${Number(podcast.downloaded_count || 0).toLocaleString()} downloaded · ${Number(podcast.review_count || 0).toLocaleString()} awaiting review`;
+    $('podcast-ad-mode').value = podcast.ad_mode;
+    $('podcast-ad-mode').disabled = state.policyBusy || state.actionBusy;
+    $('podcast-prepare').disabled = state.policyBusy || state.actionBusy;
+    $('podcast-policy-note').textContent = podcast.ad_mode === 'keep' ? 'New preparation jobs download and transcribe this podcast. Preferred playback and exports use the original audio.' : 'New preparation jobs find suggested ads for review. Preferred playback uses cleaned audio when approved cuts have been rendered.';
+  }
+  function renderDiscovery() {
+    const episodes = state.episodes.filter((episode) => !episode.archived);
+    const latest = [...episodes].sort((a, b) => (Date.parse(b.published || b.created_at) || 0) - (Date.parse(a.published || a.created_at) || 0));
+    const continuing = episodes.filter((episode) => episode.has_audio && !episode.played && seconds(episode.position) > 0).sort((a, b) => (Date.parse(b.last_played || b.updated_at) || 0) - (Date.parse(a.last_played || a.updated_at) || 0));
+    const featured = continuing[0] || latest[0];
+    state.featuredId = featured?.id || null;
+    visible('hero-detail', Boolean(featured));
+    if (featured) {
+      $('hero-eyebrow').replaceChildren(icon('headphones'), document.createTextNode(continuing.length ? ' CONTINUE YOUR CONVERSATION' : ' YOUR NEXT GREAT LISTEN'));
+      $('hero-title').textContent = featured.title || 'Your next episode';
+      $('hero-meta').textContent = [featured.podcast, duration(featured.duration), continuing.length ? `Resume at ${clock(featured.position)}` : date(featured.published), featured.ad_mode === 'keep' ? 'Original audio' : featured.has_cleaned ? 'Reviewed audio' : featured.status === 'review' ? 'Ad review pending' : ''].filter(Boolean).join(' · ');
+      $('hero-description').textContent = plainText(featured.description).slice(0, 210) || 'Settle into a good conversation. Your original audio and every listening decision stay in your library.';
+      $('hero-feature-cover').replaceChildren(cover(featured));
+      $('hero-detail').replaceChildren(icon(featured.has_audio ? 'play' : 'info'), document.createTextNode(continuing.length ? 'Continue listening' : featured.has_audio ? 'Listen now' : 'View episode'));
+    }
+    const scrollPositions = new Map([...document.querySelectorAll('.episode-rail, .podcast-rail')].map((rail) => [rail.id, rail.scrollLeft]));
+    visible('podcasts-section', state.podcasts.length > 0);
+    $('podcast-rail').replaceChildren(...state.podcasts.map((podcast) => {
+      const button = el('button', `podcast-card${state.podcast === podcast.id ? ' selected' : ''}`);
+      button.dataset.podcastId = podcast.id;
+      button.setAttribute('aria-label', `Browse ${podcast.title}. ${podcastSource(podcast)}. ${episodeCount(podcast.episode_count)}. ${podcast.ad_mode === 'keep' ? 'Keep original' : 'Remove ads after review'}.`);
+      button.append(cover({ podcast: podcast.title, image: podcast.image }), el('h3', '', podcast.title), el('p', 'podcast-source', podcastSource(podcast)), el('p', '', episodeCount(podcast.episode_count)), el('span', 'podcast-policy-badge', podcast.ad_mode === 'keep' ? 'Keep original' : 'Remove ads after review'));
+      button.addEventListener('click', () => choosePodcast(podcast.id));
+      return button;
+    }));
+    const browseHome = !state.podcast && !state.search && state.filter === 'all';
+    visible('library-rails', browseHome);
+    const definitions = [
+      ['continue', 'Continue listening', 'Pick up where you left off', continuing],
+      ['latest', 'Fresh in your library', 'New conversations to get into', latest],
+      ['ready', 'Ready to listen', "Prepared using each podcast's preference", episodes.filter((episode) => episode.export_ready && !ACTIVE.has(episode.status))],
+      ['review', 'Your review queue', 'Choose which suggested ads to remove', episodes.filter((episode) => episode.status === 'review')],
+    ];
+    $('library-rails').replaceChildren(...definitions.filter((definition) => definition[3].length).map(([id, title, subtitle, items]) => {
+      const section = el('section', `catalogue-section rail-${id}`);
+      section.setAttribute('aria-labelledby', `rail-title-${id}`);
+      const heading = el('div', 'rail-heading');
+      const text = el('div');
+      const h2 = el('h2', '', title); h2.id = `rail-title-${id}`;
+      text.append(h2, el('p', '', subtitle));
+      const navigation = el('div', 'rail-navigation');
+      const rail = el('div', 'episode-rail'); rail.id = `rail-${id}`; rail.tabIndex = 0; rail.setAttribute('aria-label', title);
+      for (const direction of [-1, 1]) {
+        const button = el('button', 'icon-button'); button.append(icon('arrow'));
+        button.dataset.direction = direction; button.setAttribute('aria-label', `${direction < 0 ? 'Previous' : 'Next'} ${title.toLocaleLowerCase()}`);
+        button.addEventListener('click', () => scrollRail(rail, direction));
+        navigation.append(button);
+      }
+      heading.append(text, navigation); rail.append(...items.slice(0, 12).map(card)); section.append(heading, rail);
+      return section;
+    }));
+    for (const rail of document.querySelectorAll('.episode-rail, .podcast-rail')) if (scrollPositions.has(rail.id)) rail.scrollLeft = scrollPositions.get(rail.id);
+    renderPodcastPanel();
+  }
+  function scrollRail(rail, direction) {
+    rail.scrollBy({ left: direction * Math.max(200, rail.clientWidth * 0.85), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
   function renderList() {
+    const active = document.activeElement;
+    const focus = active?.closest('.episode-card') ? { container: active.closest('.episode-rail')?.id || 'episodes', id: active.dataset.episodeId, type: active.matches('input') ? 'input' : active.classList.contains('card-favorite') ? '.card-favorite' : '.card-open' }
+      : active?.classList.contains('podcast-card') ? { container: 'podcast-rail', podcast: active.dataset.podcastId } : null;
+    const catalogueKey = JSON.stringify([state.filter, state.search, state.podcast, state.sort]);
+    if (catalogueKey !== state.catalogueKey) {
+      state.catalogueKey = catalogueKey;
+      state.catalogueLimit = CATALOGUE_PAGE_SIZE;
+    }
     const search = state.search.toLocaleLowerCase();
     const episodes = state.episodes.filter((episode) => {
       if (state.filter === 'archived' ? !episode.archived : episode.archived) return false;
       if (state.filter === 'favorites' && !episode.favorite) return false;
       if (state.filter === 'unplayed' && episode.played) return false;
-      if (state.podcast && episode.podcast !== state.podcast) return false;
-      if (state.filter === 'ready' && !['ready', 'review'].includes(episode.status)) return false;
+      if (!inPodcast(episode)) return false;
+      if (state.filter === 'ready' && (!episode.export_ready || ACTIVE.has(episode.status))) return false;
       if (state.filter === 'review' && episode.status !== 'review') return false;
       return !search || `${episode.title} ${episode.podcast} ${plainText(episode.description)}`.toLocaleLowerCase().includes(search);
     });
@@ -201,25 +335,38 @@
       const order = (Date.parse(b.published || b.created_at) || 0) - (Date.parse(a.published || a.created_at) || 0);
       return state.sort === 'oldest' ? -order : order;
     });
-    $('episodes').replaceChildren(...episodes.map(card));
-    const podcasts = [...new Set(state.episodes.map((episode) => episode.podcast).filter(Boolean))].sort();
+    state.visibleEpisodes = episodes;
+    const renderedEpisodes = episodes.slice(0, state.catalogueLimit);
+    $('episodes').replaceChildren(...renderedEpisodes.map(card));
+    $('catalogue-page-count').textContent = `Showing ${renderedEpisodes.length.toLocaleString()} of ${episodes.length.toLocaleString()} matching episode${episodes.length === 1 ? '' : 's'}`;
+    const remaining = episodes.length - renderedEpisodes.length;
+    $('show-more-episodes').textContent = `Show ${Math.min(CATALOGUE_PAGE_SIZE, remaining).toLocaleString()} more`;
+    visible('catalogue-paging', episodes.length > 0);
+    visible('show-more-episodes', remaining > 0);
+    const podcasts = [...state.podcasts].sort((a, b) => a.title.localeCompare(b.title));
     const podcastKey = JSON.stringify(podcasts);
     if ($('podcast-filter').dataset.key !== podcastKey) {
-      $('podcast-filter').replaceChildren(new Option('All podcasts', ''), ...podcasts.map((name) => new Option(name, name)));
+      $('podcast-filter').replaceChildren(new Option('All podcasts', ''), ...podcasts.map((podcast) => new Option(podcast.title, podcast.id)));
       $('podcast-filter').dataset.key = podcastKey;
-      if (!podcasts.includes(state.podcast)) state.podcast = '';
+      if (!podcasts.some((podcast) => podcast.id === state.podcast)) state.podcast = '';
       $('podcast-filter').value = state.podcast;
     }
     $('episodes').setAttribute('aria-busy', 'false');
     visible('empty-state', !state.episodes.length && state.loaded);
     visible('no-results', state.episodes.length > 0 && episodes.length === 0);
+    renderDiscovery();
     renderSelection();
+    if (focus && !active.isConnected) {
+      const parent = $(focus.container);
+      const replacement = parent && [...parent.querySelectorAll(focus.podcast ? '.podcast-card' : focus.type)].find((node) => focus.podcast ? node.dataset.podcastId === focus.podcast : node.dataset.episodeId === focus.id);
+      replacement?.focus({ preventScroll: true });
+    }
   }
   function renderStats(stats = {}) {
     const count = stats.episodes ?? state.episodes.length;
     $('nav-count').textContent = count;
     $('stat-episodes').textContent = Number(count).toLocaleString();
-    $('stat-ready').textContent = Number(stats.ready ?? state.episodes.filter((item) => item.has_cleaned).length).toLocaleString();
+    $('stat-ready').textContent = state.episodes.filter((item) => item.export_ready && !item.archived && !ACTIVE.has(item.status)).length.toLocaleString();
     $('stat-removed').textContent = `${Math.floor(seconds(stats.removed_seconds ?? state.episodes.reduce((sum, item) => sum + seconds(item.removed_seconds), 0)) / 60).toLocaleString()} min`;
     $('collection-count').textContent = `${count} episode${count === 1 ? '' : 's'}`;
     const review = state.episodes.filter((item) => item.status === 'review').length;
@@ -230,15 +377,18 @@
     if (state.refreshBusy) return;
     state.refreshBusy = true;
     try {
-      const payload = await api('/api/episodes');
+      const responses = await Promise.allSettled([api('/api/episodes'), api('/api/podcasts')]);
+      if (responses[0].status === 'rejected') throw responses[0].reason;
+      const payload = responses[0].value;
       state.episodes = payload.episodes || [];
+      if (responses[1].status === 'fulfilled') state.podcasts = responses[1].value.podcasts || [];
       state.settings = { ...state.settings, ...payload.settings };
       state.loaded = true;
       for (const id of state.selected) if (!state.episodes.some((item) => item.id === id)) state.selected.delete(id);
-      const signature = JSON.stringify(state.episodes);
+      const signature = JSON.stringify([state.episodes, state.podcasts]);
       if (signature !== state.listSignature) { state.listSignature = signature; renderList(); }
       renderStats(payload.stats || {});
-      showError('library-error', null);
+      showError('library-error', responses[1].status === 'rejected' ? new Error('Episodes loaded, but podcast preferences could not be refreshed. Retrying automatically.') : null);
       if (state.detail) await refreshDetail(state.detail.id);
       await refreshQueue();
     } catch (error) {
@@ -269,26 +419,124 @@
     finally { button.disabled = false; button.replaceChildren(document.createTextNode('Add to my library '), icon('arrow')); }
   }
   async function processEpisodes(ids, downloadOnly = false) {
-    ids = ids.filter((id) => !ACTIVE.has(state.episodes.find((episode) => episode.id === id)?.status));
+    if (state.actionBusy || state.policyBusy) return;
     if (!ids.length) {
       if (!state.episodes.length) openImport(); else toast('Your episodes are already prepared or in the queue.');
       return;
     }
+    if (ids.length >= 50 && !window.confirm(downloadOnly
+      ? `Download originals for ${ids.length.toLocaleString()} episodes?\n\nAudio downloads run in the local queue. A large selection can take a long time and use significant disk space.`
+      : `Prepare ${ids.length.toLocaleString()} episodes?\n\nAudio downloads and transcription run in the local queue, following each podcast's ad preference. A large selection can take a long time.`)) return;
     state.actionBusy = true;
     renderSelection();
     try {
-      const result = await api('/api/process', { method: 'POST', body: { ids, remove_ads: true, ...(downloadOnly ? { download_only: true } : {}) } });
+      if (!downloadOnly && state.cutsDirty && ids.includes(state.detail?.id)) throw new Error('Save your open episode cut changes before preparing it in a batch.');
+      const result = await submitBatch(downloadOnly ? '/api/download' : '/api/process', ids, {}, 'POST', downloadOnly ? 'Download originals' : 'Prepare episodes');
       const count = typeof result.queued === 'number' ? result.queued : ids.length;
-      state.selected.clear();
-      toast(count ? `${count} episode${count === 1 ? '' : 's'} queued ${downloadOnly ? 'for download' : 'for preparation'}.` : 'These episodes are already being prepared.');
+      renderBatchResult(result, downloadOnly ? 'Download originals' : 'Prepare episodes');
+      const failed = result.results.filter((item) => item.status === 'failed').length;
+      toast(failed ? `${count} queued · ${failed} submissions need attention. See the episode results.` : count ? `${count} episode${count === 1 ? '' : 's'} queued ${downloadOnly ? 'for download' : 'for preparation'}.` : 'No new jobs queued. See the episode results.', failed > 0);
       renderList();
       await refreshLibrary();
     } catch (error) { toast(error.message, true); }
     finally { state.actionBusy = false; renderSelection(); }
   }
   function queueSelectedOrAll() {
-    const ids = state.selected.size ? [...state.selected] : state.episodes.filter((item) => !item.archived && ['available', 'downloaded', 'cancelled', 'error'].includes(item.status)).map((item) => item.id);
+    const ids = state.selected.size ? [...state.selected] : preparationCandidates().map((item) => item.id);
     return processEpisodes(ids);
+  }
+  function preparationCandidates() {
+    return state.episodes.filter((episode) => !episode.archived && ['available', 'downloaded', 'cancelled', 'error'].includes(episode.status));
+  }
+  function renderBatchResult(payload, label) {
+    const results = payload.results || [];
+    const counts = results.reduce((summary, result) => { summary[result.status] = (summary[result.status] || 0) + 1; return summary; }, {});
+    const summary = Object.entries(counts).map(([status, count]) => `${count} ${status}`).join(' · ');
+    $('batch-result-summary').textContent = `${label}: ${summary || `${payload.queued || payload.updated || 0} accepted`}`;
+    $('batch-results').replaceChildren(...results.map((result) => {
+      const episode = state.episodes.find((item) => item.id === result.episode_id);
+      const podcast = state.podcasts.find((item) => item.id === result.podcast_id);
+      const row = el('div', `batch-result-row ${result.status === 'failed' ? 'failed' : ''}`);
+      row.append(el('strong', '', episode?.title || podcast?.title || result.episode_id || result.podcast_id || 'Podcast'));
+      row.append(el('span', '', [result.status, result.detail, result.ad_mode === 'keep' ? 'Keep original' : result.ad_mode === 'remove' ? 'Remove ads after review' : ''].filter(Boolean).join(' · ')));
+      return row;
+    }));
+    visible('batch-result-panel', true);
+    $('batch-result-panel').querySelector('details').open = results.some((result) => result.status === 'failed');
+  }
+  async function submitBatch(path, ids, changes = {}, method = 'POST', label = 'Batch') {
+    const results = [];
+    for (let offset = 0; offset < ids.length; offset += 500) {
+      const chunk = ids.slice(offset, offset + 500);
+      try {
+        const result = await api(path, { method, body: { ids: chunk, ...changes } });
+        results.push(...(result.results || []));
+      } catch (error) {
+        results.push(...ids.slice(offset).map((id) => ({ [path === '/api/podcasts' ? 'podcast_id' : 'episode_id']: id, status: 'failed', detail: `Submission could not be confirmed: ${error.message}. Check the queue before retrying.` })));
+        break;
+      }
+      if (ids.length > 500) renderBatchResult({ results }, `${label} · submitted ${Math.min(ids.length, offset + 500)} of ${ids.length}`);
+    }
+    return { results, queued: results.filter((result) => result.status === 'queued').length, updated: results.filter((result) => result.status === 'updated').length };
+  }
+  async function batchAction(path, label, changes = {}, method = 'POST') {
+    if (state.actionBusy || !state.selected.size) return;
+    const ids = [...state.selected];
+    if (changes.retranscribe && ids.length >= 50 && !window.confirm(`Regenerate transcripts for ${ids.length.toLocaleString()} episodes?\n\nSpeech recognition runs again in the local queue. New preparation jobs follow each podcast's ad preference. A large selection can take a long time.`)) return;
+    state.actionBusy = true; renderSelection(); renderDetail();
+    try {
+      if (['/api/render', '/api/process'].includes(path) && state.cutsDirty && ids.includes(state.detail?.id)) throw new Error('Save the open episode cut decisions before changing its audio or transcript in a batch.');
+      const result = await submitBatch(path, ids, changes, method, label);
+      renderBatchResult(result, label); await refreshLibrary();
+    } catch (error) { toast(error.message, true); }
+    finally { state.actionBusy = false; renderSelection(); renderDetail(); }
+  }
+  async function savePodcastPolicy(podcast, adMode, errorTarget = 'podcast-policy-error') {
+    if (!podcast || state.policyBusy) return;
+    state.policyBusy = true; renderSelection(); renderPodcastPanel(); renderDetail();
+    showError(errorTarget, null);
+    try {
+      await api(`/api/podcasts/${encodeURIComponent(podcast.id)}`, { method: 'PATCH', body: { ad_mode: adMode } });
+      await refreshLibrary();
+      toast(`${podcast.title}: ${adMode === 'keep' ? 'keep original audio' : 'remove ads after review'}. Preference saved.`);
+    } catch (error) { showError(errorTarget, error); }
+    finally { state.policyBusy = false; renderSelection(); renderPodcastPanel(); renderDetail(); }
+  }
+  async function saveSelectedPodcastPolicies() {
+    if (state.policyBusy || !state.selected.size) return;
+    const ids = [...new Set(state.episodes.filter((episode) => state.selected.has(episode.id)).map((episode) => podcastFor(episode)?.id).filter(Boolean))];
+    if (!ids.length) { toast('These episodes do not have a podcast preference yet.', true); return; }
+    state.policyBusy = true; renderSelection();
+    try {
+      const result = await submitBatch('/api/podcasts', ids, { ad_mode: $('batch-ad-mode').value }, 'PATCH', 'Podcast preferences');
+      renderBatchResult(result, 'Podcast preferences'); await refreshLibrary();
+    } catch (error) { toast(error.message, true); }
+    finally { state.policyBusy = false; renderSelection(); renderPodcastPanel(); renderDetail(); }
+  }
+  function selectEpisodes(episodes) {
+    for (const episode of episodes) state.selected.add(episode.id);
+    renderSelection();
+    if (state.selected.size) $('selection-bar').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
+  }
+  async function exportSelected() {
+    if (!state.selected.size || state.exportBusy) return;
+    const ids = [...state.selected];
+    if (ids.length > 500) { toast('Select up to 500 episodes per archive. Audio and transcript payloads have a combined 10 GiB limit; export larger selections in smaller batches.', true); return; }
+    const version = $('batch-export-version').value;
+    if (version !== 'original' && state.cutsDirty && ids.includes(state.detail?.id)) { toast('Save or discard the open episode cut changes before exporting edited audio.', true); return; }
+    state.exportBusy = true; renderSelection();
+    // A native form lets the browser stream large audio archives to disk.
+    // No audio bytes are collected in a JavaScript Blob or local storage.
+    const form = el('form'); form.method = 'POST'; form.action = '/api/export/archive/form'; form.target = 'castwell-export-download';
+    const payload = el('input'); payload.type = 'hidden'; payload.name = 'payload'; payload.value = JSON.stringify({ ids, version, include_transcripts: $('batch-export-transcripts').checked });
+    form.append(payload); document.body.append(form); form.submit(); form.remove();
+    const ready = state.episodes.filter((episode) => ids.includes(episode.id) && !ACTIVE.has(episode.status) && (version === 'cleaned' ? episode.has_cleaned : version === 'original' ? episode.has_audio : episode.export_ready));
+    $('batch-result-summary').textContent = `Archive requested: ${ready.length} audio files ready · ${ids.length - ready.length} unavailable. Check report.json in the ZIP for the final result.`;
+    $('batch-results').replaceChildren(...state.episodes.filter((episode) => ids.includes(episode.id)).map((episode) => {
+      const row = el('div', 'batch-result-row'); row.append(el('strong', '', episode.title), el('span', '', ready.includes(episode) ? 'Available for export' : 'Audio not ready; included in the archive report')); return row;
+    }));
+    visible('batch-result-panel', true);
+    window.setTimeout(() => { state.exportBusy = false; renderSelection(); }, 1500);
   }
   async function openDetail(id) {
     if (state.detail?.id === id) {
@@ -301,7 +549,7 @@
     state.detail = state.episodes.find((episode) => episode.id === id) || { id };
     state.cuts = [];
     state.cutsDirty = false;
-    state.audioVersion = state.detail.has_cleaned ? 'cleaned' : 'original';
+    state.audioVersion = state.detail.preferred_version || (state.detail.ad_mode !== 'keep' && state.detail.has_cleaned ? 'cleaned' : 'original');
     state.transcriptSignature = '';
     state.cutsSignature = '';
     state.waveform = null; state.waveformKey = ''; state.waveformBusy = false;
@@ -337,6 +585,9 @@
     $('detail-podcast').textContent = episode.podcast || 'Podcast';
     $('detail-meta').textContent = [date(episode.published), duration(episode.duration)].filter(Boolean).join(' · ');
     $('detail-status').replaceChildren(statusBadge(episode));
+    $('detail-ad-mode').value = episode.ad_mode || 'remove';
+    $('detail-ad-mode').disabled = state.policyBusy || state.actionBusy || !podcastFor(episode);
+    $('detail-policy-note').textContent = episode.ad_mode === 'keep' ? 'Preparation and preferred playback keep original audio.' : 'Review suggested cuts before removing audio.';
     $('detail-description').textContent = plainText(episode.description);
     visible('detail-description', Boolean(episode.description));
     if (episode.error) showError('detail-error', new Error(episode.error));
@@ -368,7 +619,7 @@
     $('detail-process').replaceChildren(icon('spark'), document.createTextNode(busy ? 'Preparing…' : processLabel));
     const usesAI = state.settings.ai_configured && !['heuristic', 'Local rules'].includes(state.settings.detector);
     const verifiedAI = usesAI && state.settings.ai_policy !== 'legacy';
-    $('detail-preparation-note').textContent = usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
+    $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
     $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
     visible('detail-redetect', episode.has_transcript);
     $('detail-redetect').disabled = busy || state.actionBusy;
@@ -446,6 +697,8 @@
     visible('waveform-section', hasAudio);
     visible('download-cleaned', episode.has_cleaned);
     $('download-cleaned').href = mediaURL(episode.id, 'cleaned');
+    visible('download-original', episode.has_audio);
+    $('download-original').href = mediaURL(episode.id, 'original');
     const src = hasAudio ? mediaURL(episode.id, state.audioVersion) : '';
     if (audio.getAttribute('src') !== src) {
       if (src) {
@@ -701,7 +954,7 @@
       }
       if (action === 'process') {
         if (state.cutsDirty) await saveCuts(true);
-        await api(episodeURL(state.detail.id, '/process'), { method: 'POST', body: { remove_ads: true } });
+        await api(episodeURL(state.detail.id, '/process'), { method: 'POST', body: {} });
         toast('Episode queued for preparation.');
       }
       if (action === 'download') {
@@ -759,7 +1012,12 @@
     const record = result.episode || result;
     const index = state.episodes.findIndex((episode) => episode.id === id);
     if (index !== -1) state.episodes[index] = { ...state.episodes[index], ...record };
-    if (state.detail?.id === id) { state.detail = { ...state.detail, ...record }; renderDetail(); }
+    if (state.detail?.id === id) {
+      const preserveDescription = record.description_truncated && !state.detail.description_truncated && typeof state.detail.description === 'string';
+      const description = state.detail.description;
+      state.detail = { ...state.detail, ...record, ...(preserveDescription ? { description, description_truncated: false } : {}) };
+      renderDetail();
+    }
     renderList();
     return record;
   }
@@ -833,6 +1091,7 @@
   async function refreshQueue() {
     try {
       const payload = await api('/api/jobs');
+      showError('queue-error', null);
       const activeJobs = payload.jobs || [];
       const listed = new Set(activeJobs.map((job) => job.episode_id));
       const attention = state.episodes.filter((episode) => !episode.archived && ['error', 'cancelled'].includes(episode.status) && !listed.has(episode.id));
@@ -847,7 +1106,7 @@
       const signature = JSON.stringify(state.jobs);
       if (signature === state.jobsSignature) return;
       state.jobsSignature = signature;
-      $('queue-jobs').replaceChildren(...state.jobs.slice(0, 15).map((job) => {
+      $('queue-jobs').replaceChildren(...state.jobs.map((job) => {
         const row = el('div', 'queue-job');
         const content = el('div', 'queue-job-content');
         const title = el('button', 'text-button queue-job-title', job.title || 'Episode');
@@ -861,7 +1120,7 @@
             action.disabled = true;
             try {
               if (activeJob) await api(episodeURL(job.episode_id, '/cancel'), { method: 'POST', body: {} });
-              else await api(episodeURL(job.episode_id, '/process'), { method: 'POST', body: { remove_ads: true } });
+              else await api(episodeURL(job.episode_id, '/process'), { method: 'POST', body: {} });
               await refreshLibrary();
             } catch (error) { toast(error.message, true); action.disabled = false; }
           });
@@ -869,7 +1128,12 @@
         }
         return row;
       }));
-    } catch (_) { /* The library remains usable if queue reporting is temporarily unavailable. */ }
+    } catch (error) {
+      visible('queue-panel', true);
+      $('queue-title').textContent = 'Queue status temporarily unavailable';
+      $('queue-count').textContent = 'Retrying automatically';
+      showError('queue-error', new Error(error.message));
+    }
   }
   async function ensureWaveform() {
     const episode = state.detail;
@@ -981,7 +1245,7 @@
     }
   }
   async function openSubscriptions() {
-    showDialog('subscriptions-dialog'); await refreshFeeds();
+    showDialog('subscriptions-dialog'); await Promise.allSettled([refreshFeeds(), pollFeedRefresh(false)]);
   }
   async function refreshFeeds() {
     showError('subscriptions-error', null);
@@ -989,7 +1253,8 @@
     catch (error) { showError('subscriptions-error', error); }
   }
   function renderFeeds() {
-    $('refresh-all-feeds').disabled = !state.feeds.length || state.feedBusy.size > 0;
+    $('refresh-all-feeds').disabled = !state.feeds.length || state.feedBusy.size > 0 || state.feedRefreshRunning;
+    $('refresh-all-feeds').textContent = state.feedRefreshRunning ? 'Refreshing podcasts...' : 'Refresh all';
     if (!state.feeds.length) { $('subscription-list').replaceChildren(el('p', 'panel-empty', 'No subscriptions yet. Add an RSS feed or import your podcast app’s OPML file.')); return; }
     $('subscription-list').replaceChildren(...state.feeds.map((feed) => {
       const row = el('article', 'subscription-row');
@@ -998,10 +1263,10 @@
       if (feed.error) details.append(el('p', 'feed-error', feed.error));
       const actions = el('div', 'subscription-actions');
       const refresh = el('button', 'button subtle', state.feedBusy.has(feed.id) ? 'Refreshing…' : 'Refresh');
-      refresh.disabled = state.feedBusy.has(feed.id);
+      refresh.disabled = state.feedBusy.has(feed.id) || state.feedRefreshRunning;
       refresh.addEventListener('click', () => refreshFeed(feed.id));
       const remove = el('button', 'text-button', 'Unsubscribe');
-      remove.disabled = state.feedBusy.has(feed.id);
+      remove.disabled = state.feedBusy.has(feed.id) || state.feedRefreshRunning;
       remove.addEventListener('click', async () => {
         if (!window.confirm(`Unsubscribe from ${feed.title || 'this podcast'}? Episodes already in your library will stay available.`)) return;
         remove.disabled = true;
@@ -1020,6 +1285,25 @@
       return result.added || 0;
     } catch (error) { showError('subscriptions-error', error); return 0; }
     finally { state.feedBusy.delete(id); await refreshFeeds(); if (!silent) await refreshLibrary(); }
+  }
+  async function pollFeedRefresh(notify = true) {
+    window.clearTimeout(state.feedRefreshTimer);
+    try {
+      const result = await api('/api/feeds/refresh/status');
+      const wasRunning = state.feedRefreshRunning;
+      state.feedRefreshRunning = result.status === 'running';
+      renderFeeds();
+      visible('feed-refresh-result', result.status !== 'idle');
+      const added = (result.results || []).reduce((total, feed) => total + (feed.added || 0), 0);
+      const failed = (result.results || []).filter((feed) => feed.status === 'failed');
+      $('feed-refresh-result').replaceChildren(el('p', '', state.feedRefreshRunning ? `Refreshing podcasts: ${result.completed || 0} of ${result.total || 0} checked.` : `${result.completed || 0} podcasts checked · ${added} new episodes · ${failed.length} failed.`));
+      for (const failure of failed) $('feed-refresh-result').append(el('p', 'feed-error', `${state.feeds.find((feed) => feed.id === failure.feed_id)?.title || 'Podcast'}: ${failure.detail || 'Refresh failed'}`));
+      if (state.feedRefreshRunning) state.feedRefreshTimer = window.setTimeout(() => pollFeedRefresh(true), 2000);
+      else if (wasRunning) { await Promise.allSettled([refreshFeeds(), refreshLibrary()]); if (notify) toast(`${added} new episodes collected${failed.length ? `; ${failed.length} podcasts need attention` : ''}.`); }
+    } catch (error) {
+      showError('subscriptions-error', error);
+      if (state.feedRefreshRunning) state.feedRefreshTimer = window.setTimeout(() => pollFeedRefresh(true), 5000);
+    }
   }
   async function uploadAudio(event) {
     event.preventDefault();
@@ -1126,9 +1410,9 @@
   for (const id of ['sidebar-settings', 'mobile-settings']) $(id).addEventListener('click', openSettings);
   $('subscriptions-add').addEventListener('click', () => { $('subscriptions-dialog').close(); openImport(); });
   $('refresh-all-feeds').addEventListener('click', async () => {
-    let added = 0;
-    for (const feed of [...state.feeds]) added += await refreshFeed(feed.id, true);
-    toast(`${added} new episode${added === 1 ? '' : 's'} collected.`); await refreshLibrary();
+    $('refresh-all-feeds').disabled = true; showError('subscriptions-error', null);
+    try { await api('/api/feeds/refresh', { method: 'POST', body: {} }); state.feedRefreshRunning = true; await pollFeedRefresh(); }
+    catch (error) { state.feedRefreshRunning = false; renderFeeds(); showError('subscriptions-error', error); }
   });
   $('upload-button').addEventListener('click', () => { showError('upload-error', null); showDialog('upload-dialog'); });
   $('upload-form').addEventListener('submit', uploadAudio);
@@ -1136,6 +1420,50 @@
   $('opml-form').addEventListener('submit', importOPML);
   $('podcast-filter').addEventListener('change', (event) => { state.podcast = event.target.value; renderList(); });
   $('library-sort').addEventListener('change', (event) => { state.sort = event.target.value; renderList(); });
+  $('hero-detail').addEventListener('click', async () => {
+    if (!state.featuredId) return;
+    const id = state.featuredId;
+    await openDetail(id);
+    if (state.detail?.id === id && state.detail.has_audio) $('audio-player').play().catch((error) => toast(`Could not play audio. ${error.message}`, true));
+  });
+  for (const control of document.querySelectorAll('[data-rail]')) control.addEventListener('click', () => scrollRail($(control.dataset.rail), Number(control.dataset.direction)));
+  $('podcast-ad-mode').addEventListener('change', (event) => savePodcastPolicy(selectedPodcast(), event.target.value));
+  $('detail-ad-mode').addEventListener('change', (event) => savePodcastPolicy(podcastFor(state.detail), event.target.value, 'detail-error'));
+  $('detail-show').addEventListener('click', () => {
+    const podcast = podcastFor(state.detail);
+    if (!podcast) return;
+    closeDetail();
+    if (!$('episode-dialog').open) choosePodcast(podcast.id);
+  });
+  $('podcast-prepare').addEventListener('click', () => processEpisodes(state.episodes.filter((episode) => inPodcast(episode) && !episode.archived).map((episode) => episode.id)));
+  $('select-visible').addEventListener('click', () => selectEpisodes(state.visibleEpisodes));
+  $('select-podcast').addEventListener('click', () => selectEpisodes(state.episodes.filter((episode) => inPodcast(episode) && !episode.archived)));
+  $('select-failed').addEventListener('click', () => selectEpisodes(state.episodes.filter((episode) => !episode.archived && ['error', 'cancelled'].includes(episode.status))));
+  $('batch-prepare').addEventListener('click', () => processEpisodes([...state.selected]));
+  $('batch-render').addEventListener('click', () => batchAction('/api/render', 'Render approved cuts'));
+  $('batch-retranscribe').addEventListener('click', () => batchAction('/api/process', 'Regenerate transcripts', { retranscribe: true }));
+  $('batch-redetect').addEventListener('click', () => {
+    if (!window.confirm(`Find ads again in ${state.selected.size.toLocaleString()} selected episodes? Their current cuts and saved decisions will be replaced with new suggestions. Review the new suggestions before rendering.${state.selected.size >= 50 ? '\n\nAudio downloads, transcription, and ad detection run in the local queue and can take a long time.' : ''}`)) return;
+    batchAction('/api/process', 'Find ads again', { remove_ads: true, redetect: true });
+  });
+  $('batch-retry').addEventListener('click', () => batchAction('/api/episodes/batch/retry', 'Retry failures'));
+  $('batch-cancel').addEventListener('click', () => batchAction('/api/episodes/batch/cancel', 'Cancel preparation'));
+  $('batch-apply-state').addEventListener('click', () => batchAction('/api/episodes/batch/state', 'Library updated', { [$('batch-state-field').value]: $('batch-state-value').value === 'true' }, 'PATCH'));
+  $('batch-apply-policy').addEventListener('click', saveSelectedPodcastPolicies);
+  $('batch-export').addEventListener('click', exportSelected);
+  $('dismiss-batch-results').addEventListener('click', () => visible('batch-result-panel', false));
+  $('archive-download-frame').addEventListener('load', (event) => {
+    try {
+      const text = event.target.contentDocument?.body?.textContent?.trim();
+      if (!text) return;
+      const result = JSON.parse(text);
+      if (result.error || result.detail) {
+        const message = typeof (result.error || result.detail) === 'string' ? result.error || result.detail : 'Archive could not be created. Check which audio is ready and try again.';
+        $('batch-result-summary').textContent = `Archive failed: ${message}`;
+        toast(message, true);
+      }
+    } catch (_) { /* Successful file downloads are handled by the browser. */ }
+  });
   $('download-selection').addEventListener('click', () => processEpisodes([...state.selected], true));
   $('detail-download').addEventListener('click', () => detailAction('download'));
   $('detail-cancel').addEventListener('click', () => detailAction('cancel'));
@@ -1171,7 +1499,7 @@
   $('transcript-version').addEventListener('change', () => { state.transcriptVersion = $('transcript-version').value; renderTranscript(true); });
   $('listen-transcript-gap').addEventListener('click', () => seek(Math.max(0, seconds($('transcript-gap').value) - 1), true));
   document.addEventListener('keydown', (event) => {
-    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, button, a, audio, summary, [contenteditable=true], [role=tab]') || [...document.querySelectorAll('dialog[open]')].some((dialog) => dialog.id !== 'episode-dialog') || !state.detail?.has_audio) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.target.closest('input, textarea, select, button, a, audio, summary, [contenteditable=true], [role=tab], .episode-rail, .podcast-rail') || [...document.querySelectorAll('dialog[open]')].some((dialog) => dialog.id !== 'episode-dialog') || !state.detail?.has_audio) return;
     if (event.code === 'Space') { event.preventDefault(); togglePlayback(); }
     else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); skipAudio(event.key === 'ArrowLeft' ? -15 : 15); }
   });
@@ -1201,6 +1529,14 @@
   $('hero-process').addEventListener('click', queueSelectedOrAll);
   $('process-button').addEventListener('click', queueSelectedOrAll);
   $('library-search').addEventListener('input', (event) => { state.search = event.target.value; renderList(); });
+  $('show-more-episodes').addEventListener('click', () => {
+    const firstNewIndex = Math.min(state.visibleEpisodes.length, state.catalogueLimit);
+    state.catalogueLimit += CATALOGUE_PAGE_SIZE;
+    renderList();
+    const firstNew = $('episodes').children[firstNewIndex]?.querySelector('.card-open');
+    firstNew?.focus({ preventScroll: true });
+    firstNew?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  });
   $('clear-selection').addEventListener('click', () => { state.selected.clear(); renderList(); });
   for (const tab of document.querySelectorAll('[data-filter]')) tab.addEventListener('click', () => {
     state.filter = tab.dataset.filter;

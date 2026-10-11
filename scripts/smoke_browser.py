@@ -27,6 +27,7 @@ from urllib.error import URLError
 from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, build_opener
 from xml.etree import ElementTree as ET
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +38,8 @@ TRANSCRIPT = {"language": "en", "duration": 12.0, "segments": [
     {"id": 3, "start": 7.0, "end": 12.0, "text": "Now back to the show. Early astronomers carefully observed the planets."},
 ]}
 TITLE = "A night under the stars"
+CATALOGUE_DESCRIPTION = ("Detailed catalogue fixture. " * 20
+                         + "Final description tail remains visible after library state updates.")
 
 
 def note(message):
@@ -69,15 +72,21 @@ def wait_episode(page, episode_id, status, *, cleaned=None):
 
 class FixtureFeed(BaseHTTPRequestHandler):
     def do_GET(self):
-        if urlsplit(self.path).path == "/feed.xml":
+        route = urlsplit(self.path).path
+        if route in {"/feed.xml", "/keep.xml", "/remove.xml", "/catalogue.xml"}:
+            profile = route.removeprefix("/").removesuffix(".xml")
+            suite = profile in {"keep", "remove", "catalogue"}
             root = ET.Element("rss", version="2.0")
             channel = ET.SubElement(root, "channel")
-            ET.SubElement(channel, "title").text = "Field notes & discoveries"
+            ET.SubElement(channel, "title").text = f"Fixture {profile} show" if suite else "Field notes & discoveries"
             ET.SubElement(channel, "description").text = "Local browser smoke fixtures"
-            for number in range(self.server.episode_count):
+            count = 65 if profile == "catalogue" else 2 if suite else self.server.episode_count
+            for number in range(count):
                 item = ET.SubElement(channel, "item")
-                ET.SubElement(item, "title").text = f"A field recording {number + 1}"
-                ET.SubElement(item, "guid").text = f"local-browser-{number}"
+                ET.SubElement(item, "title").text = f"{profile.title()} suite episode {number + 1}" if suite else f"A field recording {number + 1}"
+                ET.SubElement(item, "guid").text = f"local-browser-{profile}-{number}"
+                if profile == "catalogue":
+                    ET.SubElement(item, "description").text = CATALOGUE_DESCRIPTION
                 ET.SubElement(item, "enclosure", url=self.server.base + "/audio.wav", type="audio/wav")
             body, mime = ET.tostring(root, encoding="utf-8"), "application/rss+xml"
         elif urlsplit(self.path).path == "/audio.wav":
@@ -168,6 +177,285 @@ def save_download(page, selector, destination):
     return destination
 
 
+def run_suite_browser(page, feed, workspace, screenshot):
+    """Exercise mixed per-show preparation and batch exports with real audio."""
+    from playwright.sync_api import expect
+
+    note("Browser: browse show rails and persist per-podcast ad preferences")
+    page.locator("#close-detail").click()
+    page.set_viewport_size({"width": 1440, "height": 1100})
+    for profile in ("keep", "remove"):
+        page.locator("#import-button").click()
+        page.locator("#feed-url").fill(feed.base + f"/{profile}.xml")
+        page.locator("#import-submit").click()
+        expect(page.locator("#import-dialog")).not_to_be_visible()
+    podcasts = page.request.get("/api/podcasts").json()["podcasts"]
+    selected_shows = {profile: next(show for show in podcasts if show["title"] == f"Fixture {profile} show")
+                      for profile in ("keep", "remove")}
+    expect(page.locator("#library-rails")).to_be_visible()
+    expect(page.locator("#rail-latest .episode-card").first).to_be_visible()
+    for profile, show in selected_shows.items():
+        expect(page.locator(f'#podcast-rail [data-podcast-id="{show["id"]}"]')).to_be_visible()
+    page.locator("#podcast-filter").select_option(selected_shows["keep"]["id"])
+    expect(page.locator("#podcast-panel")).to_be_visible()
+    with page.expect_response(lambda response: response.url.endswith("/api/podcasts/" + selected_shows["keep"]["id"])
+                              and response.request.method == "PATCH") as saved:
+        page.locator("#podcast-ad-mode").select_option("keep")
+    assert saved.value.ok, saved.value.text()
+    expect(page.locator("#podcast-ad-mode")).to_be_enabled()
+    page.reload(wait_until="networkidle")
+    page.locator("#podcast-filter").select_option(selected_shows["keep"]["id"])
+    expect(page.locator("#podcast-ad-mode")).to_have_value("keep")
+
+    def select_both_shows():
+        if page.locator("#clear-selection").is_visible():
+            page.locator("#clear-selection").click()
+        for show in selected_shows.values():
+            page.locator("#podcast-filter").select_option(show["id"])
+            page.locator("#select-podcast").click()
+        page.locator("#podcast-filter").select_option("")
+        expect(page.locator("#selection-count")).to_have_text("4 episodes selected")
+
+    select_both_shows()
+    records = page.request.get("/api/episodes").json()["episodes"]
+    selected = [record for record in records if record["podcast_id"] in {show["id"] for show in selected_shows.values()}]
+    selected_ids = {record["id"] for record in selected}
+    assert len(selected_ids) == 4
+    note("Browser: download a batch and prepare mixed keep/remove shows using imported transcripts")
+    with page.expect_response(lambda response: response.url.endswith("/api/download") and response.request.method == "POST") as queued:
+        page.locator("#download-selection").click()
+    assert queued.value.status == 202 and queued.value.json()["queued"] == 4, queued.value.text()
+    for record in selected:
+        wait_episode(page, record["id"], "downloaded", cleaned=False)
+        imported = page.request.post(f'/api/episodes/{record["id"]}/transcript', data=TRANSCRIPT)
+        assert imported.ok, imported.text()
+    with page.expect_response(lambda response: response.url.endswith("/api/process") and response.request.method == "POST") as prepared:
+        page.locator("#batch-prepare").click()
+    assert prepared.value.status == 202, prepared.value.text()
+    result = prepared.value.json()
+    assert result["queued"] == 4 and len(result["results"]) == 4, result
+    assert sum(item["ad_mode"] == "keep" for item in result["results"]) == 2
+    assert sum(item["ad_mode"] == "remove" for item in result["results"]) == 2
+    assert set(prepared.value.request.post_data_json["ids"]) == selected_ids
+    assert "remove_ads" not in prepared.value.request.post_data_json, "Batch must inherit each podcast choice"
+    for record in selected:
+        keeping = record["podcast_id"] == selected_shows["keep"]["id"]
+        wait_episode(page, record["id"], "ready" if keeping else "review", cleaned=False)
+        detail = episode(page, record["id"])
+        assert detail["has_transcript"] and detail["has_audio"]
+        assert detail["ad_mode"] == ("keep" if keeping else "remove")
+        if keeping:
+            assert detail["cuts"] == [] and detail["preferred_version"] == "original"
+        else:
+            assert len(detail["cuts"]) == 1 and detail["cuts"][0]["approved"] is False
+    expect(page.locator("#batch-results .batch-result-row")).to_have_count(4)
+
+    note("Browser: approve remove-show cuts and render a mixed batch without editing keep-show audio")
+    for record in selected:
+        if record["podcast_id"] != selected_shows["remove"]["id"]:
+            continue
+        page.locator("#episodes").get_by_role("button", name=f'Open {record["title"]}', exact=True).click()
+        page.locator("#tab-cuts").click()
+        expect(page.locator("#cut-list .cut-row")).to_have_count(1)
+        page.locator("#cut-list input[type=checkbox]").check()
+        with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
+                                  and response.request.method == "POST") as saved:
+            page.locator("#save-cuts").click()
+        assert saved.value.ok, saved.value.text()
+        page.locator("#close-detail").click()
+    with page.expect_response(lambda response: response.url.endswith("/api/render") and response.request.method == "POST") as rendered:
+        page.locator("#batch-render").click()
+    assert rendered.value.status == 202, rendered.value.text()
+    assert rendered.value.json()["queued"] == 2 and rendered.value.json()["skipped"] == 2, rendered.value.text()
+    for record in selected:
+        keeping = record["podcast_id"] == selected_shows["keep"]["id"]
+        wait_episode(page, record["id"], "ready", cleaned=not keeping)
+        detail = episode(page, record["id"])
+        assert detail["removed_seconds"] == (0 if keeping else 4)
+        assert detail["preferred_version"] == ("original" if keeping else "cleaned")
+    page.locator("#batch-state-field").select_option("played")
+    page.locator("#batch-state-value").select_option("true")
+    with page.expect_response(lambda response: response.url.endswith("/api/episodes/batch/state")
+                              and response.request.method == "PATCH") as changed:
+        page.locator("#batch-apply-state").click()
+    assert changed.value.ok and changed.value.json()["updated"] == 4, changed.value.text()
+    screenshot("desktop-suite-batch")
+
+    note("Browser: download the preferred audio archive and verify each actual audio duration")
+    page.locator("#batch-export-version").select_option("preferred")
+    archive_path = save_download(page, "#batch-export", workspace / "preferred-library.zip")
+    with zipfile.ZipFile(archive_path) as archive:
+        assert archive.testzip() is None
+        report = json.loads(archive.read("report.json"))
+        assert report["format"] == "castwell-batch-export"
+        assert len(report["included"]) == 4 and report["omitted"] == [], report
+        assert {item["episode_id"] for item in report["included"]} == selected_ids
+        for index, item in enumerate(report["included"]):
+            keeping = item["ad_mode"] == "keep"
+            assert item["version"] == ("original" if keeping else "cleaned")
+            assert item["approved_cut_count"] == (0 if keeping else 1)
+            exported = workspace / f'suite-export-{index}{Path(item["file"]).suffix}'
+            exported.write_bytes(archive.read(item["file"]))
+            probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                    "-of", "json", str(exported)], check=True, capture_output=True, text=True)
+            measured = float(json.loads(probe.stdout)["format"]["duration"])
+            assert abs(measured - (12 if keeping else 8)) < .15, (item, measured)
+
+    page.locator("#batch-export-version").select_option("cleaned")
+    cleaned_archive = save_download(page, "#batch-export", workspace / "cleaned-library.zip")
+    with zipfile.ZipFile(cleaned_archive) as archive:
+        report = json.loads(archive.read("report.json"))
+        assert len(report["included"]) == 2 and len(report["omitted"]) == 2, report
+        assert all(item["version"] == "cleaned" and item["ad_mode"] == "remove" for item in report["included"])
+        assert all(item["ad_mode"] == "keep" for item in report["omitted"])
+    page.locator("#batch-ad-mode").select_option("keep")
+    with page.expect_response(lambda response: response.url.endswith("/api/podcasts")
+                              and response.request.method == "PATCH") as changed:
+        page.locator("#batch-apply-policy").click()
+    assert changed.value.ok and changed.value.json()["updated"] == 2, changed.value.text()
+    for record in selected:
+        detail = episode(page, record["id"])
+        assert detail["ad_mode"] == "keep" and detail["preferred_version"] == "original"
+        if record["podcast_id"] == selected_shows["remove"]["id"]:
+            assert detail["has_cleaned"], "Changing preference must preserve an existing reviewed export"
+    page.locator("#podcast-filter").select_option(selected_shows["remove"]["id"])
+    with page.expect_response(lambda response: response.url.endswith("/api/podcasts/" + selected_shows["remove"]["id"])
+                              and response.request.method == "PATCH") as restored:
+        page.locator("#podcast-ad-mode").select_option("remove")
+    assert restored.value.ok, restored.value.text()
+    expect(page.locator("#podcast-ad-mode")).to_be_enabled()
+
+    note("Browser: retain preferences and batch state after reload, including narrow mobile rails")
+    page.reload(wait_until="networkidle")
+    assert all(episode(page, record["id"])["played"] for record in selected)
+    page.locator("#podcast-filter").select_option(selected_shows["keep"]["id"])
+    expect(page.locator("#podcast-ad-mode")).to_have_value("keep")
+    page.locator("#episodes").get_by_role("button", name="Open Keep suite episode 1", exact=True).click()
+    wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/original'); }", label="keep preference original playback")
+    page.locator("#close-detail").click()
+    page.locator("#podcast-filter").select_option("")
+    page.set_viewport_size({"width": 390, "height": 844})
+    wait_js(page, "() => document.documentElement.scrollWidth <= innerWidth + 1", label="mobile show rails without page overflow")
+    select_both_shows()
+    wait_js(page, "() => document.documentElement.scrollWidth <= innerWidth + 1", label="mobile batch controls without page overflow")
+    screenshot("mobile-suite-batch")
+
+
+def run_catalogue_browser(page, feed, screenshot, auto_accept=None):
+    """Prove paging and matching selection on a library larger than one page."""
+    from playwright.sync_api import expect
+
+    note("Browser: page a 65-episode show and select matches across unloaded pages")
+    page.set_viewport_size({"width": 1440, "height": 1100})
+    if page.locator("#clear-selection").is_visible():
+        page.locator("#clear-selection").click()
+    page.locator("#import-button").click()
+    page.locator("#feed-url").fill(feed.base + "/catalogue.xml")
+    page.locator("#import-submit").click()
+    expect(page.locator("#import-dialog")).not_to_be_visible()
+    show = next(show for show in page.request.get("/api/podcasts").json()["podcasts"]
+                if show["title"] == "Fixture catalogue show")
+    page.locator("#podcast-filter").select_option(show["id"])
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    expect(page.locator("#catalogue-page-count")).to_have_text("Showing 48 of 65 matching episodes")
+    page.locator("#select-visible").click()
+    expect(page.locator("#selection-count")).to_have_text("65 episodes selected")
+    expect(page.locator("#episodes .select-episode input:checked")).to_have_count(48)
+    note("Browser: confirm large preparation once and preserve the queue when cancelled")
+    submitted, messages = [], []
+    queue_before = page.request.get('/api/jobs').json()
+    if auto_accept:
+        page.remove_listener('dialog', auto_accept)
+    def cancel_large(dialog):
+        messages.append(dialog.message)
+        assert '65' in dialog.message, dialog.message
+        dialog.dismiss()
+    def accept_large(dialog):
+        messages.append(dialog.message)
+        assert '65' in dialog.message and 'transcription' in dialog.message, dialog.message
+        dialog.accept()
+    def record_submission(route):
+        body = route.request.post_data_json
+        submitted.append(body)
+        route.fulfill(status=202, content_type='application/json', body=json.dumps({
+            'queued': len(body['ids']), 'results': [{'episode_id': identifier, 'status': 'queued', 'ad_mode': 'remove'} for identifier in body['ids']]}))
+    page.route('**/api/process', record_submission)
+    try:
+        page.once('dialog', cancel_large)
+        page.locator('#batch-prepare').click()
+        page.once('dialog', cancel_large)
+        page.locator('#download-selection').click()
+        assert not submitted, 'Cancelling a large selection must not submit any preparation'
+        assert page.request.get('/api/jobs').json() == queue_before, 'Cancelling must preserve the actual job queue'
+        with page.expect_response(lambda response: response.url.endswith('/api/process') and response.request.method == 'POST'):
+            page.once('dialog', accept_large)
+            page.locator('#batch-prepare').click()
+        expect(page.locator('#batch-prepare')).to_be_enabled()
+        assert len(submitted) == 1 and len(submitted[0]['ids']) == 65, submitted
+        assert 'remove_ads' not in submitted[0], 'Confirmed preparation must inherit show preferences'
+        assert len(messages) == 3, 'A confirmed selection must not ask again for its submission chunk'
+        assert page.request.get('/api/jobs').json() == queue_before, 'Intercepted UI proof must not run speech models'
+    finally:
+        page.unroute('**/api/process', record_submission)
+        if auto_accept:
+            page.on('dialog', auto_accept)
+    page.locator("#clear-selection").click()
+    page.locator("#show-more-episodes").click()
+    expect(page.locator("#episodes .episode-card")).to_have_count(65)
+    expect(page.locator("#show-more-episodes")).to_be_hidden()
+
+    note("Browser: retain an expanded page through changed and unchanged conditional polling")
+    first = next(record for record in page.request.get("/api/episodes").json()["episodes"]
+                 if record["podcast_id"] == show["id"])
+    with page.expect_response(lambda response: response.url.endswith("/api/episodes")
+                              and response.status == 200 and response.request.resource_type == "fetch"):
+        updated = page.request.patch(f'/api/episodes/{first["id"]}/state', data={"favorite": True})
+        assert updated.ok, updated.text()
+    expect(page.locator("#episodes .episode-card")).to_have_count(65)
+    with page.expect_response(lambda response: response.url.endswith("/api/episodes")
+                              and response.status == 304 and response.request.resource_type == "fetch"):
+        pass
+    expect(page.locator("#library-error")).to_be_hidden()
+    expect(page.locator("#episodes .episode-card")).to_have_count(65)
+
+    note("Browser: reset paging for filters, search, podcast choice, and sorting")
+    page.locator('[data-filter="unplayed"]').click()
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#show-more-episodes").click()
+    page.locator('[data-filter="all"]').click()
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#show-more-episodes").click()
+    page.locator("#library-search").fill("Catalogue suite episode")
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#show-more-episodes").click()
+    page.locator("#library-search").fill("Catalogue suite episode 1")
+    expect(page.locator("#episodes .episode-card")).to_have_count(11)
+    page.locator("#library-search").fill("")
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#show-more-episodes").click()
+    page.locator("#library-sort").select_option("title")
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#show-more-episodes").click()
+    page.locator("#podcast-filter").select_option("")
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    page.locator("#podcast-filter").select_option(show["id"])
+    expect(page.locator("#episodes .episode-card")).to_have_count(48)
+    preview = next(record for record in page.request.get("/api/episodes").json()["episodes"]
+                   if record["title"] == "Catalogue suite episode 1")
+    assert preview["description_truncated"] is True and len(preview["description"]) <= 256
+    page.locator("#episodes").get_by_role("button", name="Open Catalogue suite episode 1", exact=True).click()
+    expect(page.locator("#detail-description")).to_have_text(CATALOGUE_DESCRIPTION)
+    with page.expect_response(lambda response: response.url.endswith(f'/{preview["id"]}/state')
+                              and response.request.method == "PATCH"):
+        page.locator("#detail-favorite").click()
+    expect(page.locator("#detail-description")).to_have_text(CATALOGUE_DESCRIPTION)
+    page.locator("#close-detail").click()
+    screenshot("desktop-catalogue-paging")
+    page.set_viewport_size({"width": 390, "height": 844})
+    wait_js(page, "() => document.documentElement.scrollWidth <= innerWidth + 1", label="mobile paged catalogue without page overflow")
+    screenshot("mobile-catalogue-paging")
+
+
 def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifacts):
     from playwright.sync_api import sync_playwright, expect
 
@@ -192,7 +480,9 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
         page.set_default_timeout(15000)
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
-        page.on("dialog", lambda dialog: dialog.accept())
+        def auto_accept(dialog):
+            dialog.accept()
+        page.on("dialog", auto_accept)
 
         def screenshot(name):
             if artifacts:
@@ -234,7 +524,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator('[data-close="settings-dialog"]').click()
 
             note("Browser: queue the episode, review suggestions, and render real cleaned audio")
-            page.get_by_role("button", name=f"Open {TITLE}", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name=f"Open {TITLE}", exact=True).click()
             with page.expect_response(lambda response: response.url.endswith(f"/{episode_id}/process")) as queued:
                 page.locator("#detail-process").click()
             assert queued.value.status == 202 and queued.value.json()["queued"]
@@ -316,7 +606,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.reload(wait_until="networkidle")
             page.locator('[data-filter="favorites"]').click()
             expect(page.locator("#episodes .episode-card")).to_have_count(1)
-            page.get_by_role("button", name=f"Open {TITLE}", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name=f"Open {TITLE}", exact=True).click()
             wait_js(page, "() => document.querySelector('#audio-player').readyState >= 2", label="resumed audio metadata")
             # Prepared episodes reopen on the cleaned timeline. Switch back to
             # compare the stored resume position, which is always original time.
@@ -332,7 +622,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             expect(page.locator("#episodes .episode-card")).to_have_count(0)
             page.locator('[data-filter="archived"]').click()
             expect(page.locator("#episodes .episode-card")).to_have_count(1)
-            page.get_by_role("button", name=f"Open {TITLE}", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name=f"Open {TITLE}", exact=True).click()
             page.locator("#detail-archive").click()
             expect(page.locator("#detail-archive")).to_have_text("Archive")
             page.locator("#close-detail").click()
@@ -359,7 +649,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.set_viewport_size({"width": 390, "height": 844})
             wait_js(page, "() => document.documentElement.scrollWidth <= innerWidth + 1", label="mobile library without horizontal overflow")
             screenshot("mobile-library")
-            page.get_by_role("button", name=f"Open {TITLE}", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name=f"Open {TITLE}", exact=True).click()
             page.locator("#tab-cuts").click()
             wait_js(page, "() => { const dialog = document.querySelector('#episode-dialog'); return document.documentElement.scrollWidth <= innerWidth + 1 && dialog.scrollWidth <= dialog.clientWidth + 1; }", label="mobile review without horizontal overflow")
             screenshot("mobile-review")
@@ -404,7 +694,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
 
             page.route(quality_url, intercept_quality)
             page.goto(base, wait_until="networkidle")
-            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
             wait_js(page, "() => { const audio = document.querySelector('#audio-player'); return audio.readyState >= 2 && new URL(audio.currentSrc).pathname.endsWith('/cleaned'); }", label="playback regression cleaned audio")
             expect(page.locator("#transcript-quality-notice")).to_be_visible()
             page.locator("#transcript-version").select_option("original")
@@ -452,7 +742,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             seeded = page.request.post(f"/api/episodes/{playback_id}/cuts", data={"cuts": [noisy, precise]})
             assert seeded.ok, seeded.text()
             page.goto(base, wait_until="networkidle")
-            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
             page.locator("#tab-cuts").click()
             expect(page.get_by_label("Cut 1 start in seconds", exact=True)).to_have_value("4.44")
             expect(page.get_by_label("Cut 1 end in seconds", exact=True)).to_have_value("19.62")
@@ -492,7 +782,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             seeded = page.request.post(f"/api/episodes/{playback_id}/cuts", data={"cuts": [detected, recovered]})
             assert seeded.ok, seeded.text()
             page.goto(base, wait_until="networkidle")
-            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
             page.locator("#tab-cuts").click()
             rows = page.locator("#cut-list .cut-row")
             expect(rows).to_have_count(2)
@@ -523,7 +813,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             # Reload, edit again, and approve manually. The first detected bounds
             # and every unrelated cut's recovery provenance must remain intact.
             page.reload(wait_until="networkidle")
-            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
             page.locator("#tab-cuts").click()
             page.get_by_label("Cut 1 end in seconds", exact=True).fill("13.75")
             rows.nth(0).locator("input[type=checkbox]").check()
@@ -569,7 +859,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
                 page.locator("#save-cuts").click()
             assert episode(page, playback_id)["cuts"] == [dict(cut, approved=False) for cut in final_cuts]
             page.reload(wait_until="networkidle")
-            page.get_by_role("button", name="Open Playback position regression", exact=True).click()
+            page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
             page.locator("#tab-cuts").click()
             expect(page.locator("#cut-selection-count")).to_have_text("0 of 2 selected")
             expect(rows.nth(0).locator("input[type=checkbox]")).not_to_be_checked()
@@ -592,8 +882,10 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#cut-selection-controls").scroll_into_view_if_needed()
             if artifacts:
                 page.screenshot(path=str(artifacts / "mobile-bulk-review.png"), full_page=False)
+            run_suite_browser(page, feed, workspace, screenshot)
+            run_catalogue_browser(page, feed, screenshot, auto_accept)
             assert not errors, "Browser errors:\n" + "\n".join(errors)
-            note("PASS: gallery upload, review, real audio exports/playback, revision recovery, downloads, subscriptions, and desktop/mobile layouts")
+            note("PASS: gallery upload, review, real audio exports/playback, revision recovery, downloads, subscriptions, show preferences, mixed batches, ZIP archives, and desktop/mobile layouts")
         except Exception:
             screenshot("failure")
             if errors:

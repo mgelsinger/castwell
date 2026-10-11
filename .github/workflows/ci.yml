@@ -51,6 +51,8 @@ jobs:
         run: python -m playwright install --with-deps chromium
       - name: Exercise desktop and mobile gallery
         run: python scripts/smoke_browser.py --chromium '' --artifacts artifacts/browser
+      - name: Exercise hour-long batch audio workflow
+        run: python scripts/smoke_long_episode.py --output artifacts/browser/long-audio-report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

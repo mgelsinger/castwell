@@ -15,6 +15,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 ACTIVE_STATUSES = ('queued', 'downloading', 'transcribing', 'detecting', 'rendering')
 BOOLEAN_FIELDS = ('favorite', 'archived', 'played', 'analysis_done')
+SUMMARY_DESCRIPTION_LIMIT = 256
 EPISODE_ADDITIONS = {
     'favorite': 'INTEGER NOT NULL DEFAULT 0',
     'archived': 'INTEGER NOT NULL DEFAULT 0',
@@ -26,6 +27,7 @@ EPISODE_ADDITIONS = {
     'feed_id': 'TEXT',
     'last_played': 'TEXT',
     'pending_job': 'TEXT',
+    'podcast_id': 'TEXT',
 }
 
 
@@ -44,6 +46,14 @@ def _feed_identity(url):
     if not valid:
         raise ValueError('Enter a valid HTTP or HTTPS podcast feed URL.')
     return hashlib.sha256(url.encode('utf-8')).hexdigest()[:24]
+
+
+def _podcast_identity(metadata):
+    """Feed identities survive unsubscribe; recordings share a local shelf."""
+    if metadata.get('feed_url'):
+        return _feed_identity(metadata['feed_url'])
+    title = metadata.get('podcast') or 'Local uploads'
+    return 'local-' + hashlib.sha256(title.strip().casefold().encode('utf-8')).hexdigest()[:24]
 
 
 def _public_image(value, feed_url=''):
@@ -90,6 +100,12 @@ class Library:
                 title TEXT NOT NULL DEFAULT '', image TEXT NOT NULL DEFAULT '',
                 last_checked TEXT, error TEXT, created_at TEXT NOT NULL
             )''')
+            db.execute('''CREATE TABLE IF NOT EXISTS podcasts (
+                id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '',
+                image TEXT NOT NULL DEFAULT '', ad_mode TEXT NOT NULL DEFAULT 'remove'
+                    CHECK(ad_mode IN ('remove','keep')), created_at TEXT NOT NULL
+            )''')
+            db.execute('CREATE INDEX IF NOT EXISTS episodes_podcast_id ON episodes(podcast_id)')
             db.execute('''CREATE TABLE IF NOT EXISTS cut_revisions (
                 id TEXT PRIMARY KEY, episode_id TEXT NOT NULL,
                 created_at TEXT NOT NULL, cuts TEXT NOT NULL, reason TEXT NOT NULL
@@ -120,6 +136,18 @@ class Library:
                         continue
                     db.execute('UPDATE episodes SET feed_id=? WHERE id=?', (feed_id, row['id']))
                 db.execute("INSERT INTO migrations (name) VALUES ('subscriptions-v1')")
+            if not db.execute("SELECT 1 FROM migrations WHERE name='podcast-preferences-v1'").fetchone():
+                for row in db.execute('SELECT id,metadata FROM episodes').fetchall():
+                    metadata = json.loads(row['metadata'])
+                    try:
+                        podcast_id = _podcast_identity(metadata)
+                    except ValueError:
+                        podcast_id = _podcast_identity({**metadata, 'feed_url': ''})
+                    self._upsert_podcast(db, podcast_id, metadata.get('podcast') or 'Local uploads', metadata.get('image', ''))
+                    db.execute('UPDATE episodes SET podcast_id=? WHERE id=?', (podcast_id, row['id']))
+                for row in db.execute('SELECT id,title,image FROM feeds').fetchall():
+                    self._upsert_podcast(db, row['id'], row['title'], row['image'])
+                db.execute("INSERT INTO migrations (name) VALUES ('podcast-preferences-v1')")
 
     @contextmanager
     def connect(self):
@@ -136,6 +164,14 @@ class Library:
             db.execute("UPDATE episodes SET status='error', error='Processing was interrupted. Retry to resume.', progress='' WHERE status IN (?,?,?,?,?)", ACTIVE_STATUSES)
 
     @staticmethod
+    def _upsert_podcast(db, podcast_id, title='', image=''):
+        db.execute('''INSERT INTO podcasts (id,title,image,created_at) VALUES (?,?,?,?)
+            ON CONFLICT(id) DO UPDATE SET
+                title=CASE WHEN excluded.title != '' THEN excluded.title ELSE podcasts.title END,
+                image=CASE WHEN excluded.image != '' THEN excluded.image ELSE podcasts.image END''',
+            (podcast_id, title or '', image or '', _now()))
+
+    @staticmethod
     def _upsert_feed(db, url, title='', image=''):
         feed_id = _feed_identity(url)
         db.execute('''INSERT INTO feeds (id,url,title,image,created_at) VALUES (?,?,?,?,?)
@@ -143,6 +179,7 @@ class Library:
                 title=CASE WHEN excluded.title != '' THEN excluded.title ELSE feeds.title END,
                 image=CASE WHEN excluded.image != '' THEN excluded.image ELSE feeds.image END''',
             (feed_id, url, title or '', image or '', _now()))
+        Library._upsert_podcast(db, feed_id, title, image)
         return feed_id
 
     def import_entries(self, entries):
@@ -156,11 +193,13 @@ class Library:
                 metadata.update(entry)
                 url = metadata.get('feed_url')
                 feed_id = self._upsert_feed(db, url, metadata.get('podcast', ''), metadata.get('image', '')) if url else None
+                podcast_id = _podcast_identity(metadata)
+                self._upsert_podcast(db, podcast_id, metadata.get('podcast') or 'Local uploads', metadata.get('image', ''))
                 metadata['feed_id'] = feed_id
-                result = db.execute('INSERT OR IGNORE INTO episodes (id,metadata,duration,feed_id) VALUES (?,?,?,?)',
-                    (entry['id'], json.dumps(metadata), entry.get('duration', 0), feed_id))
+                result = db.execute('INSERT OR IGNORE INTO episodes (id,metadata,duration,feed_id,podcast_id) VALUES (?,?,?,?,?)',
+                    (entry['id'], json.dumps(metadata), entry.get('duration', 0), feed_id, podcast_id))
                 added += result.rowcount
-                db.execute('UPDATE episodes SET metadata=?,feed_id=? WHERE id=?', (json.dumps(metadata), feed_id, entry['id']))
+                db.execute('UPDATE episodes SET metadata=?,feed_id=?,podcast_id=? WHERE id=?', (json.dumps(metadata), feed_id, podcast_id, entry['id']))
         return added
 
     @staticmethod
@@ -176,13 +215,25 @@ class Library:
             record[field] = bool(record[field])
         return {**metadata, **record}
 
-    def get(self, episode_id):
+    def get(self, episode_id, include_large=True):
         with self.connect() as db:
-            return self.decode(db.execute('SELECT * FROM episodes WHERE id=?', (episode_id,)).fetchone())
+            if include_large:
+                columns = 'episodes.*'
+            else:
+                names = ['id', 'metadata', 'status', 'error', 'progress', 'audio', 'cleaned',
+                         'cuts', 'duration', 'removed_seconds', *[name for name in EPISODE_ADDITIONS if name != 'waveform']]
+                columns = ','.join('episodes.' + name for name in names) + ", CASE WHEN transcript IS NULL THEN NULL ELSE '{}' END AS transcript,NULL AS waveform"
+            return self.decode(db.execute("SELECT " + columns + ",COALESCE(podcasts.ad_mode,'remove') AS ad_mode FROM episodes LEFT JOIN podcasts ON podcasts.id=episodes.podcast_id WHERE episodes.id=?", (episode_id,)).fetchone())
 
-    def all(self):
+    def all(self, include_large=True):
         with self.connect() as db:
-            rows = db.execute('SELECT * FROM episodes ORDER BY rowid DESC').fetchall()
+            if include_large:
+                columns = 'episodes.*'
+            else:
+                names = ['id', 'metadata', 'status', 'error', 'progress', 'audio', 'cleaned',
+                         'cuts', 'duration', 'removed_seconds', *[name for name in EPISODE_ADDITIONS if name != 'waveform']]
+                columns = ','.join('episodes.' + name for name in names) + ",CASE WHEN transcript IS NULL THEN NULL ELSE '{}' END AS transcript,NULL AS waveform"
+            rows = db.execute("SELECT " + columns + ",COALESCE(podcasts.ad_mode,'remove') AS ad_mode FROM episodes LEFT JOIN podcasts ON podcasts.id=episodes.podcast_id ORDER BY episodes.rowid DESC").fetchall()
         return sorted((self.decode(row) for row in rows), key=lambda item: item.get('published') or '', reverse=True)
 
     def summaries(self):
@@ -190,7 +241,7 @@ class Library:
         columns = ['id', 'metadata', 'status', 'error', 'progress', 'audio', 'cleaned',
                    'cuts', 'duration', 'removed_seconds', *[key for key in EPISODE_ADDITIONS if key != 'waveform']]
         with self.connect() as db:
-            rows = db.execute('SELECT ' + ','.join(columns) + ", CASE WHEN transcript IS NULL THEN NULL ELSE '{}' END AS transcript, NULL AS waveform FROM episodes ORDER BY rowid DESC").fetchall()
+            rows = db.execute('SELECT ' + ','.join('episodes.' + column for column in columns) + ", CASE WHEN transcript IS NULL THEN NULL ELSE '{}' END AS transcript, NULL AS waveform,COALESCE(podcasts.ad_mode,'remove') AS ad_mode FROM episodes LEFT JOIN podcasts ON podcasts.id=episodes.podcast_id ORDER BY episodes.rowid DESC").fetchall()
         episodes = sorted((self.decode(row) for row in rows), key=lambda item: item.get('published') or '', reverse=True)
         return [self.public(episode) for episode in episodes]
 
@@ -222,6 +273,65 @@ class Library:
         with self.connect() as db:
             feed_id = self._upsert_feed(db, url, title, image)
         return self.get_feed(feed_id)
+
+    def podcasts(self):
+        """Catalogue includes retained episodes even after a subscription ends."""
+        with self.connect() as db:
+            rows = db.execute('''SELECT podcasts.*,feeds.url AS subscription_url,
+                EXISTS(SELECT 1 FROM feeds WHERE feeds.id=podcasts.id) AS subscribed,
+                (SELECT metadata FROM episodes WHERE podcast_id=podcasts.id ORDER BY rowid DESC LIMIT 1) AS sample_metadata
+                FROM podcasts LEFT JOIN feeds ON feeds.id=podcasts.id
+                ORDER BY podcasts.title COLLATE NOCASE,podcasts.created_at''').fetchall()
+        episodes = self.summaries()
+        grouped = {}
+        for episode in episodes:
+            grouped.setdefault(episode['podcast_id'], []).append(episode)
+        result = []
+        for row in rows:
+            record = dict(row)
+            sample = json.loads(record.pop('sample_metadata') or '{}')
+            url = record.pop('subscription_url') or sample.get('feed_url', '')
+            record['image'] = _public_image(record['image'], url)
+            record['subscribed'] = bool(record['subscribed'])
+            record['source'] = 'local' if record['id'].startswith('local-') else 'feed'
+            shelf = grouped.get(record['id'], [])
+            # Empty unsubscribed shelves are harmless, but not useful catalogue entries.
+            if not shelf and not record['subscribed']:
+                continue
+            record.update(episode_count=len(shelf), downloaded_count=sum(item['has_audio'] for item in shelf),
+                          ready_count=sum(item['export_ready'] for item in shelf),
+                          review_count=sum(item['status'] == 'review' for item in shelf),
+                          unplayed_count=sum(not item['played'] and not item['archived'] for item in shelf),
+                          favorite_count=sum(item['favorite'] for item in shelf))
+            result.append(record)
+        return result
+
+    def set_podcast_mode(self, podcast_ids, ad_mode):
+        if ad_mode not in ('remove', 'keep'):
+            raise ValueError('Ad mode must be remove or keep.')
+        with self.connect() as db:
+            ids = list(dict.fromkeys(podcast_ids))
+            if any(not db.execute('SELECT 1 FROM podcasts WHERE id=?', (podcast_id,)).fetchone() for podcast_id in ids):
+                raise KeyError('Podcast not found')
+            db.executemany('UPDATE podcasts SET ad_mode=? WHERE id=?', [(ad_mode, podcast_id) for podcast_id in ids])
+        return ids
+
+    def batch_episode_flags(self, episode_ids, **values):
+        """Apply validated preferences in one transaction; missing rows cannot partly commit."""
+        if not values or not values.keys() <= {'favorite', 'archived', 'played'}:
+            raise ValueError('Choose favorite, archived, or played for a batch update.')
+        if any(not isinstance(value, bool) for value in values.values()):
+            raise ValueError('Episode flags must be true or false.')
+        ids = list(dict.fromkeys(episode_ids))
+        with self.connect() as db:
+            if any(not db.execute('SELECT 1 FROM episodes WHERE id=?', (episode_id,)).fetchone() for episode_id in ids):
+                raise KeyError('Episode not found')
+            updates = dict(values)
+            if updates.get('played'):
+                updates['last_played'] = _now()
+            db.executemany('UPDATE episodes SET ' + ','.join(f'{key}=?' for key in updates) + ' WHERE id=?',
+                           [(*updates.values(), episode_id) for episode_id in ids])
+        return ids
 
     def get_feed(self, feed_id):
         with self.connect() as db:
@@ -255,6 +365,8 @@ class Library:
             result = db.execute('UPDATE feeds SET ' + ','.join(f'{key}=?' for key in fields) + ' WHERE id=?', (*fields.values(), feed_id))
             if not result.rowcount:
                 raise KeyError('Subscription not found')
+            feed = db.execute('SELECT title,image FROM feeds WHERE id=?', (feed_id,)).fetchone()
+            self._upsert_podcast(db, feed_id, feed['title'], feed['image'])
         return self.get_feed(feed_id)
 
     def delete_feed(self, feed_id):
@@ -336,6 +448,10 @@ class Library:
         # Feed URLs can contain premium-feed credentials; they never leave the server.
         result = {key: value for key, value in episode.items() if key not in {'feed_url', 'media_url', 'audio', 'cleaned', 'transcript', 'cuts', 'waveform', 'pending_job'}}
         result['image'] = _public_image(result.get('image'), episode.get('feed_url'))
+        if not detail:
+            description = str(result.get('description') or '')
+            result['description'] = description[:SUMMARY_DESCRIPTION_LIMIT]
+            result['description_truncated'] = len(description) > SUMMARY_DESCRIPTION_LIMIT
         for field in BOOLEAN_FIELDS:
             result[field] = bool(episode.get(field))
         result.update(
@@ -344,6 +460,11 @@ class Library:
             has_transcript=episode['transcript'] is not None,
             ad_count=len(episode['cuts']),
         )
+        result['ad_mode'] = episode.get('ad_mode', 'remove')
+        approved_copy = result['has_cleaned'] and any(cut.get('approved') is True for cut in episode['cuts'])
+        result['preferred_version'] = 'cleaned' if result['ad_mode'] == 'remove' and approved_copy else 'original'
+        result['export_ready'] = bool(result['has_audio'] and (result['ad_mode'] == 'keep' or approved_copy or
+                                      (episode.get('analysis_done') and not episode['cuts'] and episode['status'] == 'ready')))
         for field, path_key in (('media_version', 'cleaned'), ('original_media_version', 'audio')):
             try:
                 result[field] = str(Path(episode[path_key]).stat().st_mtime_ns) if episode[path_key] else ''

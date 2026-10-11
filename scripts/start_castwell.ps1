@@ -1,14 +1,17 @@
 [CmdletBinding()]
 param(
     [ValidateRange(1, 65535)][int]$Port = 8000,
-    [string]$DataDirectory = (Join-Path $PSScriptRoot '..\data'),
-    [string]$ModelCache = (Join-Path $PSScriptRoot '..\.local\models\whisper'),
+    [ValidateRange(1, 65535)][int]$ClassifierPort = 8081,
+    [string]$DataDirectory = '',
+    [string]$ModelCache = '',
     [string]$SpeechModel = 'small.en',
     [switch]$Background
 )
 
 $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+if (-not $DataDirectory) { $DataDirectory = Join-Path $projectRoot 'data' }
+if (-not $ModelCache) { $ModelCache = Join-Path $projectRoot '.local\models\whisper' }
 $pythonPath = Join-Path $projectRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $pythonPath -PathType Leaf)) {
     throw 'Project Python environment is missing. Create .venv and install Castwell with the transcription extra.'
@@ -21,7 +24,7 @@ foreach ($binary in @('ffmpeg', 'ffprobe')) {
 $portCheck = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 try { $portCheck.Start() } finally { $portCheck.Stop() }
 $environment = @{
-    CASTWELL_AI_BASE_URL = 'http://127.0.0.1:8081/v1'
+    CASTWELL_AI_BASE_URL = "http://127.0.0.1:$ClassifierPort/v1"
     CASTWELL_AI_MODEL = 'castwell-local'
     CASTWELL_AI_POLICY = 'verified'
     CASTWELL_AI_KEY = $null
