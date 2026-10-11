@@ -4,7 +4,7 @@ These checks establish working application flows; they do not establish universa
 
 ## October 11 podcast suite checks
 
-The 0.5.0 Windows checkout passed **627 tests and 121 subtests** in 44.99 seconds. The final Chromium smoke passed in **43.3 seconds**, including mixed keep/remove podcast preferences, batch preparation and rendering, actual ZIP downloads, listening state, description preservation, and desktop/mobile layouts. A 65-episode catalogue verified 48-card paging, selection across unloaded pages, conditional 200/304 polling, and large-batch confirmation. JavaScript syntax checks passed. One upstream Starlette test-client deprecation warning remains.
+The 0.5.0 Windows checkout passed **627 tests and 121 subtests** in 44.99 seconds. The final Chromium smoke passed in **40.4 seconds**, including mixed keep/remove podcast preferences, batch preparation and rendering, actual ZIP downloads, listening state, description preservation, and desktop/mobile layouts. A 65-episode catalogue verified 48-card paging, selection across unloaded pages, conditional 200/304 polling, and large-batch confirmation. A deterministic held-save regression reproduced a Linux CI failure before the fix and confirmed that completed actions now restore batch, podcast, and detail controls even after an unchanged catalogue poll. JavaScript syntax checks passed. One upstream Starlette test-client deprecation warning remains.
 
 The isolated hour-long workflow passed in **25.125 seconds** with generated tones, supplied transcripts, and zero model calls. The keep recording decoded to 3,600 seconds and the edited recording to 3,540 seconds after approval of a known 60-second cut. Both originals retained their SHA256 hashes. The streamed ZIP measured 186,005,740 bytes; its temporary files occupied 788,501,534 bytes at the pre-cleanup measurement, and the temporary library and export workspace were removed. This tests full-length audio handling, approvals, transcript timelines, and exports; the elapsed time excludes speech recognition and AI classification. GitHub CI now repeats this gate.
 
@@ -12,7 +12,7 @@ A read-only browser check of the installed 7,019-episode catalogue opened its in
 
 Windows PowerShell 5.1 and PowerShell 7 both passed launcher ownership validation. The suite completed an actual stop/start cycle, rejected an altered process fingerprint, and refused to stop active episode work without explicit cancellation. The [production guide](production.md) documents these controls, backups, release gates, and the listening acceptance test. Full-podcast ad accuracy remains a separate acceptance requirement; no missed-ad or overcut guarantee is made.
 
-The 0.5.0 wheel passed isolated import and CLI-help checks; all 19 packaged source/assets matched the checkout, README metadata matched, and private libraries, recordings, secrets, and weights were excluded. The 147,745-byte local artifact has SHA256 `7ea31b9d1f65f2dc0e36d1409f5e449d485c9fa656938e85f5b582203daac1f5`. This identifies this build, not a reproducible-build guarantee.
+The 0.5.0 wheel passed isolated import and CLI-help checks; all 19 packaged source/assets matched the checkout, README metadata matched, and private libraries, recordings, secrets, and weights were excluded. The 148,012-byte local artifact has SHA256 `71e420a7ca00a4deffa12382f3deaee5be95d7a8ed0264c83b9678b0593ae315`. This identifies this build, not a reproducible-build guarantee.
 
 ## October 8 v8 checks
 

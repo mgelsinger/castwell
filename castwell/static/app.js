@@ -166,6 +166,14 @@
       checkbox.closest('.episode-card').classList.toggle('is-selected', checkbox.checked);
     }
   }
+  function setActionBusy(busy) {
+    state.actionBusy = busy;
+    // A library refresh can render these views while an action is pending.
+    // Restore all shared controls even when later catalogue polls are unchanged.
+    renderSelection();
+    renderPodcastPanel();
+    renderDetail();
+  }
   function card(episode) {
     const article = el('article', 'episode-card');
     const select = el('label', 'select-episode');
@@ -427,8 +435,7 @@
     if (ids.length >= 50 && !window.confirm(downloadOnly
       ? `Download originals for ${ids.length.toLocaleString()} episodes?\n\nAudio downloads run in the local queue. A large selection can take a long time and use significant disk space.`
       : `Prepare ${ids.length.toLocaleString()} episodes?\n\nAudio downloads and transcription run in the local queue, following each podcast's ad preference. A large selection can take a long time.`)) return;
-    state.actionBusy = true;
-    renderSelection();
+    setActionBusy(true);
     try {
       if (!downloadOnly && state.cutsDirty && ids.includes(state.detail?.id)) throw new Error('Save your open episode cut changes before preparing it in a batch.');
       const result = await submitBatch(downloadOnly ? '/api/download' : '/api/process', ids, {}, 'POST', downloadOnly ? 'Download originals' : 'Prepare episodes');
@@ -439,7 +446,7 @@
       renderList();
       await refreshLibrary();
     } catch (error) { toast(error.message, true); }
-    finally { state.actionBusy = false; renderSelection(); }
+    finally { setActionBusy(false); }
   }
   function queueSelectedOrAll() {
     const ids = state.selected.size ? [...state.selected] : preparationCandidates().map((item) => item.id);
@@ -483,13 +490,13 @@
     if (state.actionBusy || !state.selected.size) return;
     const ids = [...state.selected];
     if (changes.retranscribe && ids.length >= 50 && !window.confirm(`Regenerate transcripts for ${ids.length.toLocaleString()} episodes?\n\nSpeech recognition runs again in the local queue. New preparation jobs follow each podcast's ad preference. A large selection can take a long time.`)) return;
-    state.actionBusy = true; renderSelection(); renderDetail();
+    setActionBusy(true);
     try {
       if (['/api/render', '/api/process'].includes(path) && state.cutsDirty && ids.includes(state.detail?.id)) throw new Error('Save the open episode cut decisions before changing its audio or transcript in a batch.');
       const result = await submitBatch(path, ids, changes, method, label);
       renderBatchResult(result, label); await refreshLibrary();
     } catch (error) { toast(error.message, true); }
-    finally { state.actionBusy = false; renderSelection(); renderDetail(); }
+    finally { setActionBusy(false); }
   }
   async function savePodcastPolicy(podcast, adMode, errorTarget = 'podcast-policy-error') {
     if (!podcast || state.policyBusy) return;
@@ -942,9 +949,8 @@
   }
   async function detailAction(action) {
     if (state.actionBusy) return;
-    state.actionBusy = true;
     showError('detail-error', null);
-    renderDetail();
+    setActionBusy(true);
     try {
       if (action === 'save') await saveCuts();
       if (action === 'render') {
@@ -978,14 +984,13 @@
       }
       await refreshLibrary();
     } catch (error) { showError('detail-error', error); }
-    finally { state.actionBusy = false; renderDetail(); }
+    finally { setActionBusy(false); }
   }
   async function importTranscript(event) {
     const file = event.target.files[0];
     if (!file || !state.detail) return;
     if ((state.detail.has_transcript || state.cuts.length || state.cutsDirty) && !window.confirm('Replace this transcript? Current cuts and the cleaned audio will be reset. Your original audio is preserved.')) { event.target.value = ''; return; }
-    state.actionBusy = true;
-    renderDetail();
+    setActionBusy(true);
     showError('detail-error', null);
     try {
       if (file.size > 20 * 1024 * 1024) throw new Error('Please choose a transcript smaller than 20 MB.');
@@ -998,7 +1003,7 @@
       toast('Transcript imported. Prepare the episode to find advertisements.');
       await refreshLibrary();
     } catch (error) { showError('detail-error', error); }
-    finally { event.target.value = ''; state.actionBusy = false; renderDetail(); }
+    finally { event.target.value = ''; setActionBusy(false); }
   }
 
   function showDialog(id) {

@@ -250,7 +250,9 @@ def run_suite_browser(page, feed, workspace, screenshot):
             assert len(detail["cuts"]) == 1 and detail["cuts"][0]["approved"] is False
     expect(page.locator("#batch-results .batch-result-row")).to_have_count(4)
 
-    note("Browser: approve remove-show cuts and render a mixed batch without editing keep-show audio")
+    note("Browser: approve remove-show cuts and restore shared controls after a busy library refresh")
+    page.locator("#podcast-filter").select_option(selected_shows["remove"]["id"])
+    busy_refresh_checked = False
     for record in selected:
         if record["podcast_id"] != selected_shows["remove"]["id"]:
             continue
@@ -258,11 +260,51 @@ def run_suite_browser(page, feed, workspace, screenshot):
         page.locator("#tab-cuts").click()
         expect(page.locator("#cut-list .cut-row")).to_have_count(1)
         page.locator("#cut-list input[type=checkbox]").check()
-        with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
-                                  and response.request.method == "POST") as saved:
-            page.locator("#save-cuts").click()
-        assert saved.value.ok, saved.value.text()
+        cuts_url = f'**/api/episodes/{record["id"]}/cuts'
+        if not busy_refresh_checked:
+            held = []
+            def hold_save(route):
+                held.append(route)
+            page.route(cuts_url, hold_save)
+            try:
+                page.wait_for_load_state("networkidle")
+                with page.expect_request(lambda request: request.url.endswith(f'/{record["id"]}/cuts')
+                                         and request.method == "POST"):
+                    page.locator("#save-cuts").click()
+                expect(page.locator("#save-cuts")).to_be_disabled()
+                assert len(held) == 1, "Hold the completed save response while the app remains busy"
+                saved_response = held[0].fetch()
+                # A visibility refresh can finish during a detail action on any platform.
+                # Change a real list field so this refresh must rebuild the shared controls.
+                favorite = not episode(page, record["id"])["favorite"]
+                changed = page.request.patch(f'/api/episodes/{record["id"]}/state', data={"favorite": favorite})
+                assert changed.ok, changed.text()
+                with page.expect_response(lambda response: response.url.endswith("/api/episodes")
+                                          and response.request.resource_type == "fetch" and response.status == 200):
+                    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+                expect(page.locator(f'#episodes .card-favorite[data-episode-id="{record["id"]}"]')).to_have_attribute("aria-pressed", str(favorite).lower())
+                expect(page.locator("#batch-render")).to_be_disabled()
+                expect(page.locator("#podcast-ad-mode")).to_be_disabled()
+                with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
+                                          and response.request.method == "POST") as saved:
+                    held[0].fulfill(response=saved_response)
+                assert saved.value.ok, saved.value.text()
+                expect(page.locator("#save-cuts")).to_be_enabled()
+                expect(page.locator("#batch-render")).to_be_enabled()
+                expect(page.locator("#podcast-ad-mode")).to_be_enabled()
+                expect(page.locator("#podcast-prepare")).to_be_enabled()
+            finally:
+                page.unroute(cuts_url, hold_save)
+            busy_refresh_checked = True
+        else:
+            with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
+                                      and response.request.method == "POST") as saved:
+                page.locator("#save-cuts").click()
+            assert saved.value.ok, saved.value.text()
+            expect(page.locator("#save-cuts")).to_be_enabled()
+            expect(page.locator("#batch-render")).to_be_enabled()
         page.locator("#close-detail").click()
+    page.locator("#podcast-filter").select_option("")
     with page.expect_response(lambda response: response.url.endswith("/api/render") and response.request.method == "POST") as rendered:
         page.locator("#batch-render").click()
     assert rendered.value.status == 202, rendered.value.text()
@@ -504,6 +546,9 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             expect(page.locator("#detail-title")).to_have_text(TITLE)
             page.locator("#transcript-file").set_input_files(str(transcript_file))
             expect(page.locator("#transcript-lines .transcript-line")).to_have_count(4)
+            expect(page.locator("#transcript-file")).to_be_enabled()
+            expect(page.locator("#process-button")).to_be_enabled()
+            expect(page.locator("#hero-process")).to_be_enabled()
             page.locator("#close-detail").click()
             page.locator("#sidebar-settings").click()
             expect(page.locator("#save-settings")).to_be_enabled()
