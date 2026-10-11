@@ -4,13 +4,15 @@ Castwell supports a local, single-user podcast library with batch preparation an
 
 ## Start the suite on Windows
 
+For the portable app and full installer, follow [Windows desktop installation](windows.md). Both bundle CUDA inference runtimes and require NVIDIA hardware. The desktop launcher owns its services, verifies GPU execution, and stops instead of switching inference to CPU. Speech weights and classifier weights remain separate.
+
 Use the installed project environment and pinned native llama.cpp/Qwen3.8 profile described in [local models](local-models.md). From the repository directory:
 
 ```powershell
 .\scripts\start_suite.ps1 -ReviewedProfile
 ```
 
-The launcher honors the saved or explicitly selected speech model and falls back to `small.en` when none is saved. `-ReviewedProfile` selects the verified v8 contextual detector, bounded Qwen reasoning, and manual approval; it does not change the speech model. Without that switch, the launcher retains your saved processing settings. Model weights and FFmpeg must already be installed; the suite launcher does not download them or spend money on a provider. It verifies pinned model/runtime files, checks existing process ownership before reusing ports, and writes service state under `.local/runtime`.
+The launcher honors the saved or explicitly selected speech model and selects `small.en` when none is saved. `-ReviewedProfile` selects the verified v8 contextual detector, bounded Qwen reasoning, and manual approval; it does not change the speech model. Without that switch, the launcher retains your saved processing settings. Model weights and FFmpeg must already be installed; the suite launcher does not download them or spend money on a provider. It verifies pinned model/runtime files, checks existing process ownership before reusing ports, and writes service state under `.local/runtime`.
 
 Open `http://127.0.0.1:8000`. Select a podcast and choose **Remove ads** or **Keep original**. Removing ads prepares suggestions for your review; it does not promise that every commercial will be recognized. Keeping ads prepares transcripts and retains the original recording. The saved podcast choice applies when you queue episodes, so changing it later does not alter an already queued job.
 

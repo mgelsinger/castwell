@@ -3,6 +3,7 @@ services:
     build: .
     image: castwell:local
     init: true
+    gpus: all
     restart: unless-stopped
     ports:
       - "127.0.0.1:8000:8000"

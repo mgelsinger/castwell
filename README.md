@@ -51,6 +51,16 @@ Open an episode to review its transcript, compare original and cleaned playback,
 
 ## Start listening
 
+### Windows desktop package
+
+Download **Castwell-0.5.1-Windows-x64-Setup.exe** or **Castwell-0.5.1-Windows-x64-Portable.zip** from [GitHub Releases](https://github.com/mgelsinger/castwell/releases/latest). The installer creates a current-user Start menu shortcut. For the portable version, extract the entire archive and open `Castwell\Castwell.exe`.
+
+The packages include Python, FFmpeg, Whisper's engine, and CUDA llama.cpp. They require a supported NVIDIA GPU and compatible driver, check CUDA and float16 support before starting, and do not fall back to CPU inference. Choose the data folder and optional local GGUF classifier in the launcher, then select **Start**. Speech and classifier weights are separate. Prepare a free speech model explicitly in Settings. The pinned Qwen3.8 model automatically selects its reviewed bounded reasoning profile; other GGUF files use a generic local profile. Keep manual cut review enabled.
+
+Installed libraries live in `%LOCALAPPDATA%\Castwell` and survive uninstall. Portable libraries live in `Data` beside the executable. Open an existing library with `--data-dir` after stopping its previous service. These artifacts are unsigned; compare the release checksum before running them. See the [Windows guide](docs/windows.md) for model preparation, launch options, updates, and distribution verification.
+
+### Run from source
+
 Clone [mgelsinger/castwell](https://github.com/mgelsinger/castwell) on your device:
 
 ```bash
@@ -58,16 +68,18 @@ git clone https://github.com/mgelsinger/castwell.git
 cd castwell
 ```
 
-The native application requires **Python 3.10+** and **FFmpeg** (`ffmpeg` and `ffprobe` on your PATH). On Debian or Ubuntu, install FFmpeg with `sudo apt-get install ffmpeg`; on macOS with Homebrew, use `brew install ffmpeg`. Alternatively, the [Docker setup](#docker) includes Python and FFmpeg.
+The native application requires **Python 3.10+**, a supported **NVIDIA CUDA GPU**, compatible CUDA 12 and cuDNN 9 runtime libraries, and **FFmpeg** (`ffmpeg` and `ffprobe` on your PATH). On Debian or Ubuntu, install FFmpeg with `sudo apt-get install ffmpeg`. Native macOS inference is unsupported by the current CUDA-only runtime. Alternatively, the [Docker setup](#docker) includes Python and FFmpeg.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[transcription]'
+python -m pip uninstall -y onnxruntime onnxruntime-gpu
+python -m pip install --no-deps --force-reinstall onnxruntime-gpu==1.23.2
 python -m castwell --data-dir ./data
 ```
 
-On Windows PowerShell, create the environment with `py -m venv .venv` and activate it with `.\.venv\Scripts\Activate.ps1`, then run the same install and start commands. Install FFmpeg separately and confirm `ffmpeg -version` and `ffprobe -version` work in that terminal.
+On Windows PowerShell, create the environment with `py -m venv .venv` and activate it with `.\.venv\Scripts\Activate.ps1`, then run the same install and start commands. Install FFmpeg separately and confirm `ffmpeg -version` and `ffprobe -version` work in that terminal. If compatible native CUDA libraries are not already available, run `python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda` to explicitly download the free pinned runtime files. Apply the ONNX GPU reinstall commands last so a CPU package does not replace its shared Python namespace. The desktop packages already bundle these native dependencies.
 
 A fresh checkout includes the application code. Speech models, classifier weights, and your podcast library are prepared or downloaded on your device; they are not included in GitHub.
 
@@ -78,7 +90,7 @@ On an already configured Windows installation, `./scripts/start_suite.ps1 -Revie
 For a private deployment using another hostname, set `CASTWELL_ALLOWED_HOSTS=castwell.lan,192.168.1.25` to the exact hostnames or IP addresses clients will use. Loopback hosts are always allowed; other request hosts are rejected unless listed. Wildcards are not supported. This setting works alongside the listen address or reverse proxy and does not add authentication.
 
 1. **Add a podcast or upload audio.** Use an RSS feed, import subscriptions from OPML, or upload MP3, WAV, M4A, MP4, FLAC, OGG, Opus, or AAC recordings up to 2 GB. Identical uploads are deduplicated.
-2. **Prepare the speech model.** In Settings & models, choose a Whisper model, save settings, and select **Download model**. The default `base` model runs locally on the CPU. Environment check reports whether its files are available.
+2. **Prepare the speech model.** In Settings & models, choose a Whisper model, save settings, and select **Download model**. The default source model is `base`; speech inference uses CUDA float16, and speech activity detection uses GPU ONNX Runtime with CPU fallback disabled. Environment check reports whether its files are available.
 3. **Choose each podcast's ad preference and prepare episodes.** **Keep original** downloads and transcribes without detecting ads. **Remove ads** makes a waveform and transcript, then proposes ad cuts for review. Use an episode, selected batch, or whole podcast. Review is enabled by default; only selections you approve are exported. **Download originals** prepares audio without transcription or detection.
 4. **Review and listen.** Open Ad review, listen around the suggested boundaries, adjust timestamps, or use **Mark start / Mark end** while listening. Select the cuts you want, then export cleaned audio.
 
@@ -145,19 +157,9 @@ Reasoning classification can take time: the matched Qwen3.8 run recorded about 1
 
 The launchers bind to loopback and record process IDs and logs under `.local/logs`. Omit `-Background` to keep a server in the current terminal. They refuse to start if the chosen port is occupied. The `.local` directory is ignored by Git. To stop a background instance, stop its process; for the Python app on Windows, the HTTP listener can be a child of the recorded launcher PID.
 
-The earlier **Qwen3.5-35B-A3B** profile remains available through `scripts/setup_qwen35_local.py` and `scripts/start_qwen35_local.ps1`. Its locally requantized Q4 model uses four CPU expert layers in the measured 24 GB GPU setup. Its v6 results do not support unattended removal. Preparation needs at least 60 GB for source and converted files; [local model setup](docs/local-models.md#earlier-qwen35-35b-a3b-candidate) preserves the exact commands and identities.
+The earlier **Qwen3.5-35B-A3B** experiment used a locally requantized Q4 model with four CPU expert layers in the measured 24 GB GPU setup. Its v6 results do not support unattended removal. The [historical local model setup](docs/local-models.md#earlier-qwen35-35b-a3b-candidate) preserves the exact commands and identities; the current desktop profile uses CUDA throughout inference.
 
 The smaller **Qwen3-14B Q6_K** profile remains available with `.\.venv\Scripts\python.exe scripts/local_ai.py --download --size 14b --cache-dir .local/models --backend native --server-binary .local/llama.cpp/llama-server.exe --threads 8`, followed on later starts by `.\scripts\start_local_ai.ps1`. Its download is approximately 12.1 GB. Qwen2.5 7B and 3B variants are also available, but the recorded comparisons found consequential detection errors in the smaller candidates. Run only one model server on the shared endpoint.
-
-For the older Qwen2.5 profile on Linux, install a C/C++ build toolchain, then build the optional dependency. This Python runtime is not the tested Qwen3.5 setup. `llama-cpp-python` is pinned to `0.3.16`; limit compiler parallelism to avoid excessive memory use:
-
-```bash
-sudo apt-get install build-essential cmake ninja-build
-CC=gcc CXX=g++ CMAKE_BUILD_PARALLEL_LEVEL=3 \
-  CMAKE_ARGS='-DGGML_CUDA=OFF -DGGML_NATIVE=OFF -DLLAMA_CURL=OFF' \
-  python -m pip install -e '.[local-ai]'
-python scripts/local_ai.py --download --size 7b --cache-dir ./data/models --threads 4
-```
 
 Keep that terminal running. In Castwell Settings, save these values and use **Test AI connection**:
 
@@ -170,8 +172,6 @@ Keep that terminal running. In Castwell Settings, save these values and use **Te
 | Require my approval for every cut | On |
 
 The helper listens only on `127.0.0.1` and needs no API key. `--port`, `--threads`, and `--context` adjust the server; the default context is 8192 tokens. Use `python scripts/local_ai.py --help` for options. To use an existing Qwen-compatible GGUF file instead, run `python scripts/local_ai.py --model /path/to/model.gguf`; for a split model, point to its first shard and keep the other shard beside it. Checksum verification is automatic for the pinned `--download` models; verify the provenance of a custom file yourself.
-
-For a small CPU classifier, shorter transcript windows can reduce latency. Set `CASTWELL_AI_WINDOW_CHARS=3000` and `CASTWELL_AI_CONTEXT_SEGMENTS=3` in the **Castwell** process environment before starting the gallery. Larger windows provide more context at the cost of additional inference work. Enable **Review every suggestion** while evaluating a model on your podcasts; a smaller model can pass obvious examples and still miss an actual transcribed advertisement.
 
 The helper is intended for a native installation. Docker's `127.0.0.1` is the container itself; a container must use an AI endpoint reachable from its own network. The default Docker image does not compile or run the optional classifier.
 
@@ -193,7 +193,9 @@ For a hosted service, use its HTTPS API base URL and model name. Supply `CASTWEL
 
 ## Transcripts and speech models
 
-Transcription uses **faster-whisper**, with CPU int8 inference and word timestamps. `base` is the default multilingual model; larger models trade additional time and memory for potentially better recognition. Select a language code such as `en`, or leave it blank for automatic detection. Model preparation is explicit in Settings; the first processing run can also download missing weights.
+Transcription uses **faster-whisper**, with NVIDIA CUDA float16 inference and word timestamps. Neural speech activity detection uses the CUDA ONNX provider with CPU fallback disabled. `base` is the default multilingual model; larger models trade additional time and memory for potentially better recognition. Select a language code such as `en`, or leave it blank for automatic detection. Model preparation is explicit in Settings; the first processing run can also download missing weights.
+
+The source transcription extra includes `onnxruntime-gpu==1.23.2`. Upstream faster-whisper also declares the CPU ONNX package, and both distributions share an import namespace. After installing the extra, remove both ONNX distributions and force-reinstall the GPU package as shown above; perform that step last after dependency changes. CUDA 12 and cuDNN 9 libraries must be available to CTranslate2 and GPU ONNX Runtime.
 
 A local CTranslate2/faster-whisper model directory is accepted through `--model /path/to/model` or `CASTWELL_TRANSCRIPTION_MODEL`. `CASTWELL_MODEL_CACHE` controls downloaded model storage. The transcription extra constrains PyAV to `>=14,<17`; PyAV 16.1.0 has been exercised with this application.
 
@@ -215,7 +217,7 @@ The downloaded recording's measured duration takes precedence over an RSS estima
 
 ## Docker
 
-The CPU image includes FFmpeg and the transcription dependencies, runs as an unprivileged user, and keeps data and downloaded speech models in separate volumes.
+The NVIDIA CUDA image includes CUDA 12, cuDNN 9, FFmpeg, and GPU speech dependencies. It requires an NVIDIA GPU, compatible host driver, Docker Compose with GPU support, and NVIDIA Container Toolkit on Linux. It runs as an unprivileged user and keeps recordings and speech models in separate volumes.
 
 ```bash
 docker compose up --build -d
@@ -228,7 +230,7 @@ docker compose logs -f castwell
 docker compose down
 ```
 
-Named volumes persist when the container is recreated. `docker compose down --volumes` deletes those volumes; avoid it if you want to retain your library. A bind mount must be writable by container UID/GID `10001`. The supplied Compose environment can pass classifier settings and an API key from your shell. Use a reachable endpoint for a classifier outside the container; neither GPU support nor a local classifier is included in this image.
+Named volumes persist when the container is recreated. `docker compose down --volumes` deletes those volumes; avoid it if you want to retain your library. A bind mount must be writable by container UID/GID `10001`. The supplied Compose environment can pass classifier settings and an API key from your shell. Use a reachable endpoint for a classifier outside the container; the image includes GPU speech inference and does not start a classifier server.
 
 For a build behind a managed HTTPS proxy, Docker supports proxy build arguments and the Dockerfile accepts an optional trusted CA bundle as a BuildKit secret:
 

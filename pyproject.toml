@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "castwell"
-version = "0.5.0"
+version = "0.5.1"
 description = "A local podcast suite with batch workflows and reviewable advertisement removal"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,7 +23,7 @@ Repository = "https://github.com/mgelsinger/castwell"
 Issues = "https://github.com/mgelsinger/castwell/issues"
 
 [project.optional-dependencies]
-transcription = ["faster-whisper>=1.1,<2", "av>=14,<17"]
+transcription = ["faster-whisper>=1.2.1,<1.3", "av>=14,<17", "onnxruntime-gpu==1.23.2"]
 local-ai = ["llama-cpp-python[server]==0.3.16", "huggingface-hub>=0.34,<2"]
 dev = ["pytest>=8,<10", "httpx>=0.27,<1", "playwright>=1.49,<2"]
 

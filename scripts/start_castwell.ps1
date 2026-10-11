@@ -24,6 +24,7 @@ foreach ($binary in @('ffmpeg', 'ffprobe')) {
 $portCheck = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 try { $portCheck.Start() } finally { $portCheck.Stop() }
 $environment = @{
+    PATH = (Join-Path $projectRoot '.local\windows-vendor-cuda\cuda-runtime') + ';' + $env:PATH
     CASTWELL_AI_BASE_URL = "http://127.0.0.1:$ClassifierPort/v1"
     CASTWELL_AI_MODEL = 'castwell-local'
     CASTWELL_AI_POLICY = 'verified'

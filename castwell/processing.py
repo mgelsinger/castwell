@@ -57,9 +57,12 @@ _MODEL_LOCK = threading.Lock()
 @lru_cache(maxsize=1)
 def _cached_model(model: str, cache: Optional[str]):
     from faster_whisper import WhisperModel
+    from .gpu import configure_cuda_vad
 
-    return WhisperModel(model, device="cpu", compute_type="int8",
-                        cpu_threads=min(4, os.cpu_count() or 1), download_root=cache)
+    configure_cuda_vad()
+    # Inference requires NVIDIA CUDA. Do not silently change devices when the
+    # driver, runtime, or GPU memory is unavailable.
+    return WhisperModel(model, device="cuda", compute_type="float16", download_root=cache)
 
 
 def _number(value, name: str) -> float:
@@ -186,7 +189,7 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
     language = language.strip().lower() if language else None
     if language == "auto":
         language = None
-    # Keep one reusable CPU model and serialize inference rather than loading a
+    # Keep one reusable CUDA model and serialize inference rather than loading a
     # separate copy for every queued episode. Waiting jobs remain cancellable.
     while not _MODEL_LOCK.acquire(timeout=0.1):
         _check_cancel(should_cancel)

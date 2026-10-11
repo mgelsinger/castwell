@@ -2,16 +2,21 @@
 
 This setup runs speech recognition and classification on your own machine. Model downloads are public and free; no hosted inference, API key, Ollama, or Modal deployment is needed. The application and model servers bind to `127.0.0.1`.
 
-The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The Qwen3.8 and Qwen3.5 dense profiles use an 8,192-token context and all GPU layers; the earlier 35B-A3B profile uses four CPU expert layers. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
+The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The Qwen3.8 and Qwen3.5 dense profiles use an 8,192-token context and all GPU layers. The earlier 35B-A3B measurement used four CPU expert layers and remains historical provenance; the current application requires CUDA inference with no CPU fallback. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
 
 ## Application environment
 
-Install Python 3.12, Git, and FFmpeg first. Both `ffmpeg` and `ffprobe` must be on `PATH`. From the repository root:
+Install Python 3.12, Git, and FFmpeg first. Both `ffmpeg` and `ffprobe` must be on `PATH`. A supported NVIDIA GPU, compatible NVIDIA driver, CUDA 12 and cuDNN 9 runtime libraries are required. Speech recognition uses CUDA float16, and neural speech activity detection uses ONNX GPU with CPU fallback disabled. The [Windows desktop package](windows.md) bundles native dependencies; the commands below prepare a source checkout.
 
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python.exe -m pip install -e ".[transcription]" "huggingface-hub>=0.34,<2"
+.venv\Scripts\python.exe -m pip uninstall -y onnxruntime onnxruntime-gpu
+.venv\Scripts\python.exe -m pip install --no-deps --force-reinstall onnxruntime-gpu==1.23.2
+.venv\Scripts\python.exe scripts\fetch_windows_dependencies.py --output .local\windows-vendor-cuda
 ```
+
+The last command explicitly downloads free pinned CUDA and native runtime files if they are missing. Run the ONNX GPU reinstall after any dependency installation that introduces `onnxruntime`: both ONNX distributions share the same Python namespace. The [source installation instructions](../README.md#run-from-source) describe the same requirements.
 
 Prepare the English speech model once. This downloads about 0.5 GB and does not process any podcast:
 

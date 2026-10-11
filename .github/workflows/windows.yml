@@ -1,0 +1,67 @@
+name: Windows distributions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch verified native CUDA dependencies
+        run: python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda
+      - name: Prepare compiler and release inputs
+        shell: pwsh
+        run: |
+          $vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
+          $compilerDir = Join-Path $env:GITHUB_WORKSPACE '.local/windows-tools/inno'
+          $install = Start-Process -FilePath $vendor.inno_installer -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CURRENTUSER /NOICONS /DIR=`"$compilerDir`"" -WindowStyle Hidden -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw 'Inno compiler installation failed' }
+          # Keep only the binary stages used by the build, avoiding duplicate
+          # extracted CUDA packages on the hosted runner's limited disk.
+          foreach ($name in @('cuda','cudnn','cufft','curand','nvrtc','downloads')) {
+            $path = [IO.Path]::GetFullPath((Join-Path "$env:GITHUB_WORKSPACE/.local/windows-vendor-cuda" $name))
+            $root = [IO.Path]::GetFullPath("$env:GITHUB_WORKSPACE/.local/windows-vendor-cuda") + [IO.Path]::DirectorySeparatorChar
+            if (-not $path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid vendor cleanup path' }
+            Remove-Item -LiteralPath $path -Recurse -Force
+          }
+      - name: Build installer and portable ZIP
+        shell: pwsh
+        run: |
+          $vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
+          python scripts/build_windows.py --ffmpeg-dir $vendor.ffmpeg_dir --llama-dir $vendor.llama_dir --cuda-dir $vendor.cuda_dir --notices-dir $vendor.notices_dir --inno-path .local/windows-tools/inno/ISCC.exe --skip-runtime-check
+          if ($LASTEXITCODE -ne 0) { throw 'Windows distribution build failed' }
+      - name: Release temporary build storage before distribution checks
+        shell: pwsh
+        run: |
+          $root = [IO.Path]::GetFullPath("$env:GITHUB_WORKSPACE/.local") + [IO.Path]::DirectorySeparatorChar
+          foreach ($name in @('windows-build/frozen','windows-build/analysis','windows-vendor-cuda')) {
+            $path = [IO.Path]::GetFullPath((Join-Path $root $name))
+            if (-not $path.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid build cleanup path' }
+            Remove-Item -LiteralPath $path -Recurse -Force
+          }
+      - name: Verify installation and explicit GPU requirement
+        shell: pwsh
+        run: |
+          $portable = (Get-ChildItem dist/windows/*-Portable.zip).FullName
+          $installer = (Get-ChildItem dist/windows/*-Setup.exe).FullName
+          # Hosted Windows runners have no NVIDIA GPU. Actual CUDA ASR and
+          # classifier release verification is performed on NVIDIA hardware.
+          python scripts/smoke_windows_distribution.py --portable $portable --installer $installer --expect-no-gpu
+          if ($LASTEXITCODE -ne 0) { throw 'Windows distribution smoke failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-cuda-distributions
+          path: |
+            dist/windows/
+            .local/windows-distribution-check/report.json
+          if-no-files-found: ignore
+          retention-days: 7

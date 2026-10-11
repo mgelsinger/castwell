@@ -13,7 +13,12 @@ def main():
     if args.model is not None:
         os.environ["CASTWELL_TRANSCRIPTION_MODEL"] = args.model
     import uvicorn
-    uvicorn.run("castwell.app:create_app", factory=True, host=args.host, port=args.port)
+    from pathlib import Path
+    from .desktop import LibraryLock
+    # The source launcher and frozen app share the same library ownership lock.
+    # Prevent two job queues from processing the same SQLite library at once.
+    with LibraryLock(Path(args.data_dir).expanduser().resolve(), args.port, "source-cli"):
+        uvicorn.run("castwell.app:create_app", factory=True, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

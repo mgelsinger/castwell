@@ -195,6 +195,11 @@ def diagnostics(settings) -> dict:
         installed = False
     check("transcription", "Local transcription engine", "ok" if installed else "error",
           "faster-whisper is installed." if installed else "Install the transcription extra: pip install 'castwell[transcription]'.")
+    if installed:
+        gpu_ready = _speech_gpu_available()
+        check("gpu", "NVIDIA CUDA speech inference", "ok" if gpu_ready else "error",
+              "CUDA float16 and GPU speech activity detection are available; CPU inference fallback is disabled."
+              if gpu_ready else "NVIDIA CUDA float16 and onnxruntime-gpu are required. Check the driver and CUDA runtime installation.")
     try:
         config = _configuration(settings)
     except (TypeError, ValueError):
@@ -223,6 +228,20 @@ def diagnostics(settings) -> dict:
     return {"checks": checks, "ready": model_available and all(item["status"] != "error" for item in checks)}
 
 
+def _speech_gpu_available() -> bool:
+    """Check local GPU capabilities without loading weights or using a network."""
+    try:
+        from .gpu import configure_cuda_runtime
+        configure_cuda_runtime()
+        import ctranslate2
+        import onnxruntime
+        return (ctranslate2.get_cuda_device_count() > 0
+                and "float16" in ctranslate2.get_supported_compute_types("cuda")
+                and "CUDAExecutionProvider" in onnxruntime.get_available_providers())
+    except (ImportError, OSError, RuntimeError, ValueError):
+        return False
+
+
 def test_classifier(settings) -> dict:
     """Explicit opt-in provider check using only a fixed, synthetic transcript."""
     from .processing import detect_ads
@@ -247,6 +266,8 @@ def test_classifier(settings) -> dict:
 def warm_transcription_model(settings, progress: Optional[Callable] = None) -> dict:
     """Explicitly download/load model weights before the first episode job."""
     config = _configuration(settings)
+    from .gpu import configure_cuda_runtime
+    configure_cuda_runtime()
     if progress:
         progress("Preparing the local transcription model; the first run may download model weights")
     try:
@@ -260,11 +281,10 @@ def warm_transcription_model(settings, progress: Optional[Callable] = None) -> d
         local = Path(model).expanduser()
         if local.is_dir():
             model = str(local.resolve())
-        engine = WhisperModel(model, device="cpu", compute_type="int8",
-                              cpu_threads=min(4, os.cpu_count() or 1), download_root=str(cache))
+        engine = WhisperModel(model, device="cuda", compute_type="float16", download_root=str(cache))
         del engine
     except Exception as exc:
-        raise ProcessingError("Model preparation failed. Check the model name or local directory, model-host network access, disk space, and available memory.") from exc
+        raise ProcessingError("Model preparation failed. Check the model files, NVIDIA driver, CUDA 12 and cuDNN 9 runtime libraries, available GPU memory, network access, and disk space.") from exc
     if progress:
         progress("The transcription model is ready")
     return {"ok": True, "model": config["transcription_model"], "message": "The transcription model loaded successfully and is ready for local processing."}

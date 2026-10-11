@@ -45,7 +45,7 @@ $nativeArgs = @(
     '--host', '127.0.0.1', '--port', [string]$Port,
     '--threads', [string]$Threads, '--threads-batch', [string]$Threads,
     '--ctx-size', [string]$Context, '--parallel', '1',
-    '--n-gpu-layers', $GpuLayers, '--fit', 'on', '--fit-target', '1536',
+    '--n-gpu-layers', $GpuLayers, '--fit', 'off',
     '--batch-size', '512', '--ubatch-size', '128', '--flash-attn', 'on',
     '--jinja', '--reasoning', $thinkingMode, '--reasoning-format', 'deepseek',
     '--reasoning-budget', [string]$effectiveReasoningBudget, '--n-predict', [string]$MaxTokens,

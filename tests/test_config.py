@@ -136,6 +136,7 @@ class SettingsTests(unittest.TestCase):
         self.settings.update({"transcription_model": str(selected)})
         self.install_model(selected)
         with patch("castwell.config.shutil.which", return_value="/usr/bin/fixture"), \
+                patch("castwell.config._speech_gpu_available", return_value=True), \
                 patch("castwell.config.importlib.util.find_spec", return_value=object()), \
                 patch("requests.get", side_effect=AssertionError("Diagnostics must stay offline")), \
                 patch("requests.post", side_effect=AssertionError("Diagnostics must stay offline")):
@@ -208,7 +209,8 @@ class SettingsTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(calls[0][0], ("base",))
         self.assertEqual(calls[0][1]["download_root"], str(self.root / "models"))
-        self.assertEqual(calls[0][1]["compute_type"], "int8")
+        self.assertEqual(calls[0][1]["device"], "cuda")
+        self.assertEqual(calls[0][1]["compute_type"], "float16")
         self.assertEqual(len(progress), 2)
 
     def test_model_preparation_error_is_safe(self):

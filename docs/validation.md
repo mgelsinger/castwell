@@ -2,6 +2,16 @@
 
 These checks establish working application flows; they do not establish universal advertisement detection.
 
+## October 11 NVIDIA CUDA desktop release
+
+The 0.5.1 Windows checkout passed **670 tests and 121 subtests** in 40.77 seconds. JavaScript syntax and whitespace checks passed. The suite includes CUDA-only speech configuration, refusal to retry on CPU, GPU VAD provider checks, library locking, owned desktop service shutdown, portable storage, and installer artifact boundaries. A real frozen GUI check exposed a Windows JSON file-sharing race; bounded atomic-write retries and recurring GUI callbacks now preserve lifecycle control when a report reader temporarily locks the file. GPU runtime validation runs in a bounded owned child process, avoiding a frozen Tk worker startup hang and releasing the probe's CUDA contexts before classifier loading. One upstream Starlette test-client deprecation warning remains.
+
+The final frozen native launcher opened its real window, started the owned backend, tolerated repeated report reads, and stopped with exit code zero and a closed server port in a 6.4-second isolated check. Its PATH excluded external Python and FFmpeg. A separate frozen runtime check with CUDA devices masked returned a failure and no CPU fallback; the normal frozen check verified actual CUDA allocation, conversion kernels, float16, and GPU speech activity inference.
+
+On the RTX 3090 Ti, a read-only CUDA float16 transcription of the full 1,060.441-second Skeptoid recording completed in **22.515 seconds**, producing 229 segments and 2,538 word timestamps. ONNX profiling recorded only `CUDAExecutionProvider` for the speech activity model's neural operations, with CPU graph fallback disabled. The original SHA256 was unchanged and the live library was not modified. This checks real GPU execution and full-recording handling; transcription and ad-boundary accuracy were not scored in this packaging run. No paid classifier requests were made.
+
+The CUDA Docker image built successfully and transcribed a cached 21.18-second speech fixture using the GPU speech activity model and Whisper. The container ran with an NVIDIA GPU and read-only model/audio mounts. Its normal CLI service also started with an isolated empty library as UID 10001, passed health and idle-queue checks through a host loopback port, and stopped cleanly. The Windows packages likewise require NVIDIA CUDA and do not offer a CPU inference fallback. Classifier and speech weights remain separate downloads; the bundled speech activity model is included.
+
 ## October 11 podcast suite checks
 
 The 0.5.0 Windows checkout passed **627 tests and 121 subtests** in 44.99 seconds. The final Chromium smoke passed in **40.4 seconds**, including mixed keep/remove podcast preferences, batch preparation and rendering, actual ZIP downloads, listening state, description preservation, and desktop/mobile layouts. A 65-episode catalogue verified 48-card paging, selection across unloaded pages, conditional 200/304 polling, and large-batch confirmation. A deterministic held-save regression reproduced a Linux CI failure before the fix and confirmed that completed actions now restore batch, podcast, and detail controls even after an unchanged catalogue poll. JavaScript syntax checks passed. One upstream Starlette test-client deprecation warning remains.
