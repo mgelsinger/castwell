@@ -209,11 +209,13 @@ def check_runtime(executable, environment, output, bundle, expect_no_gpu=False):
     return report
 
 
-def smoke_no_gpu(executable, bundle, workspace, label, artifacts):
+def smoke_no_gpu(executable, bundle, workspace, label, artifacts, *, force_visibility_mask=False):
     note(f"Windows distribution: {label} clearly rejects unsupported GPU inference")
     area = owned(workspace / label, workspace)
     area.mkdir()
     environment = restricted_environment(area / "Profile")
+    if force_visibility_mask:
+        environment["CUDA_VISIBLE_DEVICES"] = "-1"
     runtime = check_runtime(executable, environment, artifacts / f"{label}-runtime.json", bundle, expect_no_gpu=True)
     library = area / "Library with spaces"
     library.mkdir()
@@ -235,7 +237,8 @@ def smoke_no_gpu(executable, bundle, workspace, label, artifacts):
         pass
     else:
         raise AssertionError("Unsupported GPU must not start a fallback server")
-    return {"version": runtime["version"], "expected_gpu_rejection": True, "model_inference_run": False, "cuda": runtime["cuda"],
+    return {"version": runtime["version"], "expected_gpu_rejection": True, "visibility_mask_simulation": force_visibility_mask,
+            "model_inference_run": False, "cuda": runtime["cuda"],
             "library": str(library), "sentinel": str(sentinel)}
 
 
@@ -336,8 +339,9 @@ def smoke_launcher(executable, library, environment, report_path, log_path, spee
     port = free_port()
     base = f"http://127.0.0.1:{port}"
     command = [str(executable), "--no-browser", "--auto-start", "--parent-control",
-               "--port", str(port), "--report", str(report_path),
-               "--speech-model", str(speech_model)]
+               "--port", str(port), "--report", str(report_path)]
+    if speech_model:
+        command += ["--speech-model", str(speech_model)]
     with log_path.open("wb") as log:
         process = subprocess.Popen(command, cwd=executable.parent, env=environment,
                                    stdin=subprocess.PIPE, stdout=log, stderr=subprocess.STDOUT,
@@ -436,7 +440,7 @@ def smoke_portable_relocation(executable, workspace, artifacts, speech_model, au
     assert not package.exists(), "The relocated launcher recreated the old application or Data path"
     return {"default_data_resolved_after_move": True, "original_and_cleaned_audio_unchanged": True,
             "transcript_and_cut_state_preserved": True, "listening_state_preserved": True,
-            "visible_native_window": True, "model_inference_run": False,
+            "visible_native_window": True, "asr_or_ad_classifier_inference_run": False,
             "original_data_dir": str(library), "relocated_data_dir": str(relocated_library),
             "episode_id": expected["episode_id"]}
 
@@ -467,6 +471,8 @@ def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_mod
             assert checks[identifier]["status"] == "ok", checks[identifier]
         if not speech_model:
             assert checks["model"]["status"] == "warning", "No speech weights should be bundled or downloaded"
+        else:
+            assert checks["model"]["status"] == "ok", checks["model"]
         original = upload(base, audio)
         assert abs(original["duration"] - 12) < .05
         api(base, f'/api/episodes/{original["id"]}/transcript', TRANSCRIPT, "POST")
@@ -513,8 +519,8 @@ def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_mod
             assert len(manifest["included"]) == 3 and manifest["omitted"] == [], manifest
             assert sorted(item["version"] for item in manifest["included"]) == ["cleaned", "original", "original"]
         speech = None
-        if speech_model:
-            assert checks["model"]["status"] == "ok", checks["model"]
+        if speech_audio:
+            assert speech_model, "A supplied speech recording requires cached model weights"
             recorded = upload(base, speech_audio)
             queued = api(base, f'/api/episodes/{recorded["id"]}/process', {"remove_ads": False}, "POST")
             assert queued["queued"]
@@ -530,10 +536,14 @@ def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_mod
     gui_sentinel.write_text("Keep the default GUI library when uninstalling.\n", encoding="utf-8")
     launcher = smoke_launcher(executable, gui_library, environment,
                               artifacts / f"{label}-launcher-state.json", artifacts / f"{label}-launcher.log", speech_model)
+    preference_path = executable.parent / "desktop-preferences.json" if (executable.parent / "portable.flag").is_file() else gui_library / "desktop-preferences.json"
+    preferences = json.loads(preference_path.read_text(encoding="utf-8"))
+    assert preferences.get("schema_version") == 2 and preferences.get("use_default") is True and preferences.get("data_dir") is None, preferences
     return {"version": runtime["version"], "runtime_ready": True, "frozen": True, "cuda": runtime["cuda"], "transcription": runtime["transcription"],
             "launcher": launcher, "external_python_on_path": False,
             "external_ffmpeg_on_path": False, "rendered_seconds": measured,
-            "feed_episodes": len(ids), "archive_files": 3, "speech": speech,
+            "feed_episodes": len(ids), "archive_files": 3, "speech": speech, "asr_inference_run": speech is not None,
+            "semantic_default_library_preference": True,
             "library": str(library), "sentinel": str(sentinel), "gui_sentinel": str(gui_sentinel),
             "gui_default_library": str(gui_library)}
 
@@ -597,7 +607,7 @@ $link = (New-Object -ComObject WScript.Shell).CreateShortcut($env:CASTWELL_SMOKE
     return json.loads(completed.stdout.decode("utf-8-sig"))
 
 
-def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model, speech_audio, expect_no_gpu=False, expected_version=None):
+def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model, speech_audio, expect_no_gpu=False, expected_version=None, *, check_masked_gpu_rejection=False, verify_install_hook=None):
     assert not uninstall_entries(app_id), "Refusing to replace an existing Castwell installation or uninstall entry"
     install = owned(workspace / "Installed app with spaces", workspace)
     group = "Castwell"
@@ -633,9 +643,15 @@ def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model
         assert Path(link["target"]).resolve() == executable.resolve(), link
         assert not link["arguments"], link
         assert Path(link["working_directory"]).resolve() == install.resolve(), link
+        identity = verify_install_hook(install) if verify_install_hook else None
         result = (smoke_no_gpu(executable, install, workspace, "installed", artifacts) if expect_no_gpu
                   else smoke_app(executable, install, workspace, "installed", audio, artifacts, speech_model, speech_audio))
         result.update(shortcut_valid=True, uninstall_registry_valid=True, current_user=True)
+        if identity is not None:
+            result["installed_package_identity"] = identity
+        if check_masked_gpu_rejection:
+            result["masked_gpu_rejection"] = smoke_no_gpu(
+                executable, install, workspace, "installed-gpu-masked", artifacts, force_visibility_mask=True)
     finally:
         if uninstaller.is_file():
             entries = uninstall_entries(app_id)
@@ -652,6 +668,8 @@ def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model
                 assert Path(result["sentinel"]).is_file(), "Uninstall removed the external --data-dir library"
                 if result.get("gui_sentinel"):
                     assert Path(result["gui_sentinel"]).read_text(encoding="utf-8") == "Keep the default GUI library when uninstalling.\n", "Uninstall removed the default GUI library"
+                if result.get("masked_gpu_rejection"):
+                    assert Path(result["masked_gpu_rejection"]["sentinel"]).is_file(), "Uninstall removed the GPU rejection test's external library"
                 result["uninstall_preserved_libraries"] = True
     return result
 
