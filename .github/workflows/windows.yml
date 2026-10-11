@@ -2,9 +2,16 @@ name: Windows distributions
 
 on:
   workflow_dispatch:
+    inputs:
+      verification_run_id:
+        description: 'Verify distributions from this run instead of building (leave blank for a full build)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
@@ -15,9 +22,84 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validate verification run ID
+        if: ${{ inputs.verification_run_id != '' }}
+        shell: pwsh
+        env:
+          VERIFICATION_RUN_ID: ${{ inputs.verification_run_id }}
+        run: |
+          if ($env:VERIFICATION_RUN_ID -notmatch '^[0-9]+$') { throw 'Verification run ID must be numeric' }
+      - name: Download previously built distributions
+        if: ${{ inputs.verification_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-cuda-distributions
+          path: .local/windows-verification-input
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.verification_run_id }}
+      - name: Validate and stage reused distributions
+        if: ${{ inputs.verification_run_id != '' }}
+        shell: pwsh
+        run: |
+          @'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import tomllib
+          from scripts.build_windows import digest, source_fingerprint
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          staging = (workspace / '.local/windows-verification-input').resolve()
+          source = (staging / 'dist/windows').resolve()
+          destination = (workspace / 'dist/windows').resolve()
+          if not staging.is_relative_to(workspace) or not source.is_relative_to(staging) or not destination.is_relative_to(workspace):
+              raise ValueError('Distribution staging paths must remain inside the workspace')
+          version = tomllib.loads((workspace / 'pyproject.toml').read_text(encoding='utf-8'))['project']['version']
+          if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+              raise ValueError('Unexpected application version')
+          prefix = f'Castwell-{version}-Windows-x64'
+          expected = {f'{prefix}-Portable.zip', f'{prefix}-Setup.exe', f'{prefix}-manifest.json', 'SHA256SUMS.txt'}
+          if not source.is_dir() or {path.name for path in source.iterdir()} != expected:
+              raise ValueError('Downloaded artifact must contain exactly the expected distribution files')
+          files = {name: (source / name).resolve() for name in expected}
+          if any(not path.is_relative_to(source) or not path.is_file() for path in files.values()):
+              raise ValueError('Unsafe or missing distribution file')
+          manifest = json.loads(files[f'{prefix}-manifest.json'].read_text(encoding='utf-8'))
+          if (manifest.get('application') != 'Castwell' or manifest.get('version') != version
+                  or manifest.get('platform') != 'windows-x64' or manifest.get('inference') != 'nvidia-cuda-only'
+                  or manifest.get('source_tree_sha256') != source_fingerprint(workspace)):
+              raise ValueError('Reused distributions do not match the current CUDA application source')
+          artifacts = manifest.get('artifacts', [])
+          package_names = {f'{prefix}-Portable.zip', f'{prefix}-Setup.exe'}
+          if len(artifacts) != 2 or {item.get('name') for item in artifacts} != package_names:
+              raise ValueError('Manifest must identify both distribution packages')
+          hashes = {name: digest(path) for name, path in files.items() if name != 'SHA256SUMS.txt'}
+          for item in artifacts:
+              path = files[item['name']]
+              if path.stat().st_size != item.get('bytes') or hashes[item['name']] != item.get('sha256'):
+                  raise ValueError(f'Distribution hash or size mismatch: {path.name}')
+          expected_sums = {f'{value}  {name}' for name, value in hashes.items()}
+          if set(files['SHA256SUMS.txt'].read_text(encoding='utf-8').splitlines()) != expected_sums:
+              raise ValueError('Distribution checksums do not match the downloaded files')
+          destination.mkdir(parents=True, exist_ok=True)
+          if any(destination.iterdir()):
+              raise ValueError('Refusing to replace existing distribution output')
+          for name, path in files.items():
+              target = (destination / name).resolve()
+              if not target.is_relative_to(destination):
+                  raise ValueError('Unsafe distribution destination')
+              shutil.move(str(path), str(target))
+          # Keep the previous run's report isolated; the smoke writes fresh evidence.
+          print(f'Verified and staged {version} packages from the requested run')
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Reused distribution validation failed' }
       - name: Fetch verified native CUDA dependencies
+        if: ${{ inputs.verification_run_id == '' }}
         run: python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda
       - name: Prepare compiler and release inputs
+        if: ${{ inputs.verification_run_id == '' }}
         shell: pwsh
         run: |
           $vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
@@ -33,12 +115,14 @@ jobs:
             Remove-Item -LiteralPath $path -Recurse -Force
           }
       - name: Build installer and portable ZIP
+        if: ${{ inputs.verification_run_id == '' }}
         shell: pwsh
         run: |
           $vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
           python scripts/build_windows.py --ffmpeg-dir $vendor.ffmpeg_dir --llama-dir $vendor.llama_dir --cuda-dir $vendor.cuda_dir --notices-dir $vendor.notices_dir --inno-path .local/windows-tools/inno/ISCC.exe --skip-runtime-check
           if ($LASTEXITCODE -ne 0) { throw 'Windows distribution build failed' }
       - name: Release temporary build storage before distribution checks
+        if: ${{ inputs.verification_run_id == '' }}
         shell: pwsh
         run: |
           $root = [IO.Path]::GetFullPath("$env:GITHUB_WORKSPACE/.local") + [IO.Path]::DirectorySeparatorChar

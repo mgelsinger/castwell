@@ -36,6 +36,7 @@ import zipfile
 
 
 APP_ID = "{B38AE33D-2865-4B30-97CF-9887669E948D}"
+WORKSPACE_PREFIX = "Castwell Windows distribution "
 CREATE_NO_WINDOW = 0x08000000
 TRANSCRIPT = {"language": "en", "duration": 12.0, "segments": [
     {"id": 0, "start": 0.0, "end": 3.0, "text": "A synthetic introduction."},
@@ -53,6 +54,23 @@ def owned(path, workspace):
     if path != workspace and workspace not in path.parents:
         raise AssertionError(f"Path escaped the owned workspace: {path}")
     return path
+
+
+def cleanup_owned_workspace(workspace):
+    """Remove the exact temporary root, tolerating already-removed entries."""
+    workspace = Path(workspace).resolve()
+    assert owned(workspace, workspace) == workspace
+    assert workspace.parent == Path(tempfile.gettempdir()).resolve()
+    assert workspace.name.startswith(WORKSPACE_PREFIX)
+
+    def onerror(_operation, _path, failure):
+        error = failure[1]
+        if not isinstance(error, FileNotFoundError):
+            raise error.with_traceback(failure[2])
+
+    # Inno may remove its remaining directory after scandir cached an entry.
+    # Ignore only that disappearance; permission and other failures remain fatal.
+    shutil.rmtree(workspace, onerror=onerror)
 
 
 def restricted_environment(profile):
@@ -702,7 +720,7 @@ def main():
             parser.error("Speech model must be an existing complete faster-whisper directory")
     args.artifacts = args.artifacts.resolve()
     args.artifacts.mkdir(parents=True, exist_ok=True)
-    workspace = Path(tempfile.mkdtemp(prefix="Castwell Windows distribution ")).resolve()
+    workspace = Path(tempfile.mkdtemp(prefix=WORKSPACE_PREFIX)).resolve()
     assert workspace.parent == Path(tempfile.gettempdir()).resolve()
     report = {"passed": False, "model_downloads": 0, "classifier_api_calls": 0,
               "speech_requested": bool(args.speech_model), "expect_no_gpu": args.expect_no_gpu, "workspace": str(workspace)}
@@ -742,8 +760,7 @@ def main():
         (args.artifacts / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         if not args.keep_workspace and not owned_installation_remains:
             # This exact temporary root was created above and is the only recursive target.
-            assert owned(workspace, workspace) == workspace and workspace.parent == Path(tempfile.gettempdir()).resolve()
-            shutil.rmtree(workspace)
+            cleanup_owned_workspace(workspace)
         else:
             note(f"Owned workspace retained: {workspace}")
 
