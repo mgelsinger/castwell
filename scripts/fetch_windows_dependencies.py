@@ -41,20 +41,41 @@ def extract(archive: Path, destination: Path) -> None:
         source.extractall(destination)
 
 
+def write_native_notices(notices: Path, metadata: dict) -> None:
+    (notices / "THIRD-PARTY-NOTICES.txt").write_text(
+        "Castwell Windows distributions\n\n"
+        "Python and Python dependencies retain their bundled licenses.\n"
+        "FFmpeg and llama.cpp are separate, unmodified third-party executables.\n"
+        "Speech and classifier weights are not included and retain their publishers' terms.\n"
+        "The built-in Silero VAD model is included under the Silero Team MIT license.\n\n"
+        + "\n\n".join(f"{name}\nLicense: {item['license']}\nArtifact: {item['url']}\n"
+                        f"SHA256: {item['sha256']}\nSource: {item['source']}" for name, item in metadata.items())
+        + "\n\nFFmpeg Windows build documentation and dependency sources:\n"
+          "https://www.gyan.dev/ffmpeg/builds/\n"
+          "https://github.com/GyanD/codexffmpeg\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / ".local" / "windows-vendor")
     args = parser.parse_args()
     output = args.output.resolve()
     metadata = json.loads((ROOT / "packaging" / "windows-runtime.json").read_text())
+    notices = output / "notices"
+    notices.mkdir(parents=True, exist_ok=True)
     for name, item in metadata.items():
+        if item.get("kind") == "notice":
+            target = notices / item["filename"]
+            download(item["url"], target, item["sha256"])
+            item["download_path"] = str(target)
+            continue
         archive = output / "downloads" / item["url"].rsplit("/", 1)[1]
         download(item["url"], archive, item["sha256"])
         if archive.suffix == ".zip":
             extract(archive, output / name)
         item["download_path"] = str(archive)
-    notices = output / "notices"
-    notices.mkdir(parents=True, exist_ok=True)
     licenses = {
         "FFmpeg-GPL-3.0.txt": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.1.2/COPYING.GPLv3",
         "llama.cpp-MIT.txt": "https://raw.githubusercontent.com/ggml-org/llama.cpp/b11146/LICENSE",
@@ -66,23 +87,12 @@ def main() -> None:
     for name, url in licenses.items():
         download(url, notices / name)
     for name in metadata:
-        if name == "inno":
+        if name == "inno" or metadata[name].get("kind") == "notice":
             continue
         for source in (output / name).rglob("*"):
             if source.is_file() and ("license" in source.name.lower() or source.name.lower().startswith("readme")):
                 shutil.copy2(source, notices / f"{name}-{source.name}")
-    (notices / "THIRD-PARTY-NOTICES.txt").write_text(
-        "Castwell Windows distributions\n\n"
-        "Python and Python dependencies retain their bundled licenses.\n"
-        "FFmpeg and llama.cpp are separate, unmodified third-party executables.\n"
-        "Model weights are not included and retain their publishers' terms.\n\n"
-        + "\n\n".join(f"{name}\nLicense: {item['license']}\nBinary: {item['url']}\n"
-                        f"SHA256: {item['sha256']}\nSource: {item['source']}" for name, item in metadata.items())
-        + "\n\nFFmpeg Windows build documentation and dependency sources:\n"
-          "https://www.gyan.dev/ffmpeg/builds/\n"
-          "https://github.com/GyanD/codexffmpeg\n",
-        encoding="utf-8",
-    )
+    write_native_notices(notices, metadata)
     ffmpeg_directory = next((output / "ffmpeg").rglob("ffmpeg.exe")).parent
     llama_directory = next((output / "llama").rglob("llama-server.exe")).parent
     cuda_directory = output / "cuda-runtime"

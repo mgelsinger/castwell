@@ -16,6 +16,7 @@ from urllib.parse import parse_qsl, urlsplit
 ACTIVE_STATUSES = ('queued', 'downloading', 'transcribing', 'detecting', 'rendering')
 BOOLEAN_FIELDS = ('favorite', 'archived', 'played', 'analysis_done')
 SUMMARY_DESCRIPTION_LIMIT = 256
+ORIGINAL_MEDIA_EXTENSIONS = {'.mp3', '.m4a', '.mp4', '.ogg', '.opus', '.wav', '.flac', '.aac', '.audio'}
 EPISODE_ADDITIONS = {
     'favorite': 'INTEGER NOT NULL DEFAULT 0',
     'archived': 'INTEGER NOT NULL DEFAULT 0',
@@ -202,8 +203,33 @@ class Library:
                 db.execute('UPDATE episodes SET metadata=?,feed_id=?,podcast_id=? WHERE id=?', (json.dumps(metadata), feed_id, podcast_id, entry['id']))
         return added
 
-    @staticmethod
-    def decode(row):
+    def _owned_media_path(self, episode_id, field, value):
+        """Resolve a moved library's canonical media without rewriting its DB."""
+        if (not isinstance(value, str) or not value or not isinstance(episode_id, str)
+                or not re.fullmatch(r'[A-Za-z0-9_-]+', episode_id)):
+            return value
+        try:
+            stored = Path(value)
+            if (not stored.is_absolute() or '..' in stored.parts or re.search(r'[\x00-\x1f]', value)
+                    or stored.parent.name != episode_id or stored.parent.parent.name.casefold() != 'episodes'):
+                return value
+            filename = stored.name
+            if field == 'audio':
+                if stored.stem != 'original' or stored.suffix not in ORIGINAL_MEDIA_EXTENSIONS:
+                    return value
+            elif field != 'cleaned' or filename != 'cleaned.mp3':
+                return value
+            candidate = self.root / 'episodes' / episode_id / filename
+            resolved = candidate.resolve()
+            # An episode folder or media symlink must not redirect this rebasing
+            # to another recording, even if that target is also in the library.
+            if resolved != candidate or not resolved.is_relative_to(self.root) or not resolved.is_file():
+                return value
+            return str(resolved)
+        except (OSError, ValueError):
+            return value
+
+    def decode(self, row):
         if row is None:
             raise KeyError('Episode not found')
         record = dict(row)
@@ -213,6 +239,8 @@ class Library:
         record['cuts'] = json.loads(record['cuts'])
         for field in BOOLEAN_FIELDS:
             record[field] = bool(record[field])
+        for field in ('audio', 'cleaned'):
+            record[field] = self._owned_media_path(record['id'], field, record[field])
         return {**metadata, **record}
 
     def get(self, episode_id, include_large=True):

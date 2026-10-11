@@ -44,6 +44,58 @@ def test_selected_data_folder_bootstrap_respects_explicit_override(tmp_path, mon
     assert desktop.preferred_data_directory() == desktop.default_data_directory()
 
 
+def test_portable_default_library_follows_moved_executable(tmp_path, monkeypatch):
+    original = tmp_path / "Original portable folder"
+    original.mkdir()
+    (original / "portable.flag").write_text("portable")
+    (original / "Data").mkdir()
+    (original / "Data/library-sentinel").write_text("existing library")
+    monkeypatch.setattr(desktop.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(desktop.sys, "executable", str(original / "Castwell.exe"))
+    desktop.save_data_selection(desktop.default_data_directory())
+    preferences = json.loads((original / "desktop-preferences.json").read_text())
+    assert preferences == {"schema_version": 2, "use_default": True, "data_dir": None}
+
+    moved = tmp_path / "Relocated portable folder"
+    original.rename(moved)
+    monkeypatch.setattr(desktop.sys, "executable", str(moved / "Castwell.exe"))
+    assert desktop.preferred_data_directory() == moved / "Data"
+    assert (desktop.preferred_data_directory() / "library-sentinel").read_text() == "existing library"
+    assert not original.exists()
+    assert desktop.preferred_data_directory(tmp_path / "Explicit library") == tmp_path / "Explicit library"
+
+
+@pytest.mark.parametrize("portable", [False, True])
+def test_successful_gui_start_switches_custom_library_back_to_default(tmp_path, monkeypatch, portable):
+    executable = tmp_path / "Application folder" / "Castwell.exe"
+    executable.parent.mkdir()
+    monkeypatch.setattr(desktop.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(desktop.sys, "executable", str(executable))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Profile"))
+    if portable:
+        (executable.parent / "portable.flag").write_text("portable")
+    custom = tmp_path / "Custom absolute library" / "Data"
+    desktop.save_data_selection(custom)
+    assert desktop.preferred_data_directory() == custom
+    preferences = json.loads(desktop.bootstrap_preferences_path().read_text())
+    assert preferences == {"schema_version": 2, "use_default": False, "data_dir": str(custom)}
+
+    selected = desktop.default_data_directory().resolve()
+    # A safely recognizable legacy absolute default is upgraded on successful Start.
+    desktop.write_json(desktop.bootstrap_preferences_path(), {"schema_version": 1, "data_dir": str(selected)})
+    assert desktop.preferred_data_directory() == selected
+    controller = desktop.DesktopController(selected, no_browser=True, persist_data_selection=True)
+    monkeypatch.setattr(controller, "_probe_runtime", lambda: {"ready": True, "errors": []})
+    monkeypatch.setattr(controller, "_launch", lambda *args, **kwargs: Child(909))
+    monkeypatch.setattr(controller, "_wait_app", lambda: None)
+    controller.start()
+    assert controller.status == "ready"
+    assert desktop.preferred_data_directory() == selected
+    assert json.loads(desktop.bootstrap_preferences_path().read_text()) == {
+        "schema_version": 2, "use_default": True, "data_dir": None}
+    assert desktop.preferred_data_directory(custom) == custom
+
+
 def test_library_lock_prevents_second_backend_and_releases_after_error(tmp_path):
     with pytest.raises(RuntimeError, match="fixture failed"):
         with desktop.LibraryLock(tmp_path, 8765, "owner"):

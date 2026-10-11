@@ -15,6 +15,8 @@ These artifacts are unsigned. Windows may show an unknown-publisher or SmartScre
 
 The installer keeps the library in `%LOCALAPPDATA%\Castwell`, outside its application directory. The portable distribution uses a `Data` directory beside `Castwell.exe`. Both store episodes, transcripts, settings, listening state, and cut history in their library. Model weights can consume additional disk space.
 
+To move a portable installation that uses its default library, stop Castwell and move the whole `Castwell` folder, including `Data`. The next launch resolves the default library beside the executable at its new location. A custom **Data folder** remains an absolute selection and does not move automatically. Keep any selected GGUF at its configured path, or choose its new location before starting.
+
 ## Start listening
 
 Open Castwell from its Start menu shortcut or portable executable. Choose the **Data folder** if needed, optionally choose a local classifier, then select **Start**. The desktop launcher checks the GPU, starts the local service, and opens the podcast library in your browser. The service listens on loopback by default. Keep the launcher running while you use the library and use its stop or close control when finished.
@@ -81,6 +83,6 @@ python scripts/smoke_windows_distribution.py `
   --artifacts ".local\windows-distribution-check"
 ```
 
-The harness runs the frozen applications with external Python and FFmpeg removed from PATH. It uses a temporary path containing spaces, verifies UI and diagnostics, downloads a local RSS fixture in a batch, renders a known manual cut with real FFmpeg, verifies ZIP contents, and runs cached-model CUDA transcription. It also checks current-user installation, shortcut targets, uninstall registration, graceful shutdown, and library preservation. It refuses to replace an existing Castwell installation. It does not download weights or contact classifier APIs, and the supplied speech recording is not copied into public artifacts.
+The harness runs the frozen applications with external Python and FFmpeg removed from PATH. It uses a temporary path containing spaces, verifies UI and diagnostics, downloads a local RSS fixture in a batch, renders a known manual cut with real FFmpeg, verifies ZIP contents, and runs cached-model CUDA transcription. It moves a stopped portable installation and checks that its adjacent library, original and cleaned audio, transcript, reviewed cuts, and listening state survive reopening. It also checks current-user installation, shortcut targets, uninstall registration, graceful shutdown, and library preservation. It refuses to replace an existing Castwell installation or Start menu group. It does not download weights or contact classifier APIs, and the supplied speech recording is not copied into public artifacts.
 
 On a CI machine without a supported NVIDIA GPU, use `--expect-no-gpu` and omit both speech arguments. That mode verifies clear CUDA rejection, bundled files, installation, shortcuts, and uninstall preservation. It does not establish GPU inference or full application readiness.

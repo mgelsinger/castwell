@@ -208,6 +208,15 @@ def bundle_guides(app: Path, root: Path = ROOT) -> None:
         (app / 'production.md').write_text(content, encoding='utf-8')
 
 
+def validate_notice_pins(notices: Path, metadata: dict) -> None:
+    for item in metadata.values():
+        if item.get('kind') != 'notice':
+            continue
+        path = notices / item['filename']
+        if not path.is_file() or digest(path) != item['sha256']:
+            raise ValueError('Missing or unverified third-party notice: ' + item['filename'])
+
+
 def python_identity(python: Path) -> dict:
     result = subprocess.run([str(python), '-c',
         'import json,platform,struct,sys; print(json.dumps({"version":list(sys.version_info[:2]),"bits":struct.calcsize("P")*8,"platform":platform.system()}))'],
@@ -253,6 +262,8 @@ def main() -> int:
         parser.error('--inno-path must point to ISCC.exe for the installer build')
     if not args.notices_dir.is_dir() or not any(args.notices_dir.iterdir()):
         parser.error('--notices-dir must contain the native runtime licenses and provenance')
+    runtime_metadata = json.loads((ROOT / 'packaging' / 'windows-runtime.json').read_text(encoding='utf-8'))
+    validate_notice_pins(args.notices_dir, runtime_metadata)
     stages = [('ffmpeg', args.ffmpeg_dir, {'ffmpeg.exe', 'ffprobe.exe'}),
               ('llama', args.llama_dir, {'llama-server.exe', 'ggml-cuda.dll', 'ggml-cpu-x64.dll'}),
               ('cuda', args.cuda_dir, {'cublas64_12.dll', 'cublasLt64_12.dll', 'cudart64_12.dll',
@@ -365,6 +376,7 @@ def main() -> int:
                 'inference': 'nvidia-cuda-only', 'speech_and_classifier_weights_bundled': False,
                 'llama_host_support': 'Generic x64 buffer registration library; all model layers must offload to NVIDIA CUDA',
                 'builtin_vad_model_bundled': True,
+                'builtin_vad_license': runtime_metadata.get('silero-vad-license'),
                 'frozen_gpu_runtime_verified': runtime_verified,
                 'full_distribution_smoke_required': True,
                 'deduplicated_cuda_dlls': deduplicated_dlls,

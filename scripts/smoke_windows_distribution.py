@@ -330,7 +330,7 @@ def visible_launcher_window(identifier):
     return bool(windows)
 
 
-def smoke_launcher(executable, library, environment, report_path, log_path, speech_model):
+def smoke_launcher(executable, library, environment, report_path, log_path, speech_model, *, ready_hook=None):
     note("Windows distribution: real desktop launcher and owned server shutdown")
     report_path.unlink(missing_ok=True)
     port = free_port()
@@ -362,6 +362,8 @@ def smoke_launcher(executable, library, environment, report_path, log_path, spee
             assert state["port"] == port and Path(state["data_dir"]).resolve() == library.resolve(), state
             assert state["app_pid"] != process.pid and not state.get("model_pid"), state
             assert visible_launcher_window(process.pid), "Expected a visible native Castwell launcher window"
+            if ready_hook:
+                ready_hook(base)
         finally:
             stop_owned_process(process, timeout=20)
             assert process.returncode == 0, f"Native launcher did not exit cleanly: {process.returncode}"
@@ -373,6 +375,70 @@ def smoke_launcher(executable, library, environment, report_path, log_path, spee
             raise AssertionError("Desktop launcher left its owned local server running")
     return {"visible_native_window": True, "owned_server_started": True, "owned_server_stopped": True,
             "browser_opened": False, "automatic_weight_downloads": False}
+
+
+def smoke_portable_relocation(executable, workspace, artifacts, speech_model, audio):
+    """Move the whole portable folder and verify real library/media continuity."""
+    note("Windows distribution: portable default Data survives folder relocation")
+    package = owned(executable.parent, workspace)
+    assert (package / "portable.flag").is_file()
+    library = owned(package / "Data", workspace)
+    library.mkdir(parents=True, exist_ok=True)
+    sentinel = library / "preserve-relocated-library.txt"
+    sentinel.write_text("The adjacent portable library moves with the application.\n", encoding="utf-8")
+    environment = restricted_environment(workspace / "Relocation profile")
+    expected = {}
+
+    def seed(base):
+        original = upload(base, audio)
+        identifier = original["id"]
+        api(base, f"/api/episodes/{identifier}/transcript", TRANSCRIPT, "POST")
+        api(base, f"/api/episodes/{identifier}/cuts", {"cuts": [
+            {"start": 3, "end": 7, "approved": True, "confidence": 1,
+             "source": "manual", "reason": "Known synthetic relocation interval"}]}, "POST")
+        assert api(base, "/api/render", {"ids": [identifier]}, "POST")["queued"] == 1
+        wait_episode(base, identifier, "ready")
+        api(base, f"/api/episodes/{identifier}/state", {"favorite": True, "position": 4.5}, "PATCH")
+        expected["episode_id"] = identifier
+        expected["transcript"] = api(base, f"/api/episodes/{identifier}/transcript?format=json")
+        for version in ("original", "cleaned"):
+            expected[version + "_sha256"] = hashlib.sha256(request(base, f"/media/{identifier}/{version}")[2]).hexdigest()
+
+    smoke_launcher(executable, library, environment, artifacts / "relocation-before-state.json",
+                   artifacts / "relocation-before.log", speech_model, ready_hook=seed)
+    preferences = json.loads((package / "desktop-preferences.json").read_text(encoding="utf-8"))
+    assert preferences.get("schema_version") == 2 and preferences.get("use_default") is True and preferences.get("data_dir") is None, preferences
+    assert (library / "library.sqlite3").is_file()
+    destination = owned(workspace / "Relocated portable package with spaces" / "Castwell", workspace)
+    assert package != destination and not destination.exists()
+    destination.parent.mkdir()
+    # Both resolved paths are inside the exact temporary workspace. Move only
+    # this stopped portable package, never a live library or unrelated checkout.
+    shutil.move(str(package), str(destination))
+    assert not package.exists()
+    relocated_library = destination / "Data"
+    assert (relocated_library / sentinel.name).read_text(encoding="utf-8") == "The adjacent portable library moves with the application.\n"
+
+    def verify(base):
+        identifier = expected["episode_id"]
+        record = api(base, f"/api/episodes/{identifier}")
+        assert record["has_audio"] and record["has_cleaned"] and record["has_transcript"], record
+        assert record["favorite"] and abs(record["position"] - 4.5) < .01
+        assert len(record["cuts"]) == 1 and record["cuts"][0]["approved"]
+        transcript = api(base, f"/api/episodes/{identifier}/transcript?format=json")
+        assert transcript == expected["transcript"], "Relocation changed the imported transcript"
+        for version in ("original", "cleaned"):
+            digest = hashlib.sha256(request(base, f"/media/{identifier}/{version}")[2]).hexdigest()
+            assert digest == expected[version + "_sha256"], f"Relocation changed {version} audio"
+
+    smoke_launcher(destination / executable.name, relocated_library, environment,
+                   artifacts / "relocation-after-state.json", artifacts / "relocation-after.log", speech_model, ready_hook=verify)
+    assert not package.exists(), "The relocated launcher recreated the old application or Data path"
+    return {"default_data_resolved_after_move": True, "original_and_cleaned_audio_unchanged": True,
+            "transcript_and_cut_state_preserved": True, "listening_state_preserved": True,
+            "visible_native_window": True, "model_inference_run": False,
+            "original_data_dir": str(library), "relocated_data_dir": str(relocated_library),
+            "episode_id": expected["episode_id"]}
 
 
 def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_model=None, speech_audio=None):
@@ -387,7 +453,11 @@ def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_mod
     sentinel.write_text("Owned test library must survive app removal.\n", encoding="utf-8")
     with running_app(executable, library, environment, artifacts / f"{label}-server.log", speech_model) as base:
         _, _, page = request(base, "/")
-        assert b'podcast-rail' in page and b'rail-continue' in page and b'Castwell' in page
+        assert b'podcast-rail' in page and b'library-rails' in page and b'Castwell' in page
+        _, _, application = request(base, "/static/app.js")
+        _, _, stylesheet = request(base, "/static/style.css")
+        assert b'renderDiscovery' in application and b'Continue listening' in application
+        assert b'podcast-rail' in stylesheet
         settings = api(base, "/api/settings")
         assert not settings.get("ai_configured"), "Fresh test profile must not inherit a classifier"
         api(base, "/api/settings", {"detector": "heuristic", "review_only": True}, "PATCH")
@@ -530,9 +600,9 @@ $link = (New-Object -ComObject WScript.Shell).CreateShortcut($env:CASTWELL_SMOKE
 def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model, speech_audio, expect_no_gpu=False, expected_version=None):
     assert not uninstall_entries(app_id), "Refusing to replace an existing Castwell installation or uninstall entry"
     install = owned(workspace / "Installed app with spaces", workspace)
-    group = "Castwell Distribution Smoke " + uuid.uuid4().hex[:12]
+    group = "Castwell"
     start_menu = Path(os.environ["APPDATA"]) / "Microsoft/Windows/Start Menu/Programs" / group
-    assert not start_menu.exists(), "Unique smoke shortcut group unexpectedly exists"
+    assert not start_menu.exists(), "Refusing to replace an existing Castwell Start menu group"
     profile = workspace / "Installer profile"
     environment = restricted_environment(profile)
     external_library = profile / "Local/Castwell"
@@ -544,7 +614,7 @@ def smoke_installer(installer, workspace, artifacts, audio, app_id, speech_model
     result = None
     try:
         completed = subprocess.run([str(installer), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART",
-                                    "/CURRENTUSER", f"/DIR={install}", f"/GROUP={group}",
+                                    "/CURRENTUSER", f"/DIR={install}",
                                     f"/LOG={artifacts / 'installer.log'}"], env=environment,
                                    capture_output=True, timeout=180, creationflags=CREATE_NO_WINDOW)
         assert completed.returncode == 0, f"Installer failed: {completed.returncode}"
@@ -632,6 +702,9 @@ def main():
         report["portable"] = (smoke_no_gpu(executable, executable.parent, workspace, "portable", args.artifacts) if args.expect_no_gpu
                               else smoke_app(executable, executable.parent, workspace, "portable", audio,
                                              args.artifacts, args.speech_model, args.speech_audio))
+        if not args.expect_no_gpu:
+            report["portable_relocation"] = smoke_portable_relocation(
+                executable, workspace, args.artifacts, args.speech_model, audio)
         if args.installer:
             report["installed"] = smoke_installer(args.installer.resolve(), workspace, args.artifacts, audio,
                                                    args.app_id, args.speech_model, args.speech_audio, args.expect_no_gpu,

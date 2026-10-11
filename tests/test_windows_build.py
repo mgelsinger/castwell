@@ -116,3 +116,18 @@ class WindowsArtifactTests(unittest.TestCase):
             self.assertIn('[Windows](windows.md)', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#profile', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/experiment.md', production)
+
+    def test_pinned_model_notice_is_required_and_integrity_checked(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            notice = directory / 'Silero-VAD-MIT.txt'
+            notice.write_bytes(b'upstream license')
+            metadata = {'silero': {'kind': 'notice', 'filename': notice.name,
+                                   'sha256': self.build.digest(notice)}}
+            self.build.validate_notice_pins(directory, metadata)
+            notice.write_bytes(b'different license')
+            with self.assertRaisesRegex(ValueError, 'unverified third-party notice'):
+                self.build.validate_notice_pins(directory, metadata)
+            notice.unlink()
+            with self.assertRaisesRegex(ValueError, 'Missing'):
+                self.build.validate_notice_pins(directory, metadata)

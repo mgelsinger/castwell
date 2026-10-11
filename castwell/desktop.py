@@ -81,12 +81,22 @@ def preferred_data_directory(explicit=None) -> Path:
         return Path(explicit).expanduser().resolve()
     try:
         saved = json.loads(bootstrap_preferences_path().read_text(encoding="utf-8"))
+        if isinstance(saved, dict) and saved.get("use_default") is True:
+            return default_data_directory().resolve()
         value = saved.get("data_dir") if isinstance(saved, dict) else None
         if isinstance(value, str) and value and Path(value).is_absolute():
             return Path(value).resolve()
     except (OSError, ValueError):
         pass
     return default_data_directory().resolve()
+
+
+def save_data_selection(directory: Path) -> None:
+    """Keep the default library relative to the current portable executable."""
+    selected = Path(directory).expanduser().resolve()
+    use_default = selected == default_data_directory().resolve()
+    write_json(bootstrap_preferences_path(), {"schema_version": 2, "use_default": use_default,
+               "data_dir": None if use_default else str(selected)})
 
 
 def native_paths() -> dict[str, Path]:
@@ -754,7 +764,7 @@ class DesktopController:
                        "port": self.port, "gguf": str(self.gguf) if self.gguf else None,
                        "classifier_profile": self.classifier_profile})
             if self.persist_data_selection:
-                write_json(bootstrap_preferences_path(), {"schema_version": 1, "data_dir": str(self.directory)})
+                save_data_selection(self.directory)
             self._publish()
             if not self.no_browser:
                 webbrowser.open(self.base_url)

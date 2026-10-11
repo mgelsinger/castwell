@@ -41,6 +41,15 @@
     "source": "https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.4.1.json",
     "license": "NVIDIA CUDA Toolkit License"
   },
+  "silero-vad-license": {
+    "kind": "notice",
+    "filename": "Silero-VAD-MIT.txt",
+    "url": "https://raw.githubusercontent.com/snakers4/silero-vad/v6.0/LICENSE",
+    "sha256": "2e63e9a38b6e8fc0c7bc37ce174caca1862870856c6daf5697cfb785e925520b",
+    "source": "https://github.com/snakers4/silero-vad/tree/v6.0",
+    "license": "MIT",
+    "bundled_asset": "faster_whisper/assets/silero_vad_v6.onnx"
+  },
   "inno": {
     "url": "https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe",
     "sha256": "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
