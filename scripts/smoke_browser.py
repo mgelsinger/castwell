@@ -716,11 +716,19 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#close-detail").click()
             expect(page.locator("#mini-player")).to_be_visible()
             expect(page.locator("#mini-toggle")).to_have_attribute("aria-label", "Play")
+            # Pause/close updates the player immediately while its state PATCH
+            # is still in flight. Read the durable original timeline only after
+            # that save has reached the episode API.
+            wait_js(page, "async id => { const record = await (await fetch(`/api/episodes/${id}`)).json(); return record.position >= 7.8 && record.position < 10; }",
+                    episode_id, label="durable original playback position after pause")
             saved_position = episode(page, episode_id)["position"]
             assert 7.8 <= saved_position < 10, saved_position
             page.locator("#mini-toggle").click()
             wait_js(page, "() => !document.querySelector('#audio-player').paused", label="mini-player playback")
             page.locator("#mini-toggle").click()
+            paused_position = page.locator("#audio-player").evaluate("audio => audio.currentTime")
+            wait_js(page, "async ({id, position}) => { const record = await (await fetch(`/api/episodes/${id}`)).json(); return Math.abs(record.position - position) < .1; }",
+                    {"id": episode_id, "position": paused_position}, label="durable mini-player position before reload")
             page.reload(wait_until="networkidle")
             page.locator('[data-filter="favorites"]').click()
             expect(page.locator("#episodes .episode-card")).to_have_count(1)
