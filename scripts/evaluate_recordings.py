@@ -13,11 +13,11 @@ from castwell.recording_evaluation import evaluate_recordings
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=("verified-ai", "kev"), default="verified-ai")
+    parser.add_argument("--backend", choices=("verified-ai", "scene-ai", "kev"), default="verified-ai")
     parser.add_argument("--reference", type=Path, action="append", required=True)
     parser.add_argument("--output", type=Path, required=True, help="Private full cuts/evidence checkpoint; keep outside published files")
     parser.add_argument("--summary-output", type=Path, required=True, help="Public-safe numeric summary without transcripts or model evidence")
-    parser.add_argument("--base-url", help="Loopback server; defaults to http://127.0.0.1:8081/v1 for verified-ai or http://127.0.0.1:8083 for Kev")
+    parser.add_argument("--base-url", help="Loopback server; defaults to http://127.0.0.1:8081/v1 for verified-ai/scene-ai or http://127.0.0.1:8083 for Kev")
     parser.add_argument("--model", required=True)
     parser.add_argument("--model-label", required=True)
     parser.add_argument("--ai-reasoning", action="store_true", help="Use the bounded local Qwen3.5 reasoning profile for verified-ai")

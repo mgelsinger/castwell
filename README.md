@@ -2,23 +2,23 @@
 
 **CUDA podcast preparation, batch ad removal, and cuts you control.**
 
-A personal podcast suite that downloads episodes, transcribes them on NVIDIA CUDA, detects real promotional reads, and exports listening copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast and prepare or export episodes in batches. Originals stay available, and every cut can be reviewed or restored.
+Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional reads, preserve unpaid jokes and program speech, and export copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast. Originals stay available, and every cut can be reviewed or restored. Reliable unattended ad removal remains the release goal; the current candidate requires review.
 
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
 **Ad-removal readiness:** the released 0.5.1 classifier is too slow for routine batch use. The [full CUDA episode evaluation](docs/evaluations/2026-10-11-full-stdwytk-cuda.html) took 106:34 to classify a 79:55 recording, missed two commercial openings, and proposed one extra sponsor transition. It preserved the rutabaga parody. Manual approval remains required; this result does not meet the production ad-removal goal. Classifier improvements must pass measured speed and accuracy checks before replacing this baseline.
 
-The 0.5.2 test candidate connects compact scene detection and endpoint review to the application and CUDA launchers. On a different complete 75:13 recording, classification took 7:19, but missed 42.60 seconds of commercial word duration and proposed 11.96 seconds of protected word duration. The fresh accuracy gate failed, so this candidate remains subject to manual approval. The published 0.5.1 downloads still contain the older detector. See the [system evaluation and model tradeoffs](docs/evaluations/2026-10-12-ad-removal-system.md) and [implementation and acceptance plan](docs/ad-removal-production-plan.md) for the remaining work and test limits.
+The 0.5.2 test candidate connects compact scene detection and endpoint review to the application and CUDA launchers. On a different complete 75:13 recording, classification took 7:19, but missed 42.60 seconds of commercial word duration and proposed 11.96 seconds of protected word duration. The fresh accuracy gate failed, so this candidate remains subject to manual approval. Both candidate packages passed their [CUDA runtime and distribution checks](docs/evaluations/2026-10-13-windows-candidate.json). The published 0.5.1 downloads still contain the older detector. See the [system evaluation and model tradeoffs](docs/evaluations/2026-10-12-ad-removal-system.md) and [implementation and acceptance plan](docs/ad-removal-production-plan.md) for the remaining work and test limits.
 
 ![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
 
 ## Prepare episodes, review cuts, and export batches
 
-- **Browse your shows.** Subscribe by RSS, import OPML, or upload recordings. Explore podcast shelves, new episodes, your review queue, and continue-listening rows. Filter the full library, save favorites, and pick up where you left off.
 - **Choose ads per podcast.** Save **Keep original** or **Remove ads** for each show, or update several shows together. Preparation follows those choices within a mixed batch. Keeping ads skips ad detection; removing ads prepares suggestions for approval.
 - **Manage whole batches.** Select matching episodes or a podcast to download, prepare, retry, cancel, render approved cuts, or update favorites, played status, and archives. Download a ZIP with preferred, original, or cleaned audio and a report for unavailable items.
 - **Find the moment.** Create local Whisper transcripts, search the text, and jump straight to a timestamp. Keep listening with the mini player while you browse.
 - **Review every cut.** Inspect suggested advertisements on the waveform, adjust their boundaries, and export the selections you approve. Originals and recent cut revisions stay available.
+- **Bring your episodes.** Subscribe by RSS, import OPML, or upload recordings. Filter shows and the review queue, save favorites, and resume playback.
 - **Keep your options open.** Use local rules, run an optional local AI classifier, or connect an OpenAI-compatible service. Download audio and transcripts, or use Library RSS in a reachable podcast player.
 
 ## See it in action

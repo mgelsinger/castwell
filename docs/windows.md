@@ -8,6 +8,8 @@ Local inference requires a supported NVIDIA GPU and an NVIDIA driver compatible 
 
 Version **0.5.2 is a manual-review test candidate**, with a faster scene detector and stricter batch completion checks. Its fresh ad-removal accuracy gate failed. Its files are `Castwell-0.5.2-Windows-x64-Setup.exe` and `Castwell-0.5.2-Windows-x64-Portable.zip`. Review every proposed cut and unresolved speech passage before exporting. See the included [evaluation](evaluations/2026-10-12-ad-removal-system.md) and [remaining work](ad-removal-production-plan.md). Neither this candidate nor 0.5.1 establishes safe unattended removal.
 
+Both 0.5.2 candidates passed actual CUDA speech and owned classifier execution, model preparation and GPU resource sharing, known-cut exports, and desktop start/stop. Portable relocation and current-user install/uninstall also passed. Four synthetic classifier requests were made in total, with no paid calls or model downloads. The [candidate validation record](evaluations/2026-10-13-windows-candidate.json) records exact package hashes and separates runtime checks from the failed real-podcast accuracy gate. Later repository changes to evaluation tools, test setup, and documentation are outside this frozen package snapshot.
+
 Get the Windows assets from [Castwell releases](https://github.com/mgelsinger/castwell/releases/latest):
 
 - **Castwell-0.5.1-Windows-x64-Setup.exe** installs for the current Windows user and creates a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.

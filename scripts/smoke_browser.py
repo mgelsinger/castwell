@@ -279,10 +279,15 @@ def run_suite_browser(page, feed, workspace, screenshot):
                 favorite = not episode(page, record["id"])["favorite"]
                 changed = page.request.patch(f'/api/episodes/{record["id"]}/state', data={"favorite": favorite})
                 assert changed.ok, changed.text()
-                with page.expect_response(lambda response: response.url.endswith("/api/episodes")
-                                          and response.request.resource_type == "fetch" and response.status == 200):
-                    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
-                expect(page.locator(f'#episodes .card-favorite[data-episode-id="{record["id"]}"]')).to_have_attribute("aria-pressed", str(favorite).lower())
+                # An older refresh can still be draining when the first event
+                # arrives. Keep requesting visibility refreshes until this real
+                # mutation is rendered, while the saved response remains held.
+                wait_js(page, """({id, favorite}) => {
+                    const button = document.querySelector(`#episodes .card-favorite[data-episode-id="${id}"]`);
+                    if (button?.getAttribute('aria-pressed') === String(favorite)) return true;
+                    document.dispatchEvent(new Event('visibilitychange'));
+                    return false;
+                }""", {"id": record["id"], "favorite": favorite}, label="changed list rendered during held save")
                 expect(page.locator("#batch-render")).to_be_disabled()
                 expect(page.locator("#podcast-ad-mode")).to_be_disabled()
                 with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
