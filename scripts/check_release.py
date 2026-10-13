@@ -161,7 +161,10 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
 
     def request(path):
         try:
-            return get_json(app_url + path)
+            response = get_json(app_url + path)
+            if response is None:
+                raise ValueError("Readiness endpoint returned null")
+            return response
         except Exception:
             # Exception text can contain endpoints, premium URLs, or response text.
             add(path, "error", "The local application did not return valid readiness data.")
@@ -200,7 +203,7 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
     elif podcasts is not None:
         add("podcast_suite", "error", "The podcast suite API has an unexpected response.")
     if isinstance(diagnostic, dict) and isinstance(diagnostic.get("checks"), list):
-        required = {"ffmpeg", "ffprobe", "transcription", "model", "storage"}
+        required = {"ffmpeg", "ffprobe", "transcription", "gpu", "model", "storage"}
         reported = {check.get("id") for check in diagnostic["checks"] if isinstance(check, dict)}
         if not required <= reported:
             add("environment_complete", "error", "The server did not report every required processing prerequisite.")
@@ -211,7 +214,7 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
             status = check.get("status", "error")
             if status not in {"ok", "warning", "error"}:
                 status = "error"
-            if check.get("id") == "model" and status != "ok":
+            if check.get("id") in {"model", "gpu"} and status != "ok":
                 status = "error"
             add("environment_" + str(check.get("id", "unknown")), status, str(check.get("detail", "")))
     elif diagnostic is not None:

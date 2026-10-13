@@ -37,7 +37,8 @@ def installation(tmp_path, monkeypatch):
                                         {"id": "model", "status": "ok", "detail": "Cached model"},
                                         {"id": "ffprobe", "status": "ok", "detail": "Available"},
                                         {"id": "transcription", "status": "ok", "detail": "Installed"},
-                                        {"id": "storage", "status": "ok", "detail": "Writable"}]},
+                                        {"id": "storage", "status": "ok", "detail": "Writable"},
+                                        {"id": "gpu", "status": "ok", "detail": "CUDA available"}]},
         "/api/jobs": {"jobs": []},
         "/api/feeds/refresh/status": {"status": "idle"},
         "/api/models/status": {"status": "idle"},
@@ -144,6 +145,36 @@ def test_incomplete_diagnostics_do_not_pass_release(installation):
     installation.responses["/api/diagnostics"] = {"checks": []}
     report = run(installation)
     assert report["ready"] is False and status(report, "environment_complete") == "error"
+
+
+@pytest.mark.parametrize("endpoint", ["/api/settings", "/api/health", "/api/diagnostics", "/api/jobs",
+                                     "/api/feeds/refresh/status", "/api/models/status", "/api/episodes",
+                                     "/api/podcasts"])
+def test_null_readiness_response_cannot_silently_pass(installation, endpoint):
+    installation.responses[endpoint] = None
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, endpoint) == "error"
+    assert report["production_ready"] is False
+
+
+def test_missing_gpu_diagnostic_blocks_cuda_readiness(installation):
+    checks = installation.responses["/api/diagnostics"]["checks"]
+    checks[:] = [check for check in checks if check["id"] != "gpu"]
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, "environment_complete") == "error"
+    assert report["production_ready"] is False
+
+
+@pytest.mark.parametrize("gpu_status", ["warning", "error"])
+def test_unverified_gpu_diagnostic_blocks_cuda_readiness(installation, gpu_status):
+    gpu = next(check for check in installation.responses["/api/diagnostics"]["checks"] if check["id"] == "gpu")
+    gpu["status"] = gpu_status
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, "environment_gpu") == "error"
+    assert report["production_ready"] is False
 
 
 def test_missing_original_blocks_release_without_leaking_stored_path(installation):

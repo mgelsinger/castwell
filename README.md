@@ -63,7 +63,7 @@ Open an episode to review its transcript, compare original and cleaned playback,
 
 ### Windows desktop package
 
-Download **Castwell-0.5.1-Windows-x64-Setup.exe** or **Castwell-0.5.1-Windows-x64-Portable.zip** from [GitHub Releases](https://github.com/mgelsinger/castwell/releases/latest). The installer creates a current-user Start menu shortcut. For the portable version, extract the entire archive and open `Castwell\Castwell.exe`.
+The **0.5.3 portable and installer candidates are built and tested locally but are not yet published**. Follow the [candidate pull request](https://github.com/mgelsinger/castwell/pull/1) and [release plan](docs/ad-removal-production-plan.md#public-release-focus) for progress. The [existing releases](https://github.com/mgelsinger/castwell/releases) contain the older 0.5.1 detector and do not provide the measured fast workflow. The installer creates a current-user Start menu shortcut. For the portable version, extract the entire archive and open `Castwell\Castwell.exe`.
 
 The packages include Python, FFmpeg, Whisper's engine, and CUDA llama.cpp. They require a supported NVIDIA GPU and compatible driver, check CUDA and float16 support before starting, and do not fall back to CPU inference. Choose the data folder and optional local GGUF classifier in the launcher, then select **Start**. Speech and classifier weights are separate. Prepare a free speech model explicitly in Settings. The pinned Qwen3.8 model automatically selects its reviewed bounded reasoning profile; other GGUF files use a generic local profile. Keep manual cut review enabled.
 
