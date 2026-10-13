@@ -106,6 +106,10 @@ class WindowsArtifactTests(unittest.TestCase):
                 '[Production](production.md)\nMaintainers can exercise both artifacts: source command', encoding='utf-8')
             (directory / 'docs' / 'production.md').write_text(
                 '[Windows](windows.md) [Model](local-models.md#profile) [Proof](experiment.md)', encoding='utf-8')
+            evaluations = directory / 'docs' / 'evaluations'
+            evaluations.mkdir()
+            for extension in ('md', 'json'):
+                (evaluations / ('2026-10-13-five-minute-cuda.' + extension)).write_text('current evidence', encoding='utf-8')
             app = directory / 'app'
             app.mkdir()
             self.build.bundle_guides(app, directory)
@@ -116,6 +120,8 @@ class WindowsArtifactTests(unittest.TestCase):
             self.assertIn('[Windows](windows.md)', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#profile', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/experiment.md', production)
+            for extension in ('md', 'json'):
+                self.assertEqual((app / 'evaluations' / ('2026-10-13-five-minute-cuda.' + extension)).read_text(encoding='utf-8'), 'current evidence')
 
     def test_pinned_model_notice_is_required_and_integrity_checked(self):
         with tempfile.TemporaryDirectory() as root:

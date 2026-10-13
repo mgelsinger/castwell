@@ -8,13 +8,19 @@ All contextual classifiers now share this scope. Known analyses or queued detect
 
 ## Current evidence
 
-The released detector takes 106:34 to classify a 79:55 recording. A compact scene detector with separate endpoint review is now connected to the application and CUDA launchers. It takes 7:19 to classify a different complete 75:13 recording. CUDA large-v3 transcription takes a separate 4:44. The speed problem is substantially improved; accuracy is still insufficient for unattended removal.
+The October 13 whole-episode candidate meets the new **five minutes of total processing per hour of audio** target on the tested RTX 3090 Ti. The final fresh 75:13 recording takes 315.16 seconds including model startup, CUDA transcription, detection, waveform/database work and export: 251.40 seconds per audio hour. Its reference score has zero protected words selected, but 1.31 commercial word-seconds outside cuts across 14 entries. A corrected staged diagnostic on the consumed August recording retains 3.13 commercial word-seconds of timing disagreement and zero protected selections. Neither result establishes listening-verified unattended accuracy. See the [complete current evaluation and tradeoffs](evaluations/2026-10-13-five-minute-cuda.md).
+
+The implementation now uses batch-eight CUDA large-v3, bounded gap recovery with word-preserving alignment, one complete-episode Qwen pass when native context permits, a deterministic sponsor-omission check, and focused boundary words with complete commercial context. Every source unit and target word must have valid audit ownership. Fast mode remains manual, including empty suggestions, and queued jobs retain their exact processing profile. Source launchers expose `-FastProfile`; the managed desktop exposes Experimental fast CUDA.
+
+## Historical accuracy failures
+
+The released detector takes 106:34 to classify a 79:55 recording. The earlier compact scene detector with separate endpoint review takes 7:19 to classify a different complete 75:13 recording. Its CUDA large-v3 transcription takes a separate 4:44. These historical results remain unchanged.
 
 The frozen fresh test consists of one complete Stuff They Don't Want You to Know recording and previously unused tails from Stuff You Should Know and Skeptoid. It used 44 actual model requests in total, with references frozen before inference. The complete recording misses 133 commercial word entries, representing 42.60 seconds of word duration, and proposes removing 52 protected words, representing 11.96 seconds. The Skeptoid tail misses 13 commercial words, representing 4.62 seconds; the SYSK tail has no scored word errors. All proposals remain unapproved. That historical run excluded free other-podcast trailers under its then-unresolved policy. The clarification now makes unambiguously free trailers protected in future references; the historical scores and source/reference hashes stay unchanged. Audio without verified text remains separate review work.
 
 Independent verification confirms the request identities, complete unit ownership, original word mappings, actual token usage, and error arithmetic. A previously consumed episode passed an endpoint repair replay, but that replay did not predict success on the fresh test. It must not be presented as independent validation.
 
-The remaining faults concern scene ownership: a persuasive setup can be excluded because its later offer is outside the output targets, and an overly broad range can absorb an editorial break announcement or publisher credit inside an advertising block. A request being complete and well-formed does not make those decisions correct.
+Those failures concern scene ownership: a persuasive setup can be excluded because its later offer is outside the output targets, and an overly broad range can absorb an editorial break announcement or publisher credit inside an advertising block. A request being complete and well-formed does not make those decisions correct.
 
 The cached rutabaga sketch has provisional parody labels from transcripts and publisher context, with no independent listening or payment verification. Earlier preservation of that sketch is consumed development evidence. The latest bounded repair never reached its parody controls. Listening verification of the full sketch and neighboring real read is still required.
 
@@ -35,7 +41,7 @@ A separate versioned policy overlay now marks three previously ambiguous free po
 
 - Zero missed sponsor/product words and zero protected words cut in each frozen, scored acceptance recording. Include free other-podcast promos as protected controls. Report passages with unresolved selling intent and untranscribed audio separately rather than counting them as correct negatives.
 - Preserve unpaid parody, including the rutabaga examples. Include humorous real advertisements and complete persuasive introductions.
-- Measure fresh classification time separately from speech recognition, model loading, exports, and cached replay. The working performance target is under ten minutes of classification for an approximately eighty-minute episode on the tested RTX 3090 Ti.
+- Measure one fresh end-to-end stopwatch, with classification, speech recognition, model startup, waveform/database work, and export reported separately. The current target is at most **300 seconds total per 3,600 seconds of audio** on the tested RTX 3090 Ti. Initial downloads and cached diagnostic replays cannot be counted as a cold processing pass.
 - No CPU neural inference fallback. Missing CUDA support or insufficient GPU memory must produce a clear failure.
 - No automatic completion or preferred cleaned export for unresolved episodes. Batch results must identify exceptions instead of silently claiming success.
 - A complete model decision is not proof of audible accuracy. Listening verification of boundaries and untranscribed gaps remains a distinct acceptance requirement and must be reported honestly.

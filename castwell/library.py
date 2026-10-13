@@ -654,12 +654,15 @@ class Library:
         result['ad_mode'] = episode.get('ad_mode', 'remove')
         profile = episode.get('analysis_profile')
         scope_review = isinstance(profile, dict) and profile.get('removal_scope') != REMOVAL_SCOPE
-        unresolved = bool(scope_review or episode.get('transcript_review')
+        experimental_review = isinstance(profile, dict) and profile.get('ai_policy') == 'fast'
+        unresolved = bool(scope_review or experimental_review or episode.get('transcript_review')
                           or any(cut.get('approved') is not True for cut in episode['cuts']))
         if result['ad_mode'] == 'remove' and unresolved and result['status'] == 'ready':
             result['status'] = 'review'
             if scope_review:
                 result['progress'] = 'Ad-removal rules changed. Find ads again or review and save these cuts before exporting.'
+            elif experimental_review:
+                result['progress'] = 'Review and save the experimental fast analysis before exporting.'
         approved_copy = (result['has_cleaned'] and not unresolved and result['status'] == 'ready'
                          and any(cut.get('approved') is True for cut in episode['cuts']))
         result['preferred_version'] = 'cleaned' if result['ad_mode'] == 'remove' and approved_copy else 'original'

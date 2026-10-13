@@ -223,14 +223,16 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
         add("queue_idle", "error", "The processing queue has an unexpected response.")
     if isinstance(settings, dict):
         manual_verified = settings.get("review_only") is True and settings.get("ai_policy") == "verified"
+        manual_fast = settings.get("review_only") is True and settings.get("ai_policy") == "fast"
         scene_mode = settings.get("ai_policy") == "scene" and isinstance(settings.get("review_only"), bool)
         threshold = settings.get("auto_approve_threshold", .90)
         scene_mode = scene_mode and (not isinstance(threshold, bool) and isinstance(threshold, (int, float))
                                     and math.isfinite(threshold) and .90 <= threshold <= 1)
-        approved = manual_verified or scene_mode
+        approved = manual_verified or manual_fast or scene_mode
         detail = ("Scene detection requires complete aligned commercial and endpoint proof; unresolved work remains review."
                   if scene_mode else "Verified detection and manual cut approval are enabled." if manual_verified
-                  else "Use verified detection with manual approval, or scene detection with a threshold of at least 0.90.")
+                  else "Experimental fast detection requires explicit manual review, including empty proposals; accuracy acceptance is separate."
+                  if manual_fast else "Use verified or experimental fast detection with manual approval, or scene detection with a threshold of at least 0.90.")
         add("cut_approval", "ok" if approved else "error", detail,
             mode="manual" if settings.get("review_only") is True else "automatic_with_structural_proof")
         ai = bool(settings.get("ai_configured")) and settings.get("detector") != "heuristic"

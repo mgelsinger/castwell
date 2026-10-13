@@ -627,8 +627,9 @@
     const usesAI = state.settings.ai_configured && !['heuristic', 'Local rules'].includes(state.settings.detector);
     const verifiedAI = usesAI && state.settings.ai_policy !== 'legacy';
     const sceneAI = usesAI && state.settings.ai_policy === 'scene';
+    const fastAI = usesAI && state.settings.ai_policy === 'fast';
     $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : sceneAI ? 'Transcribe · Check ad context and cut boundaries · Prepare listening copy' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
-    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${sceneAI ? 'AI scene and endpoint checks' : verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
+    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${fastAI ? 'experimental fast CUDA; review required' : sceneAI ? 'AI scene and endpoint checks' : verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
     visible('detail-redetect', episode.has_transcript);
     $('detail-redetect').disabled = busy || state.actionBusy;
     visible('detail-retranscribe', episode.has_transcript && episode.has_audio);
@@ -1354,13 +1355,42 @@
     } catch (error) { showError('opml-error', error); }
     finally { $('opml-submit').disabled = false; $('opml-submit').textContent = 'Import subscriptions'; }
   }
-  const settingFields = { transcription_model: 'setting-model', language: 'setting-language', detector: 'setting-detector', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model', ai_reasoning: 'setting-ai-reasoning' };
+  const settingFields = { transcription_model: 'setting-model', transcription_batch_size: 'setting-batch-size', language: 'setting-language', detector: 'setting-detector', ai_policy: 'setting-ai-policy', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model', ai_reasoning: 'setting-ai-reasoning' };
+  function updateDetectionPolicyControls() {
+    const policy = $('setting-ai-policy').value, fast = policy === 'fast';
+    $('detection-policy-help').textContent = fast
+      ? 'Experimental fast CUDA reads the whole episode, then checks the words at commercial boundaries. It uses its own reasoning settings. Review and save the result before exporting, even if no ads are suggested. A speech batch size of 8 is a starting point for a 24 GB GPU; speed and accuracy still need validation.'
+      : policy === 'legacy'
+        ? 'Legacy AI detection can miss ads or flag conversation. Review suggestions carefully.'
+        : policy === 'scene'
+          ? 'Local AI checks ad scenes, their exact endpoints, and word alignment. With approval off, resolved cuts are selected automatically. Unresolved episodes retain their original audio and stay out of the completed removal batch. Detection can still make mistakes.'
+          : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
+    const review = $('setting-review-only'), reasoning = $('setting-ai-reasoning');
+    if (fast) {
+      if (review.dataset.beforeFast === undefined) review.dataset.beforeFast = String(review.checked);
+      if (reasoning.dataset.beforeFast === undefined) reasoning.dataset.beforeFast = String(reasoning.checked);
+      review.checked = true;
+      reasoning.checked = false;
+    } else if (review.dataset.beforeFast !== undefined) {
+      review.checked = review.dataset.beforeFast === 'true';
+      reasoning.checked = reasoning.dataset.beforeFast === 'true';
+      delete review.dataset.beforeFast;
+      delete reasoning.dataset.beforeFast;
+    }
+    review.disabled = fast;
+    review.title = fast ? 'Experimental analysis requires saved manual review.' : '';
+    reasoning.disabled = fast || policy === 'scene' || (state.settings.env_overrides || []).includes('ai_reasoning');
+    reasoning.title = fast ? 'Whole-episode review and boundary checks use their own fixed reasoning budgets.'
+      : policy === 'scene' ? 'This detector uses fixed reasoning budgets for each stage.' : '';
+  }
   async function openSettings() {
     showDialog('settings-dialog'); showError('settings-error', null); $('save-settings').disabled = true;
     try {
       const settings = await api('/api/settings');
       state.settings = { ...state.settings, ...settings }; state.settingsLoaded = true;
-      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '', ai_reasoning: false };
+      const defaults = { transcription_model: 'base', transcription_batch_size: 1, language: '', detector: 'auto', ai_policy: 'verified', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '', ai_reasoning: false };
+      delete $('setting-review-only').dataset.beforeFast;
+      delete $('setting-ai-reasoning').dataset.beforeFast;
       for (const [key, id] of Object.entries(settingFields)) {
         const input = $(id), value = settings[key] ?? defaults[key];
         if (input.type === 'checkbox') input.checked = Boolean(value);
@@ -1371,17 +1401,12 @@
         input.disabled = (settings.env_overrides || []).includes(key);
         input.title = input.disabled ? 'Set by the server environment' : '';
       }
+      for (const option of $('setting-ai-policy').options) {
+        option.disabled = Array.isArray(settings.ai_policy_options) && !settings.ai_policy_options.includes(option.value);
+      }
       $('ai-key-status').textContent = settings.key_configured ? 'An API key is securely configured on the server.' : 'No server API key configured. Local AI servers may not need one. For a hosted service, set CASTWELL_AI_KEY in the server environment.';
       $('ai-configured-indicator').textContent = settings.ai_base_url && settings.ai_model ? 'Connected settings' : 'Optional';
-      $('detection-policy-help').textContent = settings.ai_policy === 'legacy'
-        ? 'This server uses legacy AI detection. Review suggestions carefully: detection can miss ads or flag conversation.'
-        : settings.ai_policy === 'scene'
-          ? 'Local AI checks ad scenes, their exact endpoints, and word alignment. With approval off, resolved cuts are selected automatically. Unresolved episodes retain their original audio and stay out of the completed removal batch. Detection can still make mistakes.'
-          : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
-      if (settings.ai_policy === 'scene') {
-        $('setting-ai-reasoning').disabled = true;
-        $('setting-ai-reasoning').title = 'This detector uses fixed reasoning budgets for each stage.';
-      }
+      updateDetectionPolicyControls();
       $('settings-overrides').textContent = settings.env_overrides?.length ? 'Some settings are managed by the server environment.' : 'Settings are stored locally on this server.';
       $('save-settings').disabled = false;
       await Promise.allSettled([loadDiagnostics(), pollModelStatus()]);
@@ -1396,6 +1421,7 @@
     }
     const result = await api('/api/settings', { method: 'PATCH', body: changes });
     state.settings = { ...state.settings, ...(result.settings || result) };
+    updateDetectionPolicyControls();
     if (showToast) toast('Settings saved. They’ll apply to the next processing job.');
     renderDetail(); return result;
   }
@@ -1527,6 +1553,7 @@
     if (event.code === 'Space') { event.preventDefault(); togglePlayback(); }
     else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); skipAudio(event.key === 'ArrowLeft' ? -15 : 15); }
   });
+  $('setting-ai-policy').addEventListener('change', updateDetectionPolicyControls);
   $('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault(); $('save-settings').disabled = true; showError('settings-error', null);
     try { await saveSettings(); await loadDiagnostics(); }

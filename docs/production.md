@@ -2,9 +2,9 @@
 
 Castwell prepares podcast batches with a per-show Remove ads or Keep original choice, CUDA transcription, and reviewed audio exports. Its production boundary is a trusted computer with one server worker, durable local storage, and manual approval of ad cuts. The release checks below verify software and installation readiness. Accurate ad removal is a separate release requirement; library and installer checks cannot satisfy it.
 
-**The current ad-removal classifier has not passed production acceptance.** In the [full CUDA recording evaluation](evaluations/2026-10-11-full-stdwytk-cuda.html), classification took 106:34 for a 79:55 episode and still missed two ad openings and proposed an extra sponsor transition. The fake rutabaga read was preserved. Installation checks and successful exports do not make that performance acceptable for routine batch processing. Keep every cut subject to review until the replacement workflow has measured speed and accuracy evidence, followed by listening verification.
+**The current ad-removal classifier has not passed unattended production acceptance.** The new whole-episode fast path completes a fresh 75:13 episode in 5:15 on the RTX 3090 Ti, meeting the five-minute-per-hour speed target. It preserves all protected reference words, but retains 1.31 seconds of commercial word-boundary disagreement and unverified transcript gaps. Keep every cut subject to review. The [current evaluation](evaluations/2026-10-13-five-minute-cuda.md) separates cold timing, consumed references, staged repairs, and missing listening verification.
 
-The source candidate now connects compact scene detection with focused endpoint review to the app and CUDA launchers. The frozen fresh test used 44 real classifier requests across one complete recording and two unused tails. The 75:13 complete recording took 7:19 to classify, with a separate 4:44 for CUDA large-v3 transcription, but missed 42.60 seconds of commercial word duration and proposed 11.96 seconds of protected word duration. The Skeptoid tail missed a further 4.62 seconds of promotional word duration. All cuts remain unapproved; this version has not passed production acceptance. See the [ad-removal plan](ad-removal-production-plan.md).
+The earlier 0.5.2 scene candidate and released 0.5.1 detector remain historical baselines. Their slower runs and failed accuracy gates are retained in the [ad-removal plan](ad-removal-production-plan.md). Choose the explicit fast profile below to exercise the new implementation; existing launch modes and saved choices are not silently replaced.
 
 ## Start the suite on Windows
 
@@ -17,6 +17,16 @@ Use the installed project environment and pinned native llama.cpp/Qwen3.8 profil
 ```
 
 The source launcher honors every saved or explicitly selected speech model. A new library with `-ReviewedProfile` defaults to `large-v3`, the speech model used in the complete-recording test; other new source profiles retain `small.en`. `-ReviewedProfile` selects the compact scene and endpoint candidate with fixed bounded stage settings and manual approval by default; an explicitly saved approval preference persists. Model weights and FFmpeg must already be installed; the suite launcher does not download them or spend money on a provider. It verifies pinned model/runtime files, checks existing process ownership before reusing ports, and writes service state under `.local/runtime`.
+
+To select the experimental whole-episode detector explicitly, use:
+
+```powershell
+.\scripts\start_suite.ps1 -FastProfile
+```
+
+`-FastProfile` selects the pinned Qwen3.8 CUDA service with a 32,768-token context and the `fast` detection policy. It saves **manual review on** and **speech batch size 8**, overriding those two saved preferences each time the flag is used. It keeps an existing saved speech model, honors `-SpeechModel`, and uses `large-v3` only for a new library without a saved or explicit model. It takes precedence if both profile flags are supplied. The existing `-ReviewedProfile` and normal defaults are unchanged. Start the profile only after current jobs finish; an incompatible running service is rejected rather than replaced.
+
+For an already managed classifier, `start_castwell.ps1 -FastProfile` starts only the application with the same policy and preference overrides. This app-only launcher does not attest the running classifier's identity; use `start_suite.ps1 -FastProfile` for the pinned service and ownership checks. Neither command downloads weights, calls a paid provider, or establishes ad-removal accuracy. See [current fast settings](windows.md#experimental-fast-settings-in-the-current-checkout) for reasoning limits and review requirements.
 
 The owned classifier sleeps between tasks so transcription can use the GPU. Castwell waits for that sleep state before loading Whisper and releases Whisper after transcription before the classifier wakes. Explicit speech-model preparation uses the same resource lock, releases cached speech weights, and waits for the owned classifier to sleep. Preparation and episode processing cannot be admitted concurrently; downloads and rendering remain available. Neural speech recognition, voice activity checks, and local classification require CUDA. Ordinary decoding and file operations can use the host processor.
 

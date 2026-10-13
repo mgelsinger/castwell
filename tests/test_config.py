@@ -43,6 +43,7 @@ class SettingsTests(unittest.TestCase):
     def test_defaults_are_usable_without_credentials(self):
         settings = self.settings.get()
         self.assertEqual(settings["transcription_model"], "base")
+        self.assertEqual(settings["transcription_batch_size"], 1)
         self.assertEqual(settings["detector"], "auto")
         self.assertEqual(settings["auto_approve_threshold"], 0.90)
         self.assertIsNone(settings["language"])
@@ -52,6 +53,24 @@ class SettingsTests(unittest.TestCase):
         self.assertFalse(settings["ai_configured"])
         self.assertFalse(settings["key_configured"])
         self.assertEqual(settings["model_cache"], str(self.root / "models"))
+
+    def test_fast_profile_requires_review_and_preserves_explicit_speech_choice(self):
+        self.settings.update({"transcription_model": "small", "transcription_batch_size": 4})
+        settings = self.settings.update({"ai_policy": "fast", "review_only": False, "ai_reasoning": True})
+        self.assertTrue(settings["review_only"])
+        self.assertFalse(settings["ai_reasoning"])
+        self.assertEqual(settings["transcription_model"], "small")
+        self.assertEqual(settings["transcription_batch_size"], 4)
+        self.settings.update({"review_only": False})
+        self.assertTrue(self.settings.get()["review_only"])
+        self.assertEqual(config.Settings(Library(self.root)).get()["transcription_batch_size"], 4)
+
+    def test_speech_batch_size_rejects_invalid_values_atomically(self):
+        self.settings.update({"transcription_batch_size": 8})
+        for size in (0, 17, True, 1.5, "8", None):
+            with self.subTest(size=size), self.assertRaises(ValueError):
+                self.settings.update({"transcription_batch_size": size})
+            self.assertEqual(self.settings.get()["transcription_batch_size"], 8)
 
     def test_update_persists_and_merges_preferences(self):
         self.settings.update({"language": "EN", "review_only": True, "auto_approve_threshold": 0.95, "ai_reasoning": True})
@@ -199,6 +218,26 @@ class SettingsTests(unittest.TestCase):
         with patch("castwell.processing.detect_ads") as detect:
             self.assertFalse(self.settings.test_classifier()["ok"])
             detect.assert_not_called()
+
+    def test_fast_connection_fixture_reaches_word_boundary_review_without_real_audio(self):
+        self.settings.update({"ai_policy": "fast", "ai_base_url": "http://127.0.0.1:8081/v1", "ai_model": "fixture"})
+        stages = []
+
+        def respond(units, *, stage, **options):
+            stages.append(stage)
+            if stage == 'words':
+                return {unit['id']: 'commercial' for unit in units}
+            self.assertTrue(all(unit.get('words') for unit in units))
+            return {unit['id']: 'commercial' if 5 <= unit['start'] < unit['end'] <= 10 else 'editorial'
+                    for unit in units}
+
+        with patch('castwell.fast_review._native_json', side_effect=lambda base, path, payload=None:
+                   {'default_generation_settings': {'n_ctx': 32768}} if path == '/props' else {'input_tokens': 100}), \
+             patch('castwell.fast_review._request', side_effect=respond):
+            result = self.settings.test_classifier()
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(result['detected_ads'], 1)
+        self.assertEqual(stages, ['scenes', 'words'])
 
     def test_model_preparation_uses_the_configured_cache_and_reports_progress(self):
         from castwell import processing

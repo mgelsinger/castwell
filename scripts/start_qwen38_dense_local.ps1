@@ -4,7 +4,7 @@ param(
     [string]$ServerBinary = '',
     [ValidateRange(1, 65535)][int]$Port = 8081,
     [ValidateRange(1, 128)][int]$Threads = 8,
-    [ValidateRange(4096, 32768)][int]$Context = 8192,
+    [ValidateRange(4096, 32768)][int]$Context = 32768,
     [ValidateSet('all')][string]$GpuLayers = 'all',
     [ValidateRange(1, 16384)][int]$MaxTokens = 2048,
     [ValidateRange(0, 8192)][int]$ReasoningBudget = 0,

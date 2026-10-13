@@ -24,6 +24,26 @@ CUT = {'start': 3.0, 'end': 6.0, 'approved': True, 'source': 'manual',
        'confidence': 1.0, 'reason': 'A reviewed advertisement'}
 
 
+def fast_audit_fixture(transcript, *, unresolved=False):
+    from castwell import fast_review
+    from castwell.ad_scope import REMOVAL_SCOPE
+    from castwell.episode_boundaries import build_boundary_plan, refine_boundaries
+    from castwell.episode_omissions import omission_guard
+    units = processing._classification_transcript(transcript)['segments']
+    global_decisions = {unit['id']: 'uncertain' if unresolved else 'editorial' for unit in units}
+    plan = build_boundary_plan(units, global_decisions)
+    decisions, boundary_audit = refine_boundaries(plan,
+        request=lambda request: {i: 'uncertain' for i in range(len(request['units']))}, fits=lambda request: True)
+    return {'policy_version': fast_review.POLICY_VERSION, 'removal_scope': REMOVAL_SCOPE,
+            'inference_profile': fast_review.INFERENCE_PROFILE,
+            'global_decisions': global_decisions, 'boundary_audit': boundary_audit,
+            'omission_guard': omission_guard(units, global_decisions),
+            'sweep_requests': [{'core_ids': list(global_decisions), 'source_ids': list(global_decisions)}],
+            'sweep_votes': {i: [label] for i, label in global_decisions.items()},
+            'word_decisions': decisions, 'unresolved_word_ids': list(decisions) if unresolved else [],
+            'source_word_count': len(plan['words']), 'requires_review': True, 'automatic_acceptance_validated': False}
+
+
 class JobsTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -130,6 +150,171 @@ class JobsTests(unittest.TestCase):
         supplied = detect.call_args.kwargs['config']
         self.assertEqual({key: supplied[key] for key in settings}, settings)
         self.assertEqual(supplied['ai_policy'], 'legacy')
+
+    def test_queued_speech_model_language_and_batch_size_survive_settings_changes_and_retry(self):
+        identifier = self.episode()
+        settings = {'transcription_model': 'small', 'language': 'fr', 'transcription_batch_size': 8}
+        self.jobs.settings_getter = lambda: dict(settings)
+        release = threading.Event()
+        self.jobs.pool.submit(lambda: release.wait(3))
+        with patch('castwell.processing.transcribe', side_effect=processing.ProcessingError('fixture failure')) as transcribe:
+            try:
+                self.jobs.submit(identifier, 'process', {'remove_ads': False})
+                expected = self.library.get(identifier)['pending_job']['transcription_policy']
+                self.assertEqual(expected['transcription_batch_size'], 8)
+                settings.update(transcription_model='large-v3', language='en', transcription_batch_size=1)
+            finally:
+                release.set()
+            failed = self.wait(identifier)
+        self.assertEqual(failed['pending_job']['transcription_policy'], expected)
+        self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
+        self.assertEqual(transcribe.call_args.kwargs['language'], 'fr')
+        self.assertEqual(transcribe.call_args.kwargs['batch_size'], 8)
+        with patch('castwell.processing.transcribe', return_value=TRANSCRIPT) as transcribe:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait(identifier)
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertEqual(transcribe.call_args.kwargs['batch_size'], 8)
+        self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
+
+    def test_fast_analysis_stays_manual_even_when_empty_until_decisions_saved(self):
+        settings = {'ai_policy': 'fast', 'review_only': False, 'ai_reasoning': True,
+                    'ai_base_url': 'http://127.0.0.1:8081/v1', 'ai_model': 'fixture', 'detector': 'ai'}
+        self.jobs.settings_getter = lambda: dict(settings)
+        aligned = deepcopy(TRANSCRIPT)
+        aligned['segments'][0]['words'] = [{'word': 'Speech.', 'start': 0., 'end': 12.}]
+        for name, proposed in (('empty', []), ('suggestions', [dict(CUT, source='ai')])):
+            with self.subTest(name=name):
+                identifier = self.episode(name, transcript=aligned)
+                def detected(transcript, **options):
+                    options['audit_sink'](fast_audit_fixture(transcript))
+                    return proposed
+                with patch('castwell.processing.detect_ads', side_effect=detected) as detect, \
+                     patch('castwell.processing.render_audio') as render:
+                    self.jobs.submit(identifier, 'process')
+                    episode = self.wait(identifier)
+                self.assertEqual(episode['status'], 'review', episode['error'])
+                self.assertTrue(detect.call_args.kwargs['config']['review_only'])
+                self.assertFalse(detect.call_args.kwargs['config']['ai_reasoning'])
+                self.assertTrue(all(not cut['approved'] for cut in episode['cuts']))
+                self.assertFalse(self.library.public(episode)['export_ready'])
+                audit_path = self.library.directory(identifier) / 'fast-analysis.json'
+                self.assertTrue(audit_path.is_file())
+                render.assert_not_called()
+                self.jobs.render(identifier)
+                self.assertEqual(self.library.get(identifier)['status'], 'review')
+                # Saving an explicit empty decision clears the experimental
+                # analysis profile, as it does for other reviewed detector cuts.
+                self.library.update(identifier, cuts=[])
+                self.jobs.render(identifier)
+                reviewed = self.library.get(identifier)
+                self.assertIsNone(reviewed['analysis_profile'])
+                self.assertTrue(self.library.public(reviewed)['export_ready'])
+
+    def test_fast_empty_unresolved_audit_is_saved_and_failure_preserves_prior_evidence(self):
+        aligned = deepcopy(TRANSCRIPT)
+        aligned['segments'][0]['words'] = [{'word': 'Uncertain.', 'start': 0., 'end': 12.}]
+        identifier = self.episode(transcript=aligned)
+        self.jobs.settings_getter = lambda: {'ai_policy': 'fast', 'ai_model': 'fixture',
+                                             'ai_base_url': 'http://127.0.0.1:8081/v1', 'ai_key': 'private-fixture-key'}
+        def detected(transcript, **options):
+            options['audit_sink'](fast_audit_fixture(transcript, unresolved=True))
+            return []
+        with patch('castwell.processing.detect_ads', side_effect=detected):
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait(identifier)
+        self.assertEqual(finished['status'], 'review', finished['error'])
+        sidecar = self.library.directory(identifier) / 'fast-analysis.json'
+        original = sidecar.read_bytes()
+        saved = json.loads(original)
+        self.assertEqual(saved['audit']['unresolved_word_ids'], [0])
+        self.assertEqual(saved['audit']['word_decisions'], {'0': 'uncertain'})
+        self.assertNotIn('private-fixture-key', original.decode())
+        with patch('castwell.processing.detect_ads', return_value=[]):
+            self.jobs.submit(identifier, 'process', {'redetect': True})
+            failed = self.wait(identifier)
+        self.assertEqual(failed['status'], 'error')
+        self.assertIn('complete review audit', failed['error'])
+        self.assertEqual(sidecar.read_bytes(), original)
+        self.assertEqual(failed['analysis_profile'], finished['analysis_profile'])
+        self.assertFalse(list(sidecar.parent.glob('.fast-analysis*.part')))
+
+    def test_fast_retry_profile_includes_both_request_profiles(self):
+        from castwell import fast_review
+        snapshot = Jobs._detection_policy({'ai_policy': 'fast'})
+        with patch('castwell.fast_review.word_inference_settings', return_value={**fast_review.word_inference_settings(), 'max_tokens': 99}):
+            with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
+                Jobs._restore_detection_policy(snapshot)
+
+    def test_fast_audit_rejects_missing_sweep_votes_word_votes_and_contradictions(self):
+        from castwell.jobs import _fast_audit_document
+        aligned = deepcopy(TRANSCRIPT)
+        aligned['segments'][0]['words'] = [{'word': 'Speech.', 'start': 0., 'end': 12.}]
+        profile = Jobs._detection_policy({'ai_policy': 'fast'})
+        complete = fast_audit_fixture(aligned, unresolved=True)
+        for label, mutation in (
+            ('missing global source', lambda audit: audit.update(global_decisions={})),
+            ('missing omission guard', lambda audit: audit.pop('omission_guard')),
+            ('changed omission guard', lambda audit: audit['omission_guard'].update(version='changed-guard')),
+            ('missing sweep requests', lambda audit: audit.pop('sweep_requests')),
+            ('missing sweep votes', lambda audit: audit.pop('sweep_votes')),
+            ('missing all sweep evidence', lambda audit: (audit.pop('sweep_requests'), audit.pop('sweep_votes'))),
+            ('missing word votes', lambda audit: audit['boundary_audit'].update(word_votes={})),
+            ('contradictory decision', lambda audit: audit['word_decisions'].update({0: 'editorial'})),
+            ('changed source identity', lambda audit: audit['boundary_audit']['requests'][0].update(request_sha256='0' * 64)),
+            ('duplicated scene', lambda audit: audit['boundary_audit']['requests'].append(deepcopy(audit['boundary_audit']['requests'][0]))),
+            ('missing sweep core', lambda audit: audit.update(sweep_requests=[])),
+            ('wrong sweep vote count', lambda audit: audit['sweep_votes'].update({0: ['uncertain', 'uncertain']})),
+            ('contradictory sweep', lambda audit: audit['sweep_votes'].update({0: ['commercial']})),
+        ):
+            broken = deepcopy(complete)
+            mutation(broken)
+            with self.subTest(label=label), self.assertRaises((processing.ProcessingError, ValueError)):
+                _fast_audit_document([broken], aligned, [], profile)
+
+    def test_fast_empty_result_requires_complete_episode_scan_evidence(self):
+        from castwell.jobs import _fast_audit_document
+        aligned = deepcopy(TRANSCRIPT)
+        aligned['segments'][0]['words'] = [{'word': 'Editorial.', 'start': 0., 'end': 12.}]
+        profile = Jobs._detection_policy({'ai_policy': 'fast'})
+        audit = fast_audit_fixture(aligned)
+        self.assertTrue(_fast_audit_document([audit], aligned, [], profile)['requires_manual_review'])
+        audit.pop('sweep_requests')
+        audit.pop('sweep_votes')
+        with self.assertRaisesRegex(processing.ProcessingError, 'complete review audit'):
+            _fast_audit_document([audit], aligned, [], profile)
+
+    def test_fast_audit_cannot_hide_editorial_sponsor_cues_or_accept_a_flagged_guard(self):
+        from castwell.jobs import _fast_audit_document
+        aligned = deepcopy(TRANSCRIPT)
+        text = 'This episode is sponsored by Example.'
+        aligned['segments'][0].update(text=text, words=[{'word': text, 'start': 0., 'end': 12.}])
+        profile = Jobs._detection_policy({'ai_policy': 'fast'})
+        audit = fast_audit_fixture(aligned)
+        self.assertTrue(audit['omission_guard']['guard_requires_review'])
+        with self.assertRaisesRegex(processing.ProcessingError, 'omission guard'):
+            _fast_audit_document([audit], aligned, [], profile)
+        audit['omission_guard'].update(flagged_unit_ids=[], cue_clusters=[], guard_requires_review=False)
+        with self.assertRaisesRegex(processing.ProcessingError, 'omission guard'):
+            _fast_audit_document([audit], aligned, [], profile)
+
+    def test_fast_profile_cannot_be_exported_after_keep_sets_ready(self):
+        profile = Jobs._detection_policy({'ai_policy': 'fast'})
+        identifier = self.episode(transcript=TRANSCRIPT, status='ready', analysis_done=True,
+                                  analysis_profile=profile)
+        episode = self.library.get(identifier)
+        removed = self.library.public(dict(episode, ad_mode='remove'))
+        self.assertFalse(removed['export_ready'])
+        self.assertEqual(removed['status'], 'review')
+        kept = self.library.public(dict(episode, ad_mode='keep'))
+        self.assertTrue(kept['export_ready'])
+        self.assertEqual(kept['preferred_version'], 'original')
+
+    def test_changed_speech_profile_is_rejected_without_running_inference(self):
+        snapshot = Jobs._transcription_policy({'transcription_batch_size': 8})
+        snapshot['transcription_profile'] = 'an-older-batching-policy'
+        with self.assertRaisesRegex(processing.ProcessingError, 'speech profile changed'):
+            Jobs._restore_transcription_policy(snapshot)
 
     def test_queue_freezes_detector_endpoint_model_and_profile_but_not_key(self):
         identifier = self.episode(transcript=TRANSCRIPT)

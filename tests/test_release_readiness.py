@@ -115,6 +115,18 @@ def test_scene_automatic_profile_is_operational_without_claiming_accuracy_accept
     assert status(run(installation), "cut_approval") == "error"
 
 
+@pytest.mark.parametrize("review_only", [True, False, None, 1])
+def test_fast_profile_requires_manual_review_and_never_claims_accuracy_acceptance(installation, review_only):
+    installation.responses["/api/settings"].update(ai_policy="fast", review_only=review_only)
+    report = run(installation)
+    assert report["operational_ready"] is (review_only is True)
+    assert status(report, "cut_approval") == ("ok" if review_only is True else "error")
+    assert report["production_ready"] is False
+    assert report["ad_removal_acceptance"]["status"] == "not_measured"
+    assert report["inference_requests"] == report["library_mutations"] == 0
+    assert status(report, "accuracy_acceptance") == "warning"
+
+
 @pytest.mark.parametrize("addresses", [["0.0.0.0"], ["127.0.0.1", "::"], None])
 def test_nonlocal_or_unverified_listeners_block_release(installation, monkeypatch, addresses):
     monkeypatch.setattr(release, "listener_addresses", lambda port: addresses)

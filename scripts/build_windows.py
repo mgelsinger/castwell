@@ -193,7 +193,9 @@ def bundle_guides(app: Path, root: Path = ROOT) -> None:
     included = {'windows.md', 'production.md', 'ad-removal-production-plan.md'}
     for relative in ('ad-removal-production-plan.md',
                      'evaluations/2026-10-12-ad-removal-system.md',
-                     'evaluations/2026-10-12-ad-removal-system.json'):
+                     'evaluations/2026-10-12-ad-removal-system.json',
+                     'evaluations/2026-10-13-five-minute-cuda.md',
+                     'evaluations/2026-10-13-five-minute-cuda.json'):
         source = root / 'docs' / relative
         if source.is_file():
             target = app / relative

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from array import array
+from contextlib import ExitStack
 from functools import lru_cache
 import math
 import os
@@ -172,12 +173,18 @@ def validate_transcript(transcript: dict, duration: Optional[float] = None) -> d
 
 def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = None,
                language: Optional[str] = None, should_cancel: Optional[Callable] = None,
-               model_cache: Optional[str] = None, recover_gaps: bool = True) -> dict:
+               model_cache: Optional[str] = None, recover_gaps: bool = True,
+               batch_size: int = 1) -> dict:
     """Generate local Whisper speech segments. The first run downloads a model."""
     _check_cancel(should_cancel)
     if not isinstance(recover_gaps, bool):
         raise ValueError("Gap recovery must be a boolean")
+    from .batched_transcription import validate_batch_size
+    validate_batch_size(batch_size)
     duration = probe_duration(audio)
+    if batch_size > 1:
+        from .batched_transcription import validate_batched_duration
+        validate_batched_duration(duration)
     if not isinstance(model, str) or not model.strip():
         raise ValueError("A Whisper model name or local model directory is required")
     try:
@@ -200,12 +207,28 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
     while not _MODEL_LOCK.acquire(timeout=0.1):
         _check_cancel(should_cancel)
     source = None
+    resources = ExitStack()
     try:
         _check_cancel(should_cancel)
         engine = _cached_model(model, model_cache or os.environ.get("CASTWELL_MODEL_CACHE") or None)
         _check_cancel(should_cancel)
-        source, info = engine.transcribe(str(Path(audio).resolve()), beam_size=5, vad_filter=True,
-                                         language=language, word_timestamps=True)
+        if batch_size > 1:
+            from .batched_transcription import batched_source
+            source, info, execution = resources.enter_context(batched_source(
+                engine, audio, duration=duration, batch_size=batch_size, language=language,
+                should_cancel=should_cancel,
+            ))
+        else:
+            source, info = engine.transcribe(str(Path(audio).resolve()), beam_size=5, vad_filter=True,
+                                             language=language, word_timestamps=True)
+            execution = {"version": "cuda-serial-v1", "mode": "serial", "device": "cuda",
+                         "compute_type": "float16", "batch_size": 1, "beam_size": 5, "word_timestamps": True}
+        normalization = {"source_segments": 0, "retained_segments": 0, "dropped_segments": 0,
+                         "source_words": 0, "retained_words": 0, "dropped_words": 0,
+                         "source_zero_duration_words": 0, "retained_zero_duration_words": 0,
+                         "clamped_segment_starts": 0, "clamped_segment_ends": 0,
+                         "clamped_word_starts": 0, "clamped_word_ends": 0}
+        execution["timestamp_normalization"] = normalization
         segments = []
         source = iter(source)
         while True:
@@ -214,15 +237,23 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
                 segment = next(source)
             except StopIteration:
                 break
+            normalization["source_segments"] += 1
+            segment_words = getattr(segment, "words", None) or []
+            normalization["source_words"] += len(segment_words)
+            normalization["source_zero_duration_words"] += sum(float(w.start) == float(w.end) for w in segment_words)
             start, end = max(0.0, float(segment.start)), min(duration, float(segment.end))
             # Whisper can produce very slightly overlapping timestamps at chunk boundaries.
             if segments:
                 start = max(start, segments[-1]["end"])
+            normalization["clamped_segment_starts"] += start != float(segment.start)
+            normalization["clamped_segment_ends"] += end != float(segment.end)
             if segment.text.strip() and end > start:
                 words = []
                 cursor = start
-                for word in getattr(segment, "words", None) or []:
+                for word in segment_words:
                     left, right = max(cursor, float(word.start)), min(end, float(word.end))
+                    normalization["clamped_word_starts"] += left != float(word.start)
+                    normalization["clamped_word_ends"] += right != float(word.end)
                     if word.word.strip() and right >= left:
                         item = {"word": word.word, "start": left, "end": right}
                         probability = getattr(word, "probability", None)
@@ -230,16 +261,31 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
                             item["probability"] = float(probability)
                         words.append(item)
                         cursor = right
+                        normalization["retained_zero_duration_words"] += right == left
+                    else:
+                        normalization["dropped_words"] += 1
+                normalization["retained_words"] += len(words)
+                normalization["retained_segments"] += 1
                 segments.append({"id": len(segments), "start": start, "end": end,
                                  "text": segment.text.strip(), "words": words})
+            else:
+                normalization["dropped_segments"] += 1
+                normalization["dropped_words"] += len(segment_words)
             if progress:
                 progress(f"Transcribing: {min(100, int(end / duration * 100))}%")
         _check_cancel(should_cancel)
         result = validate_transcript({"language": info.language, "duration": duration, "segments": segments,
-                                      "model": model})
+                                      "model": model, "asr_execution": execution})
         from .transcript_quality import analyze_transcript, recover_transcript_gaps
+        recovery_options = {}
+        if batch_size > 1:
+            from .batched_transcription import partition_word_gaps
+            result = partition_word_gaps(result)
+            recovery_options = {"max_crops": 32, "max_audio_seconds": 240, "max_wall_seconds": 60,
+                                "reconcile_boundaries": True}
         if recover_gaps:
-            result = recover_transcript_gaps(audio, result, engine, progress=progress, should_cancel=should_cancel)
+            result = recover_transcript_gaps(audio, result, engine, progress=progress, should_cancel=should_cancel,
+                                             **recovery_options)
         else:
             result["quality"] = analyze_transcript(result)
             result["quality"]["recovery"] = {"enabled": False}
@@ -249,8 +295,11 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
         raise ProcessingError("Local transcription failed. Check the model download, available memory, and audio file.") from exc
     finally:
         try:
-            if source is not None and callable(getattr(source, "close", None)):
-                source.close()
+            try:
+                if source is not None and callable(getattr(source, "close", None)):
+                    source.close()
+            finally:
+                resources.close()
         finally:
             if managed_classifier:
                 # Release speech weights before the owned classifier wakes.
@@ -606,7 +655,8 @@ def _ai_ads(transcript: dict, base_url: str, model: str, key: str, *, threshold:
 
 
 def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dict] = None,
-               progress: Optional[Callable] = None, should_cancel: Optional[Callable] = None) -> list:
+               progress: Optional[Callable] = None, should_cancel: Optional[Callable] = None,
+               audit_sink: Optional[Callable] = None) -> list:
     """Propose commercial cuts, with configurable confidence and review policy.
 
     ``auto`` uses AI when both endpoint and model are configured, otherwise the
@@ -614,6 +664,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     error, never a successful no-ad result.
     """
     _check_cancel(should_cancel)
+    if audit_sink is not None and not callable(audit_sink):
+        raise ValueError("Classifier audit sink must be callable")
     source_transcript = validate_transcript(transcript)
     transcript = _classification_transcript(source_transcript)
     if detector not in {"auto", "ai", "heuristic"}:
@@ -622,8 +674,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         raise ValueError("Detector configuration must be an object")
     config = config or {}
     ai_policy = config.get("ai_policy", "legacy")
-    if ai_policy not in {"legacy", "verified", "scene"}:
-        raise ValueError("AI policy must be legacy, verified, or scene")
+    if ai_policy not in {"legacy", "verified", "scene", "fast"}:
+        raise ValueError("AI policy must be legacy, verified, scene, or fast")
     ai_reasoning = config.get("ai_reasoning", False)
     if not isinstance(ai_reasoning, bool):
         raise ValueError("AI reasoning must be a boolean")
@@ -644,14 +696,14 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     key = key.strip()
     baseline = _heuristic_ads(transcript)
     if detector != "heuristic" and (base_url or model or key or detector == "ai"):
-        if ai_reasoning and ai_policy not in {"verified", "scene"}:
+        if ai_reasoning and ai_policy not in {"verified", "scene", "fast"}:
             raise ValueError("AI reasoning requires a checked detection policy")
         if not base_url or not model:
             raise ProcessingError("AI ad detection requires both CASTWELL_AI_BASE_URL and CASTWELL_AI_MODEL. CASTWELL_AI_KEY is optional for local servers.")
         try:
             window_chars = int(os.environ.get("CASTWELL_AI_WINDOW_CHARS", "18000"))
             context_segments = int(os.environ.get("CASTWELL_AI_CONTEXT_SEGMENTS", "12"))
-            request_timeout = float(os.environ.get("CASTWELL_AI_TIMEOUT", "180"))
+            request_timeout = float(os.environ.get("CASTWELL_AI_TIMEOUT", "300" if ai_policy == "fast" else "180"))
             if not 256 <= window_chars <= 100000 or not 0 <= context_segments <= 40 or not 10 <= request_timeout <= 600:
                 raise ValueError("Classifier limits outside supported range")
         except ValueError as exc:
@@ -659,6 +711,14 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         if window_chars < 800:
             transcript = _classification_transcript(source_transcript, max_chars=window_chars)
             baseline = _heuristic_ads(transcript)
+        if ai_policy == "fast":
+            from .fast_review import classify_fast
+            return classify_fast(
+                source_transcript, base_url=base_url, model=model, key=key,
+                threshold=threshold, review_only=True, progress=progress,
+                should_cancel=should_cancel, request_timeout=request_timeout,
+                decision_sink=audit_sink,
+            )
         if ai_policy == "scene":
             from .scene_pipeline import classify_scene_pipeline
             return classify_scene_pipeline(
@@ -708,7 +768,7 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         if progress:
             progress("Checking explicit sponsorship and commercial cues")
         cuts = baseline
-        if ai_policy in {"verified", "scene"}:
+        if ai_policy in {"verified", "scene", "fast"}:
             if not cuts:
                 raise ProcessingError(
                     "Cue-only detection cannot confirm that this episode has no advertisements. "

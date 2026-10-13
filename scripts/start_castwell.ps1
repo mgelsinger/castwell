@@ -6,10 +6,12 @@ param(
     [string]$ModelCache = '',
     [string]$SpeechModel = '',
     [switch]$ReviewedProfile,
+    [switch]$FastProfile,
     [switch]$Background
 )
 
 $ErrorActionPreference = 'Stop'
+$localReviewedProfile = $ReviewedProfile -or $FastProfile
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (-not $DataDirectory) { $DataDirectory = Join-Path $projectRoot 'data' }
 if (-not $ModelCache) { $ModelCache = Join-Path $projectRoot '.local\models\whisper' }
@@ -34,7 +36,7 @@ if p.is_file():
         if row: model=json.loads(row[0])
 print(model)
 '@
-    $defaultSpeechModel = if ($ReviewedProfile) { 'large-v3' } else { 'small.en' }
+    $defaultSpeechModel = if ($localReviewedProfile) { 'large-v3' } else { 'small.en' }
     $SpeechModel = $resolveModel | & $pythonPath - ([IO.Path]::GetFullPath($DataDirectory)) $defaultSpeechModel
     if ($LASTEXITCODE -ne 0) { throw 'Could not read the saved speech model.' }
 }
@@ -44,7 +46,7 @@ $environment = @{
     PATH = (Join-Path $projectRoot '.local\windows-vendor-cuda\cuda-runtime') + ';' + $env:PATH
     CASTWELL_AI_BASE_URL = "http://127.0.0.1:$ClassifierPort/v1"
     CASTWELL_AI_MODEL = 'castwell-local'
-    CASTWELL_AI_POLICY = $(if ($ReviewedProfile) { 'scene' } else { 'verified' })
+    CASTWELL_AI_POLICY = $(if ($FastProfile) { 'fast' } elseif ($ReviewedProfile) { 'scene' } else { 'verified' })
     CASTWELL_AI_KEY = $null
     CASTWELL_MODEL_CACHE = [System.IO.Path]::GetFullPath($ModelCache)
     CASTWELL_CLASSIFIER_SLEEP_ADDRESS = "http://127.0.0.1:$ClassifierPort/v1"
@@ -53,7 +55,7 @@ $environment = @{
 # Removal acceptance has not passed. Preserve an explicit saved preference;
 # new profiles require manual review. This direct app launcher does not verify
 # the live classifier identity; use start_suite for the pinned CUDA service.
-if ($ReviewedProfile) {
+if ($localReviewedProfile) {
     $initializeProfile = @'
 import sys
 from castwell.library import Library
@@ -63,11 +65,17 @@ if 'review_only' not in library.get_settings():
     profile['review_only']=True
 if 'transcription_model' not in library.get_settings():
     profile['transcription_model']=sys.argv[2]
+if sys.argv[3]=='fast':
+    profile.update(review_only=True,transcription_batch_size=8)
 library.update_settings(profile)
 '@
-    $initializeProfile | & $pythonPath - ([IO.Path]::GetFullPath($DataDirectory)) $SpeechModel
+    $initializeProfile | & $pythonPath - ([IO.Path]::GetFullPath($DataDirectory)) $SpeechModel $environment.CASTWELL_AI_POLICY
     if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the reviewed profile preference.' }
-    Write-Host 'Ad removal acceptance has not passed. New profiles require manual review. Use start_suite for a verified local CUDA service.'
+    if ($FastProfile) {
+        Write-Host 'Experimental whole-episode review selected: manual approval required, speech batch size saved as 8. Use start_suite -FastProfile for the verified pinned CUDA service.'
+    } else {
+        Write-Host 'Ad removal acceptance has not passed. New profiles require manual review. Use start_suite for a verified local CUDA service.'
+    }
 }
 $priorEnvironment = @{}
 try {

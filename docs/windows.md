@@ -6,18 +6,16 @@ Local inference requires a supported NVIDIA GPU and an NVIDIA driver compatible 
 
 ## Choose a distribution
 
-Version **0.5.2 is a manual-review test candidate**, with a faster scene detector and stricter batch completion checks. Its fresh ad-removal accuracy gate failed. Its files are `Castwell-0.5.2-Windows-x64-Setup.exe` and `Castwell-0.5.2-Windows-x64-Portable.zip`. Review every proposed cut and unresolved speech passage before exporting. See the included [evaluation](evaluations/2026-10-12-ad-removal-system.md) and [remaining work](ad-removal-production-plan.md). Neither this candidate nor 0.5.1 establishes safe unattended removal.
+Version **0.5.3 is a manual-review candidate** with whole-episode CUDA detection and batched speech recognition. On the tested GPU, a fresh 75:13 episode completed in **315.16 seconds**, equivalent to **251.40 seconds per audio hour**. It selected zero protected reference word-seconds and left 1.31 commercial word-seconds outside the cuts. This meets the measured speed target; it does not establish error-free or unattended removal. See the included [five-minute CUDA evaluation](evaluations/2026-10-13-five-minute-cuda.md) for reference limits and the exact measurements.
 
-Both 0.5.2 candidates passed actual CUDA speech and owned classifier execution, model preparation and GPU resource sharing, known-cut exports, and desktop start/stop. Portable relocation and current-user install/uninstall also passed. Four synthetic classifier requests were made in total, with no paid calls or model downloads. The [candidate validation record](evaluations/2026-10-13-windows-candidate.json) records exact package hashes and separates runtime checks from the failed real-podcast accuracy gate. Later repository changes to evaluation tools, test setup, and documentation are outside this frozen package snapshot.
+The candidate's two Windows build outputs are named:
 
-The source policy was subsequently clarified to remove sponsor/product reads while preserving promos for other free podcasts. These frozen 0.5.2 binaries predate that policy change. Review those promos manually; their earlier runtime validation does not establish compliance with the updated removal scope.
+- **Castwell-0.5.3-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
+- **Castwell-0.5.3-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
 
-Get the Windows assets from [Castwell releases](https://github.com/mgelsinger/castwell/releases/latest):
+Each completed build produces a manifest and `SHA256SUMS.txt` identifying its exact artifacts and source. Frozen runtime and installation checks are separate from the source episode benchmark; the benchmark alone does not validate an installer. [Published releases](https://github.com/mgelsinger/castwell/releases) can contain earlier versions, so check the version before comparing behavior.
 
-- **Castwell-0.5.1-Windows-x64-Setup.exe** installs for the current Windows user and creates a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
-- **Castwell-0.5.1-Windows-x64-Portable.zip** runs after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
-
-These artifacts are unsigned. Windows may show an unknown-publisher or SmartScreen prompt. Check that the file came from the linked project release and compare its SHA-256 value with the release checksum before running it.
+These artifacts are unsigned. Windows may show an unknown-publisher or SmartScreen prompt. Compare the artifact's SHA-256 value with its accompanying checksum before running it.
 
 The installer keeps the library in `%LOCALAPPDATA%\Castwell`, outside its application directory. The portable distribution uses a `Data` directory beside `Castwell.exe`. Both store episodes, transcripts, settings, listening state, and cut history in their library. Model weights can consume additional disk space.
 
@@ -27,7 +25,7 @@ To move a portable installation that uses its default library, stop Castwell and
 
 Open Castwell from its Start menu shortcut or portable executable. Choose the **Data folder** if needed, optionally choose a local classifier, then select **Start**. The desktop launcher checks the GPU, starts the local service, and opens the podcast library in your browser. The service listens on loopback by default. Keep the launcher running while you use the library and use its stop or close control when finished.
 
-1. In the library's settings, choose a Whisper model and select **Download model**. This explicit preparation downloads free model weights; the application does not silently download speech weights when an episode is queued. The published 0.5.1 package defaults to `small.en`. The 0.5.2 candidate defaults a new library to `large-v3` when the exact pinned Qwen profile is selected; other new desktop profiles retain `small.en`. Existing and explicitly selected speech models remain unchanged. Select a multilingual model if your podcasts need it.
+1. In the library's settings, choose a Whisper model and select **Download model**. This explicit preparation downloads free model weights; the application does not silently download speech weights when an episode is queued. A new reviewed-Qwen setup defaults to `large-v3`, **Experimental fast CUDA**, speech batch size **8**, and mandatory manual review. Other new desktop profiles retain `small.en` and batch size 1. Existing and explicitly selected speech models remain unchanged. Select a multilingual model if your podcasts need it.
 2. Add podcasts by RSS, import OPML, or upload recordings. Set **Keep original** or **Remove ads** for each show. Matching selections include episodes beyond the displayed catalogue page; batches of 50 or more ask for confirmation before preparation.
 3. Prepare episodes in batches. Transcription uses CUDA and float16. **Keep original** retains ads and skips ad classification. **Remove ads** proposes cuts for manual review.
 4. Listen around each proposed cut, adjust the boundaries, and approve the selections you want. Render approved cuts to make a cleaned listening copy. Original audio remains available.
@@ -38,11 +36,29 @@ Without speech weights, you can browse, download originals, import existing tran
 
 Use the desktop launcher's local-model controls to select an existing compatible GGUF file and start the bundled llama.cpp service. The local classifier uses the NVIDIA GPU. Weight files are not part of the installer, and choosing a file does not download it or spend money. Model size must fit the available GPU memory and the selected context.
 
-The launcher verifies the selected file. The exact pinned **Qwen3.8-27B Q4_K_M** from the [reviewed profile](https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#qwen38-27b-reviewed-profile) automatically uses `reviewed-qwen3.8-cuda`. The published 0.5.1 package uses a 1,024-token reasoning budget and a 4,096-token output cap. The 0.5.2 candidate uses a nonthinking compact sweep, then focused boundaries and endpoints with separate 256-token reasoning budgets; it defaults to manual approval because ad-removal acceptance has not passed. Other GGUF files use `generic-local-cuda`; selecting them does not establish equivalent detection quality or enable the reviewed Qwen request profile. The launcher reports the selected profile when ready.
+The launcher verifies the selected file. The exact pinned **Qwen3.8-27B Q4_K_M** from the [reviewed profile](https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#qwen38-27b-reviewed-profile) automatically uses `reviewed-qwen3.8-cuda`, with a 32,768-token native context. Other GGUF files use `generic-local-cuda`; selecting them does not establish equivalent detection quality or enable the reviewed Qwen request profile. The launcher reports the selected profile when ready.
 
 Run **Test AI connection** in the library's settings after startup. A passing connection test confirms that the service returns valid results; it does not establish ad-detection accuracy. Keep **Require my approval for every cut** enabled for either profile and review the proposed boundaries, especially jokes, unpaid parodies, and host reads.
 
 The desktop package uses the selected local CUDA classifier through the launcher's own loopback service. Hosted classifier configuration remains available when running Castwell from source; it is outside the packaged desktop workflow.
+
+## Experimental fast settings in the current checkout
+
+Version 0.5.3 includes **Experimental fast CUDA**. It reads the whole episode's context before checking the exact words at commercial boundaries. Its intended scope removes sponsor/product reads while preserving unpaid parody, editorial speech, and promotions for other free podcasts. The measured speed result applies to the tested configuration and recordings; it is not a guarantee for every episode or GPU.
+
+With the exact reviewed Qwen3.8 artifact selected in the managed launcher, Settings offers **Scene and endpoint review** and **Experimental fast CUDA**. Fast is the default when no explicit scene/fast preference exists. A saved desktop preference takes precedence over a saved source policy; explicit scene/fast selections remain unchanged. Older libraries that relied on an implicit scene default move to fast with mandatory review. Other local GGUF files keep their existing profile and context. Hosted-provider settings remain stored separately from the desktop's local policy choice.
+
+Fast mode forces **Require my approval for every cut**, including a result with no proposed cuts. Review the transcript and unresolved passages before saving decisions and exporting. The local episode directory includes a `fast-analysis.json` evidence file for troubleshooting. An empty proposal list does not prove that the recording has no ads.
+
+The fast policy manages its own reasoning settings: 6,144 tokens for whole-episode reasoning and 1,024 for boundary reasoning, within respective total output caps of 8,192 and 2,048 tokens. The general reasoning checkbox is disabled for this policy. Each classifier request has a default 300-second timeout; that timeout is separate from the five-minute-per-audio-hour processing goal.
+
+The separate **Speech batch size** setting accepts 1 through 16. Every saved batch value is preserved, including 1. With no saved batch value, the reviewed desktop uses 8 for fast and 1 for scene. The measured configuration used a 24 GB NVIDIA card. Model preparation remains explicit, inference remains CUDA-only, and queued retries retain the settings captured when the job was submitted. The source launcher's explicit `-FastProfile` flag instead saves batch size 8 each time it is used, as described in the [production guide](production.md#start-the-suite-on-windows).
+
+The [architecture guide](https://github.com/mgelsinger/castwell/blob/main/docs/architecture.md#five-minute-episode-benchmark) describes the reproducible cold benchmark and what its accuracy scores establish.
+
+## Earlier distributions
+
+The published 0.5.1 detector and the 0.5.2 scene candidate are historical baselines. Their [earlier evaluation](evaluations/2026-10-12-ad-removal-system.md) failed the desired speed/accuracy combination. The 0.5.2 packages passed separate [runtime and installation checks](https://github.com/mgelsinger/castwell/blob/main/docs/evaluations/2026-10-13-windows-candidate.json), but predate the clarified policy preserving free podcast promos. Those results do not validate the new 0.5.3 artifacts or establish unattended removal.
 
 ## Open an existing library
 

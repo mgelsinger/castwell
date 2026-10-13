@@ -20,6 +20,7 @@ from .processing import ProcessingError
 
 _DEFAULTS = {
     "transcription_model": "base",
+    "transcription_batch_size": 1,
     "language": None,
     "detector": "auto",
     "auto_approve_threshold": 0.90,
@@ -55,6 +56,9 @@ def _validated(values: dict) -> dict:
     result = dict(values)
     if "transcription_model" in result:
         result["transcription_model"] = _text(result["transcription_model"], "Transcription model")
+    if "transcription_batch_size" in result:
+        from .batched_transcription import validate_batch_size
+        validate_batch_size(result["transcription_batch_size"])
     if "language" in result:
         language = result["language"]
         if isinstance(language, str):
@@ -67,8 +71,8 @@ def _validated(values: dict) -> dict:
             raise ValueError("Language must be a two or three letter language code, or auto")
     if "detector" in result and result["detector"] not in ("auto", "ai", "heuristic"):
         raise ValueError("Detector must be auto, ai, or heuristic")
-    if "ai_policy" in result and result["ai_policy"] not in ("legacy", "verified", "scene"):
-        raise ValueError("AI policy must be legacy, verified, or scene")
+    if "ai_policy" in result and result["ai_policy"] not in ("legacy", "verified", "scene", "fast"):
+        raise ValueError("AI policy must be legacy, verified, scene, or fast")
     if "auto_approve_threshold" in result:
         threshold = result["auto_approve_threshold"]
         if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold) or not 0.5 <= threshold <= 1:
@@ -78,6 +82,10 @@ def _validated(values: dict) -> dict:
         raise ValueError("Review only must be a boolean")
     if "ai_reasoning" in result and not isinstance(result["ai_reasoning"], bool):
         raise ValueError("AI reasoning must be a boolean")
+    if result.get("ai_policy") == "fast":
+        # Experimental output stays manual until real recording acceptance.
+        result["review_only"] = True
+        result["ai_reasoning"] = False
     if "ai_model" in result:
         result["ai_model"] = _text(result["ai_model"], "Classifier model", allow_empty=True, limit=256)
     if "ai_base_url" in result:
@@ -254,6 +262,15 @@ def test_classifier(settings) -> dict:
         {"id": 1, "start": 5.0, "end": 10.0, "text": "This episode is sponsored by Example Coffee. Use code EXAMPLE for twenty percent off your first order."},
         {"id": 2, "start": 10.0, "end": 15.0, "text": "Now back to the show. Chlorophyll makes most leaves look green."},
     ]}
+    if config.get("ai_policy") == "fast":
+        # Invented timing belongs only to this declared synthetic connectivity
+        # fixture. Real recordings must supply original aligned word times.
+        for segment in transcript["segments"]:
+            tokens = segment["text"].split()
+            step = (segment["end"] - segment["start"]) / len(tokens)
+            segment["words"] = [{"word": token, "start": segment["start"] + i * step,
+                                  "end": segment["end"] if i == len(tokens) - 1 else segment["start"] + (i + 1) * step}
+                                 for i, token in enumerate(tokens)]
     try:
         cuts = detect_ads(transcript, detector="ai", config=config)
     except Exception:

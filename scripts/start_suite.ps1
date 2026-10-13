@@ -6,11 +6,14 @@ param(
     [string]$ModelCache = '',
     [string]$SpeechModel = '',
     [switch]$ReviewedProfile,
+    [switch]$FastProfile,
     [switch]$ValidateOnly
 )
 
 # Start only the pinned local services. No downloads, paid API, or broad kills.
 $ErrorActionPreference = 'Stop'
+$localReviewedProfile = $ReviewedProfile -or $FastProfile
+$selectedPolicy = if ($FastProfile) { 'fast' } elseif ($ReviewedProfile) { 'scene' } else { 'verified' }
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (-not $DataDirectory) { $DataDirectory = Join-Path $projectRoot 'data' }
 if (-not $ModelCache) { $ModelCache = Join-Path $projectRoot '.local\models\whisper' }
@@ -36,7 +39,7 @@ if p.is_file():
         if row: model=json.loads(row[0])
 print(model)
 '@
-    $defaultSpeechModel = if ($ReviewedProfile) { 'large-v3' } else { 'small.en' }
+    $defaultSpeechModel = if ($localReviewedProfile) { 'large-v3' } else { 'small.en' }
     $SpeechModel = $resolveModel | & $pythonPath - $dataPath $defaultSpeechModel
     if ($LASTEXITCODE -ne 0) { throw 'Could not read the saved speech model.' }
 }
@@ -76,6 +79,7 @@ function Get-ProjectListener([string]$Role, [int]$ListenPort) {
         )) {
             $owned = $owned -and (Test-Argument $command $setting[0] $setting[1])
         }
+        if ($FastProfile) { $owned = $owned -and (Test-Argument $command '--ctx-size' '32768') }
     } else {
         $owned = $owned -and $command -match '^(?:"[^"]+"|\S+)\s+(?:-u\s+)?-m\s+castwell(?:\s|$)' -and (Test-Argument $command '--data-dir' $dataPath)
     }
@@ -120,10 +124,9 @@ try {
     $classifier = Get-ProjectListener 'classifier' $ClassifierPort
     $application = Get-ProjectListener 'app' $Port
     if ($ValidateOnly) {
-        [pscustomobject]@{ Validated=$true; StartsServices=$false; SpeechModel=$SpeechModel; ExistingApp=[bool]$application; ExistingClassifier=[bool]$classifier }
+        [pscustomobject]@{ Validated=$true; StartsServices=$false; SpeechModel=$SpeechModel; DetectorPolicy=$selectedPolicy; SpeechBatchOverride=$(if ($FastProfile) { 8 } else { $null }); ExistingApp=[bool]$application; ExistingClassifier=[bool]$classifier }
         return
     }
-    $selectedPolicy = if ($ReviewedProfile) { 'scene' } else { 'verified' }
     if ($application) {
         $currentSettings = Get-LocalJson "http://127.0.0.1:$Port/api/settings"
         if ($currentSettings.ai_policy -ne $selectedPolicy) {
@@ -143,13 +146,15 @@ try {
     $state.processes += Process-Record $classifier 'classifier' $ClassifierPort
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding UTF8
     if (-not $application) {
-        & (Join-Path $PSScriptRoot 'start_castwell.ps1') -Port $Port -ClassifierPort $ClassifierPort -DataDirectory $dataPath -ModelCache $cachePath -SpeechModel $SpeechModel -ReviewedProfile:$ReviewedProfile -Background | Out-Null
+        & (Join-Path $PSScriptRoot 'start_castwell.ps1') -Port $Port -ClassifierPort $ClassifierPort -DataDirectory $dataPath -ModelCache $cachePath -SpeechModel $SpeechModel -ReviewedProfile:$ReviewedProfile -FastProfile:$FastProfile -Background | Out-Null
     }
     $application = Wait-LocalReady "http://127.0.0.1:$Port/api/health" 'app' $Port
     $state.processes += Process-Record $application 'app' $Port
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding UTF8
-    if ($ReviewedProfile) {
-        $body = @{ detector='ai'; ai_policy='scene'; ai_reasoning=$false; auto_approve_threshold=0.90 } | ConvertTo-Json -Compress
+    if ($localReviewedProfile) {
+        $profileSettings = @{ detector='ai'; ai_policy=$selectedPolicy; ai_reasoning=$false; auto_approve_threshold=0.90 }
+        if ($FastProfile) { $profileSettings.review_only=$true; $profileSettings.transcription_batch_size=8 }
+        $body = $profileSettings | ConvertTo-Json -Compress
         $content = [System.Net.Http.StringContent]::new($body, [Text.Encoding]::UTF8, 'application/json')
         $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new('PATCH'), "http://127.0.0.1:$Port/api/settings")
         $request.Content = $content

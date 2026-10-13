@@ -23,7 +23,7 @@ from .processing import ProcessingCancelled, ProcessingError, _binary, _check_ca
 from .transcript_quality import GAP_SECONDS, analyze_transcript
 
 
-POLICY_VERSION = "cuda-gap-evidence-v1"
+POLICY_VERSION = "cuda-gap-evidence-v2"
 SAMPLE_RATE = 16000
 FRAME_SAMPLES = 512
 THRESHOLD = .35
@@ -356,11 +356,20 @@ def assess_audio_coverage(audio, transcript, *, max_gaps=32, max_audio_seconds=1
                    or bool(recovery.get("candidates")) or bool(recovery.get("recovered_segments")))
     recovery_failed = bool(not valid_recovery or recovery.get("failed_attempts")
                            or any(attempt.get("status") == "failed" for attempt in recovery_attempts))
+    recovery_incomplete = bool(recovery.get("budget_exhausted")
+                               or any(attempt.get("status") == "budget_exhausted" for attempt in recovery_attempts))
+    execution = source.get("asr_execution") or {}
+    normalization = (execution.get("timestamp_normalization") or {}) if isinstance(execution, dict) else {}
+    normalization_dropped = False
+    for key in ("dropped_words", "dropped_segments"):
+        value = normalization.get(key, 0) if isinstance(normalization, dict) else None
+        normalization_dropped |= isinstance(value, bool) or not isinstance(value, int) or value != 0
     unknown_prior_warning = bool(original.get("requires_review") and original.get("method") != "timestamp-gaps")
     complete = bool(duration_status == "matched" and valid_metadata and not sparse and not tail_only and not declared_partial
                     and not cancelled and not exhausted
                     and all(gap["status"] == "no_speech_detected" and gap.get("checked_full_gap") for gap in gaps))
-    clear = complete and not provisional and not recovery_failed and not unknown_prior_warning
+    clear = (complete and not provisional and not recovery_failed and not recovery_incomplete
+             and not normalization_dropped and not unknown_prior_warning)
     result = deepcopy(source)
     quality = deepcopy(original)
     quality["requires_review"] = not clear
@@ -381,6 +390,8 @@ def assess_audio_coverage(audio, transcript, *, max_gaps=32, max_audio_seconds=1
         "declared_partial_scope": declared_partial, "declared_audio_scopes": declared_scopes,
         "full_episode_coverage_declared": original.get("full_episode_coverage", source.get("full_episode_coverage")),
         "provisional_recovered_speech": provisional, "prior_recovery_failure": recovery_failed,
+        "prior_recovery_budget_exhausted": recovery_incomplete,
+        "asr_normalization_dropped_content": normalization_dropped,
         "unrecognized_prior_warning": unknown_prior_warning, "valid_gap_metadata": valid_metadata,
         "valid_recovery_metadata": valid_recovery,
         "decode_attempts": attempts, "processed_audio_seconds": round(used_seconds, 6),

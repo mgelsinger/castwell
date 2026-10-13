@@ -1,0 +1,837 @@
+{
+  "schema_version": 1,
+  "evaluation_date": "2026-10-13",
+  "title": "Five-minute CUDA processing candidate",
+  "status": "development_candidate_speed_target_met_accuracy_not_passed",
+  "removal_scope": "sponsor-product-reads-only-v1",
+  "target_seconds_per_audio_hour": 300,
+  "production_accuracy_passed": false,
+  "automatic_acceptance_validated": false,
+  "human_listening_verified": false,
+  "payment_status_verified": false,
+  "all_recordings_consumed_for_development": true,
+  "october_8_reserved_holdout_used": false,
+  "publication_contains": [
+    "aggregate metrics",
+    "configuration",
+    "hashes",
+    "limitations"
+  ],
+  "publication_excludes": [
+    "audio",
+    "transcript passages",
+    "model reasoning",
+    "credentials",
+    "workstation paths"
+  ],
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "vram_gb": 24,
+    "cpu_neural_fallback": false
+  },
+  "current_candidate": {
+    "policy_version": "whole-episode-boundaries-v6",
+    "inference_profile": "global-thinking6144-product-boundaries1024-v6",
+    "speech_model": "large-v3",
+    "speech_device": "cuda",
+    "speech_compute_type": "float16",
+    "speech_batch_size": 8,
+    "speech_beam_size": 5,
+    "speech_word_timestamps": true,
+    "speech_without_timestamps": true,
+    "vad_provider": "CUDAExecutionProvider",
+    "vad_cpu_fallback_disabled": true,
+    "classifier_model": "Qwen3.8-27B-Q4_K_M",
+    "classifier_gpu_layers": 66,
+    "classifier_total_layers": 66,
+    "native_context_tokens": 32768,
+    "global_reasoning_budget_tokens": 6144,
+    "global_max_generation_tokens": 8192,
+    "boundary_reasoning_budget_tokens": 1024,
+    "boundary_max_generation_tokens": 2048,
+    "all_cuts_require_manual_review": true,
+    "acoustic_edges_promoted": false,
+    "jev_automatic_hybrid_promoted": false,
+    "batch_decode_cap_mib": 600,
+    "batch_decode_max_audio_seconds": 9830.4,
+    "larger_context_fallback": "complete overlapping source windows with explicit unresolved disagreement; accuracy not validated as equivalent to whole-episode context"
+  },
+  "model_sha256": {
+    "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+    "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+  },
+  "references": {
+    "july_30": {
+      "show": "Stuff They Don't Want You To Know",
+      "episode_date": "2026-07-30",
+      "audio_seconds": 4513.123265,
+      "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+      "reference_transcript_sha256": "63d6708f35184b47b29f5f06e1281374d51a0ee86ee7493182a7d80c14e59758",
+      "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "reference_format": "word-table",
+      "removal_scope": "sponsor-product-reads-only-v1",
+      "consumed_development": true,
+      "acceptance_eligible": false,
+      "human_listening_verified_declaration": false,
+      "payment_verified_declaration": false,
+      "new_asr_word_identity_match_required": false
+    },
+    "august_27": {
+      "show": "Stuff They Don't Want You To Know",
+      "episode_date": "2026-08-27",
+      "audio_seconds": 4795.010612,
+      "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+      "reference_transcript_sha256": "a485e82337c00d575abc856948c70cc35ea576c37c85ddd00c64903285b93d1f",
+      "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+      "reference_format": "full-episode-word-ranges",
+      "removal_scope": "sponsor-product-reads-only-v1",
+      "consumed_development": true,
+      "acceptance_eligible": false,
+      "human_listening_verified_declaration": false,
+      "payment_verified_declaration": false,
+      "new_asr_word_identity_match_required": false
+    }
+  },
+  "timing_contract": {
+    "cold_model_loading_included": true,
+    "fresh_transcription_included": true,
+    "fresh_classification_included": true,
+    "isolated_database_waveform_and_stage_persistence_included": true,
+    "candidate_audio_preview_rendering_included": true,
+    "initial_audio_and_model_downloads_included": false,
+    "preflight_hashing_and_probing_included": false,
+    "ui_and_queue_interaction_included": false,
+    "cleanup_after_output_included": false,
+    "os_file_caches_flushed": false,
+    "installed_desktop_acceptance_test": false,
+    "aggregate_stage_times_are_not_substituted_for_measured_cold_wall_time": true
+  },
+  "scoring_contract": {
+    "metric": "summed provisional reference word duration outside/inside candidate cut intervals",
+    "whole_ad_elapsed_seconds": false,
+    "partial_word_intersection_counts_as_complete_removal": false,
+    "zero_duration_word_points_counted_separately": true,
+    "new_asr_words_must_match_reference_word_ids": false,
+    "listening_verified_audible_accuracy": false
+  },
+  "runs": [
+    {
+      "id": "cached-july-v1b",
+      "recording": "july_30",
+      "kind": "cached_transcript_pipeline",
+      "status": "complete",
+      "private_report_sha256": "cad7ef925c335390285f624add51b9eed7d746cae6637f70926d9f9f4a89e2db",
+      "reused_inputs": [
+        "older_aligned_transcript"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "23 new compact window requests. Includes detection and preview; excludes fresh ASR.",
+        "Missed humorous commercial setup and selected reference-labeled parody plus publisher speech."
+      ],
+      "measured_stage_wall_seconds": 141.160022,
+      "new_classifier_requests": {
+        "requests": 23,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 104.447647,
+        "token_usage_complete": true,
+        "known_input_tokens": 88054,
+        "known_output_tokens": 1678
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1893,
+        "commercial_entries_fully_selected": 1893,
+        "commercial_entries_incomplete": 92,
+        "commercial_word_seconds_missed": 27.08,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 15,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 123,
+        "protected_word_seconds_selected": 34.56
+      }
+    },
+    {
+      "id": "global-july-v1",
+      "recording": "july_30",
+      "kind": "global_only_probe",
+      "status": "complete",
+      "private_report_sha256": "6a7c39aaf37b686cf2e8b54ab8c1e6e1b513581026d5118af19ae41d013bc7a3",
+      "reused_inputs": [
+        "older_aligned_transcript"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "One whole-episode global request. Boundary refinement not yet applied.",
+        "Not cold pipeline timing."
+      ],
+      "measured_stage_wall_seconds": 101.450016,
+      "new_classifier_requests": {
+        "requests": 1,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 95.591386,
+        "token_usage_complete": true,
+        "known_input_tokens": 22454,
+        "known_output_tokens": 3245
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1982,
+        "commercial_entries_fully_selected": 1982,
+        "commercial_entries_incomplete": 3,
+        "commercial_word_seconds_missed": 0.0,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 12,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 12,
+        "protected_word_seconds_selected": 2.6
+      }
+    },
+    {
+      "id": "boundaries-july-v3",
+      "recording": "july_30",
+      "kind": "boundary_only_probe",
+      "status": "complete",
+      "private_report_sha256": "4e46e7f2b130088bb1a6bef1230af23a63ae97e1ee161d479919edb3077e8ddf",
+      "reused_inputs": [
+        "older_aligned_transcript",
+        "global-july-v1 predictions"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "One new boundary request; no fresh global pass or transcription.",
+        "All positive-duration reference commercial speech selected; three zero-duration points unselected."
+      ],
+      "measured_stage_wall_seconds": 39.335976,
+      "new_classifier_requests": {
+        "requests": 1,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 33.200102,
+        "token_usage_complete": true,
+        "known_input_tokens": 8742,
+        "known_output_tokens": 1157
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1982,
+        "commercial_entries_fully_selected": 1982,
+        "commercial_entries_incomplete": 3,
+        "commercial_word_seconds_missed": 0.0,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 12,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      }
+    },
+    {
+      "id": "cold-july-v3",
+      "recording": "july_30",
+      "kind": "fresh_cold_pipeline",
+      "status": "complete",
+      "private_report_sha256": "de7d0b3f5c7e82227dfbd0a413b7b9c55abcfbaab626be83788068b328635f1f",
+      "reused_inputs": [],
+      "production_accuracy_passed": false,
+      "notes": [
+        "3072 reasoning-token global budget produced a complete-looking final partition omitting three early commercial blocks.",
+        "Speed goal passed; accuracy failed."
+      ],
+      "measured_stage_wall_seconds": 235.16339,
+      "new_classifier_requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 117.757108,
+        "token_usage_complete": true,
+        "known_input_tokens": 23325,
+        "known_output_tokens": 4212
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 502,
+        "commercial_entries_fully_selected": 498,
+        "commercial_entries_incomplete": 1487,
+        "commercial_word_seconds_missed": 485.6,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 6,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      },
+      "audio_seconds": 4513.123265,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 187.583665,
+        "episode_budget_seconds": 376.093605,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "configuration": {
+        "detector": "whole-episode-boundaries-v3",
+        "inference_profile": "global-thinking3072-boundaries1024-v3",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 5120,
+        "removal_scope": "sponsor-product-reads-only-v1",
+        "consumed_development": true,
+        "maximum_classifier_requests": 40
+      },
+      "configuration_sha256": "e58b3a59df69c466fa6c9850a8a008d1125600f4501916040ef30dec906260f7",
+      "phase_seconds": {
+        "adapter_setup": 0.036578,
+        "episode_preparation": 8.475767,
+        "model_prepare": 0.00429,
+        "transcription": 69.488509,
+        "detection": 123.71898,
+        "render": 33.384368,
+        "cleanup_excluded": 1.339133
+      },
+      "source_audio_unchanged": true,
+      "render_mode": "candidate_preview",
+      "episode_preparation_included": true,
+      "existing_user_library_modified": false,
+      "output_sha256": "c09c947c5adfefc9090041ec7bcee48dd2e28b435c858f5e3ab0691e48dd0174",
+      "runtime_evidence": {
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "speech_model_loads_in_run": 1,
+        "models_cold_at_start": true,
+        "source_unchanged_during_run": true,
+        "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        }
+      },
+      "source_sha256": {
+        "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+        "castwell/fast_review.py": "85bd1a2ff4f88f7b4cbb479e1d4abb9ccf3609ee426a584e219db51d735c7878",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/processing.py": "79c7b8278346e0f343b734f1bd3eb7f60c78c479e827926a63395cead5ca34f4",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a"
+      }
+    },
+    {
+      "id": "global-july-v4",
+      "recording": "july_30",
+      "kind": "global_only_probe",
+      "status": "complete",
+      "private_report_sha256": "9ad15f077ea8bf69792aa3a8e14b0cda7a0d7288c916097b87982ce9a25f30f3",
+      "reused_inputs": [
+        "cold-july-v3 fresh transcript"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "6144 reasoning-token budget on the same fresh transcript restored global commercial blocks.",
+        "Per-unit cut intervals in this intermediate report omit internal unit gaps; final merged cuts are in boundaries-july-v4."
+      ],
+      "measured_stage_wall_seconds": 172.462114,
+      "new_classifier_requests": {
+        "requests": 1,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 166.485861,
+        "token_usage_complete": true,
+        "known_input_tokens": 20588,
+        "known_output_tokens": 6303
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1983,
+        "commercial_entries_fully_selected": 1784,
+        "commercial_entries_incomplete": 201,
+        "commercial_word_seconds_missed": 11.69,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 14,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      }
+    },
+    {
+      "id": "boundaries-july-v4",
+      "recording": "july_30",
+      "kind": "boundary_only_probe",
+      "status": "complete",
+      "private_report_sha256": "a7cfd0ba408fb2c1333f346ae44b4152f5a89170323f9cd1cfcaddf75274cd95",
+      "reused_inputs": [
+        "cold-july-v3 fresh transcript",
+        "global-july-v4 predictions"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "One new boundary request with final merged word-based cuts.",
+        "No new cold-pipeline timing claim."
+      ],
+      "measured_stage_wall_seconds": 38.110756,
+      "new_classifier_requests": {
+        "requests": 1,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 32.236289,
+        "token_usage_complete": true,
+        "known_input_tokens": 8260,
+        "known_output_tokens": 1137
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1984,
+        "commercial_entries_fully_selected": 1971,
+        "commercial_entries_incomplete": 14,
+        "commercial_word_seconds_missed": 1.31,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 15,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      }
+    },
+    {
+      "id": "cold-august-v5",
+      "recording": "august_27",
+      "kind": "fresh_cold_pipeline",
+      "status": "complete",
+      "private_report_sha256": "273a5bb841b85345ef5a4e74894e741b2c8415e89a35b9785cc7a15443cb8f1b",
+      "reused_inputs": [],
+      "production_accuracy_passed": false,
+      "notes": [
+        "Boundary semantics missed part of a paid television product offer.",
+        "Approximately 43 seconds of concurrent synthetic browser smoke during early ASR shared Chrome/FFmpeg resources; no concurrent model calls.",
+        "Speed goal passed; accuracy failed."
+      ],
+      "measured_stage_wall_seconds": 320.745474,
+      "new_classifier_requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 200.354585,
+        "token_usage_complete": true,
+        "known_input_tokens": 30387,
+        "known_output_tokens": 7363
+      },
+      "reference_score": {
+        "commercial_reference_entries": 2098,
+        "commercial_reference_word_seconds": 626.06,
+        "commercial_entries_any_selected": 2039,
+        "commercial_entries_fully_selected": 2022,
+        "commercial_entries_incomplete": 76,
+        "commercial_word_seconds_missed": 19.94,
+        "commercial_zero_duration_entries": 26,
+        "commercial_zero_duration_points_selected": 26,
+        "protected_reference_entries": 10921,
+        "protected_reference_word_seconds": 3380.27,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      },
+      "audio_seconds": 4795.010612,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 240.809416,
+        "episode_budget_seconds": 399.584218,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "configuration": {
+        "detector": "whole-episode-boundaries-v5",
+        "inference_profile": "global-thinking6144-boundaries1024-v4",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "removal_scope": "sponsor-product-reads-only-v1",
+        "consumed_development": true,
+        "maximum_classifier_requests": 40
+      },
+      "configuration_sha256": "6f483c038475a9f63cc309e4752f066d427d30da795da426a2f5c73b3e36b151",
+      "phase_seconds": {
+        "adapter_setup": 0.040103,
+        "episode_preparation": 9.18838,
+        "model_prepare": 0.004413,
+        "transcription": 72.44849,
+        "detection": 206.327068,
+        "render": 32.679177,
+        "cleanup_excluded": 1.366395
+      },
+      "source_audio_unchanged": true,
+      "render_mode": "candidate_preview",
+      "episode_preparation_included": true,
+      "existing_user_library_modified": false,
+      "output_sha256": "30ea1899f13115869ca90092bd05bd2fbd7e1721d73c12ecd6635e547d8ec482",
+      "runtime_evidence": {
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "speech_model_loads_in_run": 1,
+        "models_cold_at_start": true,
+        "source_unchanged_during_run": true,
+        "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        }
+      },
+      "source_sha256": {
+        "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+        "castwell/fast_review.py": "4318880a231f892fee2ff65e2cbf0cbd93b0d1dae13bfc5b3bdc433dd88ee322",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+        "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a"
+      }
+    },
+    {
+      "id": "boundaries-august-v6",
+      "recording": "august_27",
+      "kind": "boundary_only_probe",
+      "status": "complete",
+      "private_report_sha256": "82f112dccada73d5a2996647a3189adb6b747afde4aebbeb2e5c6d403cbfa5cd",
+      "reused_inputs": [
+        "cold-august-v5 fresh transcript",
+        "cold-august-v5 global decisions"
+      ],
+      "production_accuracy_passed": false,
+      "notes": [
+        "Corrected paid-product versus free-podcast boundary distinction.",
+        "All 2098 commercial entries intersect cuts, but 15 remain partly selected.",
+        "No new full cold run."
+      ],
+      "measured_stage_wall_seconds": 35.674114,
+      "new_classifier_requests": {
+        "requests": 1,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 29.757136,
+        "token_usage_complete": true,
+        "known_input_tokens": 7867,
+        "known_output_tokens": 1042
+      },
+      "reference_score": {
+        "commercial_reference_entries": 2098,
+        "commercial_reference_word_seconds": 626.06,
+        "commercial_entries_any_selected": 2098,
+        "commercial_entries_fully_selected": 2083,
+        "commercial_entries_incomplete": 15,
+        "commercial_word_seconds_missed": 3.13,
+        "commercial_zero_duration_entries": 26,
+        "commercial_zero_duration_points_selected": 26,
+        "protected_reference_entries": 10921,
+        "protected_reference_word_seconds": 3380.27,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      }
+    },
+    {
+      "id": "cold-july-v6",
+      "recording": "july_30",
+      "kind": "fresh_cold_pipeline",
+      "status": "complete",
+      "private_report_sha256": "745b192976f217a7f4969615e6e78645eb5af4beab301ba67c87bb016fde855f",
+      "reused_inputs": [],
+      "production_accuracy_passed": false,
+      "notes": [
+        "Final candidate completed without other GPU or heavy CPU work.",
+        "Speed goal passed; 13 partial commercial word entries and one completely missed entry remain on the consumed provisional reference.",
+        "Zero protected reference duration selected does not establish human-verified production accuracy."
+      ],
+      "measured_stage_wall_seconds": 315.163146,
+      "new_classifier_requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 199.797932,
+        "token_usage_complete": true,
+        "known_input_tokens": 28909,
+        "known_output_tokens": 7440
+      },
+      "reference_score": {
+        "commercial_reference_entries": 1985,
+        "commercial_reference_word_seconds": 637.76,
+        "commercial_entries_any_selected": 1984,
+        "commercial_entries_fully_selected": 1971,
+        "commercial_entries_incomplete": 14,
+        "commercial_word_seconds_missed": 1.31,
+        "commercial_zero_duration_entries": 15,
+        "commercial_zero_duration_points_selected": 15,
+        "protected_reference_entries": 10512,
+        "protected_reference_word_seconds": 3339.5,
+        "protected_entries_any_selected": 0,
+        "protected_word_seconds_selected": 0.0
+      },
+      "audio_seconds": 4513.123265,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 251.397371,
+        "episode_budget_seconds": 376.093605,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "configuration": {
+        "detector": "whole-episode-boundaries-v6",
+        "inference_profile": "global-thinking6144-product-boundaries1024-v6",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "removal_scope": "sponsor-product-reads-only-v1",
+        "consumed_development": true,
+        "maximum_classifier_requests": 40
+      },
+      "configuration_sha256": "e7597fb1bef02f0b223e4ab8660aab1ea51b26d2397b5c132c97734d8aea03cd",
+      "phase_seconds": {
+        "adapter_setup": 0.041437,
+        "episode_preparation": 8.842621,
+        "model_prepare": 0.004496,
+        "transcription": 69.800234,
+        "detection": 205.763597,
+        "render": 30.655445,
+        "cleanup_excluded": 1.334733
+      },
+      "source_audio_unchanged": true,
+      "render_mode": "candidate_preview",
+      "episode_preparation_included": true,
+      "existing_user_library_modified": false,
+      "output_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+      "runtime_evidence": {
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "speech_model_loads_in_run": 1,
+        "models_cold_at_start": true,
+        "source_unchanged_during_run": true,
+        "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        },
+        "initial_whisper_cache_entries": 0,
+        "initial_vad_cache_entries": 0,
+        "transcript_cache_hits": 0,
+        "prediction_cache_hits": 0,
+        "asset_downloads": 0,
+        "request_telemetry_complete": true,
+        "cuda_only_verified": true,
+        "speech_cuda_verified": true,
+        "classifier_cuda_verified": true,
+        "native_token_preflights": 2
+      },
+      "source_sha256": {
+        "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+        "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+        "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a"
+      }
+    }
+  ],
+  "asr_only_control": {
+    "id": "asr-july-v3",
+    "private_report_sha256": "6098a4ebaa15566a9fd2f3d5bcc8f764290ff41094f3a556dc9632d87e0871ca",
+    "audio_seconds": 4513.123265,
+    "elapsed_seconds_including_model_load_recovery_coverage": 70.603854,
+    "full_pipeline": false
+  },
+  "jev_scene_probe": {
+    "id": "jev-scenes-v1",
+    "private_report_sha256": "e1afa0f04906dcd160810402c8bb54af360b499fb31d625d0fe6312b912e65aa",
+    "requests": 6,
+    "retries": 0,
+    "input_tokens": 8429,
+    "output_tokens": 264,
+    "provider_request_seconds_sum": 2.094,
+    "paced_wrapper_seconds": 7.21327,
+    "accounted_cost_usd": "0.000354018",
+    "valid_responses": 6,
+    "matching_consumed_reference_cases": 5,
+    "case_outcomes": [
+      {
+        "case": "july-parody",
+        "matches_reference": true
+      },
+      {
+        "case": "august-parody",
+        "matches_reference": false
+      },
+      {
+        "case": "july-humorous-offer",
+        "matches_reference": true
+      },
+      {
+        "case": "august-humorous-offer",
+        "matches_reference": true
+      },
+      {
+        "case": "july-free-trailer",
+        "matches_reference": true
+      },
+      {
+        "case": "july-publisher-tagline",
+        "matches_reference": true
+      }
+    ],
+    "full_pipeline_comparison": false,
+    "acceptance_eligible": false,
+    "production_changed": false,
+    "automatic_hybrid_promoted": false
+  },
+  "rejected_acoustic_edge_probe": {
+    "id": "acoustic-edges-july-v2",
+    "private_report_sha256": "2527b31ed95b51c28163d2e67e153dffb9eba29d2841d48fcaa51394c254a457",
+    "elapsed_seconds_including_model_load": 15.770917,
+    "cuda_crops": 19,
+    "processed_audio_seconds": 217.923265,
+    "aligned_endpoints": 16,
+    "rejected_endpoints": 14,
+    "before": {
+      "commercial_reference_entries": 1985,
+      "commercial_reference_word_seconds": 637.76,
+      "commercial_entries_any_selected": 1984,
+      "commercial_entries_fully_selected": 1971,
+      "commercial_entries_incomplete": 14,
+      "commercial_word_seconds_missed": 1.31,
+      "commercial_zero_duration_entries": 15,
+      "commercial_zero_duration_points_selected": 15,
+      "protected_reference_entries": 10512,
+      "protected_reference_word_seconds": 3339.5,
+      "protected_entries_any_selected": 0,
+      "protected_word_seconds_selected": 0.0
+    },
+    "after": {
+      "commercial_reference_entries": 1985,
+      "commercial_reference_word_seconds": 637.76,
+      "commercial_entries_any_selected": 1984,
+      "commercial_entries_fully_selected": 1973,
+      "commercial_entries_incomplete": 12,
+      "commercial_word_seconds_missed": 1.56,
+      "commercial_zero_duration_entries": 15,
+      "commercial_zero_duration_points_selected": 15,
+      "protected_reference_entries": 10512,
+      "protected_reference_word_seconds": 3339.5,
+      "protected_entries_any_selected": 0,
+      "protected_word_seconds_selected": 0.0
+    },
+    "promoted": false,
+    "decision": "Rejected because missed commercial duration increased despite fewer incomplete word entries."
+  },
+  "limitations": [
+    "All references are consumed provisional ASR/context labels, not fresh holdout results.",
+    "Human listening and payment status were not verified.",
+    "No reference-labeled parody preservation result establishes that the actual performance was unpaid.",
+    "Uncovered or recovered speech remains review work; model absence of speech is not proof of absence.",
+    "Same weights with changed context and output structure are workflow comparisons, not a general model ranking.",
+    "Word timing disagreement can remain even when every commercial scene is recognized.",
+    "The bounded omission guard can reject explicit sponsorship in fiction; it never assigns commerce or creates cuts.",
+    "Recordings beyond 32768 context tokens and beyond 600 MiB batched decode capacity require separately validated handling.",
+    "The final July v6 cold result meets the speed target but still has provisional commercial boundary misses; no fresh held-out accuracy result is claimed."
+  ],
+  "native_runtime": {
+    "name": "llama.cpp",
+    "build": 11146,
+    "commit": "7fe450e19",
+    "build_identity_observed_in_final_run_log": true,
+    "frozen_build_manifest_sha256": "75b207904d052f355272a5ddd3c60a2a95c8d43b2d67ed88350edb5aae2c8aca",
+    "binaries": {
+      "ggml-cuda.dll": {
+        "bytes": 545604608,
+        "sha256": "a5a5e1e6c4a7cf9575ad7929dd1b5aca08dfbcbea2002e02b554a4895e03c679"
+      },
+      "llama-server-impl.dll": {
+        "bytes": 8916992,
+        "sha256": "fae1ca8959986062a24c7b0a92e12a782f2770fc5448c7cc631f0d4bb6cac4a0"
+      },
+      "llama-server.exe": {
+        "bytes": 9216,
+        "sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352"
+      },
+      "llama.dll": {
+        "bytes": 3175936,
+        "sha256": "8bc4713fde3b48a35c06c6d503c9fd128d349275e6fad6b48d235796c9d9739f"
+      }
+    },
+    "current_binaries_match_frozen_manifest": true,
+    "binary_identity_verification_timing": "Verified after the completed run against its existing frozen distribution manifest; not an in-stopwatch native hash check."
+  },
+  "software_verification": {
+    "evidence": "Final root-agent verification report in the current development session",
+    "tests_passed": 982,
+    "tests_skipped": 2,
+    "subtests_passed": 162,
+    "final_july_v6_jobs_audit_validated": true,
+    "final_july_v6_source_words": 12110,
+    "final_july_v6_candidate_cuts": 15,
+    "final_july_v6_full_preview_mp3_decode_passed": true,
+    "installed_desktop_acceptance_test": false,
+    "human_listening_verified": false
+  }
+}

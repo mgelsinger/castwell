@@ -68,6 +68,30 @@ def test_short_leading_and_trailing_edges_are_checked_even_below_gap_threshold(r
     assert runtime.model.call_count == 3 and runtime.loader.call_count == 1
 
 
+def test_negative_vad_cannot_clear_an_incomplete_recovery_budget(runtime):
+    value = source()
+    value["quality"] = analyze_transcript(value)
+    value["quality"]["recovery"] = {"budget_exhausted": True, "failed_attempts": 0,
+                                     "candidates": [], "recovered_segments": 0, "attempts": []}
+    result = assess(value)
+    evidence = result["quality"]["audio_coverage"]
+    assert evidence["complete_assessment"] is True
+    assert evidence["prior_recovery_budget_exhausted"] is True
+    assert evidence["generic_gap_review_cleared"] is False
+    assert result["quality"]["requires_review"] is True
+
+
+def test_no_long_gaps_cannot_hide_words_dropped_during_asr_normalization(runtime):
+    value = {"duration": 20, "segments": [{"id": 0, "start": 0, "end": 20, "text": "Represented speech."}],
+             "asr_execution": {"timestamp_normalization": {"dropped_words": 1, "dropped_segments": 0}}}
+    result = assess(value)
+    evidence = result["quality"]["audio_coverage"]
+    assert evidence["complete_assessment"] is True
+    assert evidence["asr_normalization_dropped_content"] is True
+    assert evidence["generic_gap_review_cleared"] is False
+    assert result["quality"]["requires_review"] is True
+
+
 def test_one_positive_frame_keeps_review_and_never_claims_silence(runtime):
     def positive(samples):
         rows = np.zeros(len(samples) // coverage.FRAME_SAMPLES, dtype="float32")
