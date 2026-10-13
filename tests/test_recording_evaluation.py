@@ -391,3 +391,42 @@ def test_reference_verification_missing_stays_unknown_and_invalid_declaration_fa
     recording["references"][0].write_text(json.dumps(reference))
     with pytest.raises(ValueError, match="booleans"):
         evaluation.evaluate_recordings(**recording, resume=True)
+
+
+def test_undeclared_reference_scope_remains_unknown_and_current_scope_is_pinned(recording):
+    result = evaluation.evaluate_recordings(**recording, detector=lambda *args, **kwargs: [])
+    assert result["configuration"]["removal_scope"] == "sponsor-product-reads-only-v1"
+    assert "castwell/ad_scope.py" in result["provenance"]["source_sha256"]
+    assert result["clips"][0]["provenance"]["reference_removal_scope"] is None
+    assert result["clips"][0]["provenance"]["reference_scope_status"] == "undeclared"
+
+
+@pytest.mark.parametrize("scope", ["all-promotions", True, {"scope": "sponsor-product"}])
+def test_mismatched_reference_scope_fails_before_classification(recording, scope):
+    reference = json.loads(recording["references"][0].read_text())
+    reference["removal_scope"] = scope
+    recording["references"][0].write_text(json.dumps(reference))
+    with pytest.raises(ValueError, match="Reference removal scope"):
+        evaluation.evaluate_recordings(**recording,
+            detector=lambda *args, **kwargs: pytest.fail("mismatched scope reached classifier"))
+    assert not recording["output"].exists()
+
+
+def test_matching_reference_scope_is_recorded_without_changing_labels(recording):
+    path = recording["references"][0]
+    reference = json.loads(path.read_text())
+    reference["removal_scope"] = "sponsor-product-reads-only-v1"
+    path.write_text(json.dumps(reference))
+    before = path.read_bytes()
+    result = evaluation.evaluate_recordings(**recording, detector=lambda *args, **kwargs: [])
+    assert result["clips"][0]["provenance"]["reference_scope_status"] == "matches_current_policy"
+    assert path.read_bytes() == before
+
+
+def test_frozen_candidate_scope_mismatch_fails_before_classification(recording, tmp_path):
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(json.dumps({"detector_configuration": {"removal_scope": "all-promotions"}}))
+    with pytest.raises(ValueError, match="Removal scope differs from frozen"):
+        evaluation.evaluate_recordings(**recording, candidate_config=candidate,
+            detector=lambda *args, **kwargs: pytest.fail("candidate scope mismatch reached classifier"))
+    assert not recording["output"].exists()

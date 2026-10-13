@@ -908,6 +908,8 @@ def create_app(data_dir=None):
             if record['archived']:
                 continue
             public = library.public(record)
+            if not public['export_ready']:
+                continue
             if record.get('ad_mode') == 'keep' and public['has_audio']:
                 variant, path = 'original', Path(record['audio'])
             elif public['preferred_version'] == 'cleaned':

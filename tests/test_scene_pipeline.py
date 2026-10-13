@@ -8,6 +8,7 @@ import requests
 
 from castwell import processing, scene_edges, scene_pipeline as pipeline, scene_review
 from castwell.ad_review import _review_units
+from castwell.ad_scope import INSTRUCTIONS
 
 
 def fixture(count=6, *, aligned=True):
@@ -47,6 +48,11 @@ class Response:
 
     def close(self):
         pass
+
+
+class RangeResponse(Response):
+    def json(self):
+        return {'choices': [{'finish_reason': 'stop', 'message': {'content': json.dumps({'ranges': self.rows})}}]}
 
 
 def install(monkeypatch, source, audit, *, labels=None, mutate_scene=None, mutate_edges=None):
@@ -120,6 +126,51 @@ def test_manual_composition_returns_actual_refinement_and_complete_isolated_audi
     stages[0][1]["intent"]["label"] = "mixed"
     assert approvals[0]["scene_audit"][1]["intent"]["label"] == "commercial"
     assert cuts[0]["verification"][0]["intent"]["label"] == "commercial"
+
+
+def test_actual_composed_stages_preserve_free_crosspromo_between_paid_reads(monkeypatch):
+    source, _ = fixture(count=4)
+    texts = ['Buy a sponsor plan.', 'Follow our other free podcast.',
+             'This joke leads into its paid premium feed.', 'Buy that paid subscription.']
+    for unit, text in zip(source['segments'], texts):
+        unit['text'] = unit['words'][0]['word'] = text
+    prompts, summaries = [], []
+    def provider(url, headers, payload, *args, **options):
+        prompts.append(payload['messages'][0]['content'])
+        request = json.loads(payload['messages'][1]['content'])
+        assert options == {'allow_redirects': False, 'trust_env': False}
+        if 'scenes' in request:
+            rows = [{'id': identifier, 'label': 'commercial', 'role': 'commercial_speech',
+                     'evidence_id': identifier, 'reason': 'Actual paid offer or its setup.'}
+                    for identifier in request['target_ids']]
+            return Response(rows)
+        ranges = [{'first_id': identifier, 'last_id': identifier,
+                   'label': 'editorial' if identifier == 1 else 'commercial', 'confidence': .99,
+                   'evidence_id': identifier, 'reason': 'Free preview.' if identifier == 1 else 'Actual paid offer.'}
+                  for identifier in request['target_ids']]
+        return RangeResponse(ranges)
+    monkeypatch.setattr(processing, '_classifier_request', provider)
+    cuts = classify(source, approval_sink=summaries.append)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 8)]
+    assert all(not cut['approved'] for cut in cuts)
+    assert summaries[0]['policy_version'] == pipeline.POLICY_VERSION
+    assert summaries[0]['scene_audit'][1]['intent']['label'] == 'editorial'
+    assert 1 not in summaries[0]['edge_plan']['selected_unit_ids']
+    assert len(prompts) == 3 and all(INSTRUCTIONS in prompt for prompt in prompts)
+
+
+def test_indivisible_crosspromo_and_sponsor_blocks_composed_auto_approval(monkeypatch):
+    source, audit = fixture(count=1)
+    text = 'Follow our free podcast and buy the sponsor plan'
+    source['segments'][0]['text'] = source['segments'][0]['words'][0]['word'] = text
+    for stage in ('intent', 'boundary'):
+        audit[0][stage].update(label='mixed', evidence=text)
+    install(monkeypatch, source, audit, labels=lambda _: ('mixed', 'unresolved'))
+    summaries = []
+    cuts = classify(source, review_only=False, approval_sink=summaries.append)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
+    assert not cuts[0]['approved'] and cuts[0]['requires_review']
+    assert summaries[0]['requires_review'] and summaries[0]['unresolved_unit_ids'] == [0]
 
 
 def test_automatic_approval_requires_verified_retained_endpoints(monkeypatch):

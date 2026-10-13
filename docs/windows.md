@@ -10,6 +10,8 @@ Version **0.5.2 is a manual-review test candidate**, with a faster scene detecto
 
 Both 0.5.2 candidates passed actual CUDA speech and owned classifier execution, model preparation and GPU resource sharing, known-cut exports, and desktop start/stop. Portable relocation and current-user install/uninstall also passed. Four synthetic classifier requests were made in total, with no paid calls or model downloads. The [candidate validation record](evaluations/2026-10-13-windows-candidate.json) records exact package hashes and separates runtime checks from the failed real-podcast accuracy gate. Later repository changes to evaluation tools, test setup, and documentation are outside this frozen package snapshot.
 
+The source policy was subsequently clarified to remove sponsor/product reads while preserving promos for other free podcasts. These frozen 0.5.2 binaries predate that policy change. Review those promos manually; their earlier runtime validation does not establish compliance with the updated removal scope.
+
 Get the Windows assets from [Castwell releases](https://github.com/mgelsinger/castwell/releases/latest):
 
 - **Castwell-0.5.1-Windows-x64-Setup.exe** installs for the current Windows user and creates a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.

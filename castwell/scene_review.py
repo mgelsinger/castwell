@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from .ad_review import LABELS, _BOUNDARY, _INTENT, _review_units
 from .processing import ProcessingError
 
-POLICY_VERSION = "scene-boundary-v4"
+POLICY_VERSION = "scene-boundary-v7"
 INFERENCE_PROFILE = "scene-compact-intent-boundary-reasoning256-2048"
 MAX_TARGETS = 64
 MAX_CORE_CHARS = 9000
@@ -53,6 +53,9 @@ Check the following offer and preceding framing before excluding such a setup.
 An actual return to unrelated editorial discussion does end the scene.
 Pure program navigation announcing a break or return to this show, and this
 show's own production credits or free contact information, are editorial.
+Free previews and listening or follow invitations for another podcast are also
+editorial, even inserted between ads. Their adjacent sponsor or paid-subscription
+offers stay commercial; split units by role rather than extending a commercial range.
 Do not absorb those separately identified editorial units into an adjacent read.
 A fictional or unpaid sales sketch remains editorial even when it mimics an
 offer. Unresolved commercial intent remains uncertain; do not invent payment.

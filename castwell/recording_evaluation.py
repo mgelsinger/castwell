@@ -17,11 +17,13 @@ from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
 from . import processing
+from .ad_scope import REMOVAL_SCOPE
 from .evaluation import union_intervals, validate_endpoint
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWS = ("candidates", "verified", "approved")
 LIMITATIONS = [
+    "Removal scope is sponsor/product reads only. Undeclared reference scope is unknown, not evidence that historical labels match the current policy.",
     "Listening and payment verification are supplied reference declarations, not independently attested by this evaluator. Missing declarations remain unknown.",
     "Only labeled intervals are scored. Unverified intervals are excluded; unlabeled audio is not assumed editorial.",
     "Unit coverage concerns provisional transcript spans, not exact acoustic cut boundaries or real-world accuracy.",
@@ -125,7 +127,7 @@ def score_cuts(cuts, reference, duration, *, backend="verified-ai"):
 
 
 def _code_hashes(backend="verified-ai"):
-    files = ("castwell/processing.py", "castwell/ad_review.py", "castwell/jev.py", "castwell/evaluation.py", "castwell/transcript_quality.py",
+    files = ("castwell/processing.py", "castwell/ad_scope.py", "castwell/ad_review.py", "castwell/jev.py", "castwell/evaluation.py", "castwell/transcript_quality.py",
              "castwell/recording_evaluation.py", "scripts/evaluate_recordings.py")
     if backend == "scene-ai":
         files += ("castwell/scene_review.py", "castwell/scene_edges.py", "castwell/scene_pipeline.py")
@@ -162,6 +164,9 @@ def _load_reference(path):
     reference = json.loads(path.read_text(encoding="utf-8"))
     if reference.get("detector_predictions_seen") is not False:
         raise ValueError("Reference must explicitly declare no detector predictions seen")
+    scope = reference.get("removal_scope")
+    if scope is not None and scope != REMOVAL_SCOPE:
+        raise ValueError("Reference removal scope differs from the current sponsor/product policy")
     transcript_path = Path(reference["transcript"])
     if not transcript_path.is_absolute():
         transcript_path = path.parent / transcript_path
@@ -203,6 +208,8 @@ def _load_reference(path):
         "metadata_sha256": sha256(metadata_path),
         "duration": transcript["duration"],
         "reference_verification": _reference_verification(reference),
+        "reference_removal_scope": scope,
+        "reference_scope_status": "undeclared" if scope is None else "matches_current_policy",
     }
     return path, reference, transcript, provenance
 
@@ -290,6 +297,10 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
         {"file": Path(path).name, "sha256": sha256(path), "bytes": Path(path).stat().st_size} for path in model_files]}
     if candidate_config:
         candidate = json.loads(Path(candidate_config).read_text(encoding="utf-8"))
+        expected_scope = candidate.get("detector_configuration", {}).get("removal_scope",
+            candidate.get("removal_scope"))
+        if expected_scope is not None and expected_scope != REMOVAL_SCOPE:
+            raise ValueError("Removal scope differs from frozen candidate configuration")
         expected_profile = candidate.get("detector_configuration", {}).get("request_profile")
         if backend == "scene-ai":
             expected_profile = candidate.get("detector_configuration", {}).get("request_profiles",
@@ -303,6 +314,7 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
         provenance["candidate_configuration_sha256"] = sha256(candidate_config)
     environment = _classifier_environment() if backend in {"verified-ai", "scene-ai"} else {}
     configuration = {"backend": backend, "base_url": base_url, "model": model,
+                     "removal_scope": REMOVAL_SCOPE,
                      "model_label": model_label, "review_only": True,
                      "auto_approve_threshold": .90 if backend != "kev" else None,
                      "transport": "literal loopback, no redirects, no inherited credentials or proxies",

@@ -2,11 +2,15 @@
 
 The release requirement is batch podcast preparation with accurate removal of real advertisements, preservation of unpaid parody and program speech, a per-podcast Remove ads or Keep original choice, and working CUDA-only portable and installer applications. Library features alone do not satisfy this requirement.
 
+The user clarified the removal scope on October 13: **remove sponsor/product reads only**. Preserve inserted promos and trailers for other free podcasts. Real sponsor, product, affiliate, paid-service and paid-subscription reads remain removal targets, including humorous setups and closing terms. A free program preview or invitation to listen does not become an ad because it is inserted between commercial reads. Split neighboring sponsor and program-promo speech; if one indivisible unit contains both, require review. Payment or selling intent that is not established by context remains uncertain.
+
+All contextual classifiers now share this scope. Known analyses or queued detector profiles from the old policy require explicit redetection. For Remove episodes with a stale known analysis, preferred playback returns to the original and preferred ZIP/RSS exports wait for review or redetection. Explicitly saved manual cuts and Keep original behavior remain available; stored audio and prior decisions are retained.
+
 ## Current evidence
 
 The released detector takes 106:34 to classify a 79:55 recording. A compact scene detector with separate endpoint review is now connected to the application and CUDA launchers. It takes 7:19 to classify a different complete 75:13 recording. CUDA large-v3 transcription takes a separate 4:44. The speed problem is substantially improved; accuracy is still insufficient for unattended removal.
 
-The frozen fresh test consists of one complete Stuff They Don't Want You to Know recording and previously unused tails from Stuff You Should Know and Skeptoid. It used 44 actual model requests in total, with references frozen before inference. The complete recording misses 133 commercial word entries, representing 42.60 seconds of word duration, and proposes removing 52 protected words, representing 11.96 seconds. The Skeptoid tail misses 13 commercial words, representing 4.62 seconds; the SYSK tail has no scored word errors. All proposals remain unapproved. Free other-podcast trailers with unresolved policy and audio without verified text are reported separately.
+The frozen fresh test consists of one complete Stuff They Don't Want You to Know recording and previously unused tails from Stuff You Should Know and Skeptoid. It used 44 actual model requests in total, with references frozen before inference. The complete recording misses 133 commercial word entries, representing 42.60 seconds of word duration, and proposes removing 52 protected words, representing 11.96 seconds. The Skeptoid tail misses 13 commercial words, representing 4.62 seconds; the SYSK tail has no scored word errors. All proposals remain unapproved. That historical run excluded free other-podcast trailers under its then-unresolved policy. The clarification now makes unambiguously free trailers protected in future references; the historical scores and source/reference hashes stay unchanged. Audio without verified text remains separate review work.
 
 Independent verification confirms the request identities, complete unit ownership, original word mappings, actual token usage, and error arithmetic. A previously consumed episode passed an endpoint repair replay, but that replay did not predict success on the fresh test. It must not be presented as independent validation.
 
@@ -15,6 +19,8 @@ The remaining faults concern scene ownership: a persuasive setup can be excluded
 The cached rutabaga sketch has provisional parody labels from transcripts and publisher context, with no independent listening or payment verification. Earlier preservation of that sketch is consumed development evidence. The latest bounded repair never reached its parody controls. Listening verification of the full sketch and neighboring real read is still required.
 
 A private labeling packet now identifies eight contextual windows in three cached originals, totaling 15:18 of first-pass listening before boundary replay and annotation. It includes the complete rutabaga setup/sketch and neighboring real read, humorous sales setups, protected internal transitions, and the host's booking-service offer. It preserves source hashes and provisional labels, includes an unfilled listener template, and marks every item as consumed development material. Preparing that packet adds no verified labels by itself.
+
+A separate versioned policy overlay now marks three previously ambiguous free podcast trailers, totaling 226 provisional word entries, as protected. Five derived reference copies retain their parent hashes and explicitly declare that historical predictions had already been inspected. Paid product/service/membership labels are retained. These copies are development material, have no listening verification, and produce no new accuracy score; an explicit adapter and consumed-data mode are required before using them with the public interval evaluator.
 
 ## Implementation sequence
 
@@ -27,7 +33,7 @@ A private labeling packet now identifies eight contextual windows in three cache
 
 ## Acceptance measurements
 
-- Zero missed commercial words and zero protected words cut in each frozen, scored acceptance recording. Report policy-ambiguous promotions and untranscribed audio separately rather than counting them as correct negatives.
+- Zero missed sponsor/product words and zero protected words cut in each frozen, scored acceptance recording. Include free other-podcast promos as protected controls. Report passages with unresolved selling intent and untranscribed audio separately rather than counting them as correct negatives.
 - Preserve unpaid parody, including the rutabaga examples. Include humorous real advertisements and complete persuasive introductions.
 - Measure fresh classification time separately from speech recognition, model loading, exports, and cached replay. The working performance target is under ten minutes of classification for an approximately eighty-minute episode on the tested RTX 3090 Ti.
 - No CPU neural inference fallback. Missing CUDA support or insufficient GPU memory must produce a clear failure.
@@ -43,5 +49,7 @@ The current local models and installed CUDA runtime are sufficient for the manua
 This is a release plan, not a production acceptance certificate. Passing a consumed repair test still requires a later fresh recording check and listening verification. Portable and installer candidates must disclose any remaining accuracy failure instead of being labeled production ready.
 
 The 0.5.2 portable and installer candidates have now passed their actual CUDA, export, startup, relocation, and installation checks. Their [validation record](evaluations/2026-10-13-windows-candidate.json) keeps those operational results separate from the failed accuracy gate. The next release blocker remains verified scene labels and a detector repair that passes independent episode acceptance.
+
+Those frozen 0.5.2 binaries predate the October 13 sponsor/product-only clarification. Their runtime checks do not attest the updated source policy. A future candidate must include the updated policy and pass its fresh accuracy gate; manual approval remains necessary in the existing packages.
 
 The public recording evaluator now supports the actual composed scene/endpoint detector with complete private audits, frozen request settings, and explicit missing/failed decisions. Its [documented interval-reference format](ad-read-evaluation.md#real-recordings-with-partial-references) remains separate from the private word-reference format used in the fresh study. Offline dispatch and audit fixtures establish software behavior, not new model accuracy.

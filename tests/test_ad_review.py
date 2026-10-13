@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pytest
 import requests
 
-from castwell import processing
+from castwell import ad_review, processing
+from castwell.ad_scope import INSTRUCTIONS
 
 
 @pytest.fixture(autouse=True)
@@ -109,6 +110,30 @@ def test_two_commercial_judgments_approve_only_after_review_mode_opt_out():
     assert review[0]['requires_review'] is False
 
 
+def test_free_crosspromo_between_paid_reads_preserves_its_original_audio():
+    source = transcript('Our sponsor offers a paid plan.',
+                        'Explore our other podcast and follow its free episodes.',
+                        'Subscribe to its premium paid feed for five dollars.')
+    original = deepcopy(source)
+    provider = Provider(lambda _, identifier: 'editorial' if identifier == 1 else 'commercial')
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source, config={'review_only': True})
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 6)]
+    assert all(not cut['approved'] for cut in cuts)
+    assert [stage for stage, *_ in provider.calls] == ['intent', 'boundaries']
+    assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
+
+
+def test_indivisible_free_crosspromo_and_sponsor_requires_review():
+    source = transcript('Follow our other free podcast and buy the sponsor plan')
+    provider = Provider('mixed')
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
+    assert cuts[0]['label'] == 'mixed' and cuts[0]['requires_review'] and not cuts[0]['approved']
+
+
 def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
     evidence = 'Offer TERMS:\n' + ('Choose  Café credit with the weekly plan; ' * 6) + 'Offer ends tonight'
     source = transcript('A short sponsor introduction.', evidence)
@@ -122,7 +147,7 @@ def test_evidence_source_id_attaches_exact_context_text_without_model_quote():
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)
     assert source == original
-    assert cuts[0]['policy_version'] == 'intent-boundary-v8'
+    assert cuts[0]['policy_version'] == ad_review.POLICY_VERSION
     assert len(evidence) > 160
     assert len(cuts[0]['verification']) == 2
     for record in cuts[0]['verification']:

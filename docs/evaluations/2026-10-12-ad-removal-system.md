@@ -2,6 +2,8 @@
 
 The compact CUDA detector is connected to the source application. It is substantially faster than the released detector, but the fresh accuracy gate fails. Castwell must remain a reviewed workflow until those errors are resolved and independently validated.
 
+On October 13 the user specified sponsor/product reads only, preserving inserted promos for other free podcasts. The results below retain their original frozen policy and provisional labels; they have not been rerun or silently rescored under the clarification. Future references must count unambiguously free podcast promos as protected speech. The frozen 0.5.2 packages predate this source-policy change.
+
 ## Fresh results
 
 This run used the same pinned Qwen3.8 27B Q4_K_M model, native llama.cpp with all 66 layers on CUDA, a complete contextual intent sweep, focused scene boundaries, and separate endpoint review. Reference word labels were frozen before these predictions. There were 44 model requests across the entire run, with no paid requests and no prediction cache hits. The [aggregate evidence](2026-10-12-ad-removal-system.json) records source/model hashes, actual token usage, conserved word counts, and the failed gate.

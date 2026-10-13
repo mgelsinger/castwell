@@ -15,7 +15,7 @@ from . import scene_edges, scene_review
 from .ad_review import _review_units
 from .processing import ProcessingError, _check_cancel, _words_text, validate_cuts, validate_transcript
 
-POLICY_VERSION = "scene-pipeline-v2"
+POLICY_VERSION = "scene-pipeline-v3"
 
 
 def _integer(value):

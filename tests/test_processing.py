@@ -132,6 +132,31 @@ class ProcessingTests(unittest.TestCase):
         self.assertIn("ancient oceans", sent)
         self.assertNotIn("Authorization", request.call_args.kwargs["headers"])
 
+    def test_legacy_request_uses_shared_scope_and_keeps_free_podcast_promo_separate(self):
+        from castwell.ad_scope import INSTRUCTIONS
+        source = transcript("Listen to Science Roads free wherever you follow podcasts.",
+                            "Get the paid premium Science Roads subscription for five dollars a month.",
+                            "This episode is sponsored by Acme groceries. Use promo code SPACE for a free trial.",
+                            "Now back to our conversation.")
+        answer = {"ads": [{"segment_ids": [1, 2], "confidence": .99,
+                           "reason": "Paid subscription and sponsor product offers"}]}
+        with self.ai_environment(), patch("requests.post", return_value=FakeResponse(answer)) as request:
+            cuts = detect_ads(source, "ai", config={"ai_policy": "legacy", "review_only": False})
+        prompt = request.call_args.kwargs["json"]["messages"][0]["content"]
+        self.assertTrue(prompt.startswith(INSTRUCTIONS))
+        self.assertEqual([(cut["start"], cut["end"], cut["approved"]) for cut in cuts], [(10, 30, True)])
+        self.assertTrue(all(cut["start"] >= 10 for cut in cuts))
+
+    def test_legacy_rejected_podcast_promo_cues_stay_unapproved_manual_fallback(self):
+        source = transcript("This portion is brought to you by the free Science Roads podcast.",
+                            "Visit scienceroads.com and follow the free show wherever you listen.",
+                            "Now back to our conversation.")
+        with self.ai_environment(), patch("requests.post", return_value=FakeResponse({"ads": []})):
+            cuts = detect_ads(source, "ai", config={"ai_policy": "legacy", "review_only": False})
+        self.assertTrue(cuts)
+        self.assertTrue(all(cut["requires_review"] and not cut["approved"] for cut in cuts))
+        self.assertTrue(all(cut["sources"] == ["heuristic"] for cut in cuts))
+
     def test_legacy_ai_only_demotes_cuts_overlapping_recovered_speech(self):
         source = transcript("A recovered promotion.", "Editorial discussion.", "Another promotion.")
         source["segments"][0]["asr_recovered"] = True

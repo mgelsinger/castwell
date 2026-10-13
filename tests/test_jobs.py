@@ -185,6 +185,40 @@ class JobsTests(unittest.TestCase):
             with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
                 Jobs._restore_detection_policy(snapshot)
 
+    def test_all_detector_snapshots_include_canonical_removal_scope(self):
+        from castwell.ad_scope import REMOVAL_SCOPE
+        for policy in ('legacy', 'verified', 'scene'):
+            for detector in ('auto', 'ai', 'heuristic'):
+                with self.subTest(policy=policy, detector=detector):
+                    snapshot = Jobs._detection_policy({'ai_policy': policy, 'detector': detector})
+                    self.assertEqual(snapshot['removal_scope'], REMOVAL_SCOPE)
+                    self.assertEqual(Jobs._restore_detection_policy(snapshot), snapshot)
+                    old_snapshot = {key: value for key, value in snapshot.items() if key != 'removal_scope'}
+                    with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
+                        Jobs._restore_detection_policy(old_snapshot)
+        self.assertEqual(Jobs._detection_policy({'ai_policy': 'legacy', 'detector': 'ai'})['policy_version'],
+                         processing.LEGACY_AI_POLICY_VERSION)
+
+    def test_old_known_legacy_analysis_cannot_be_reused_under_new_removal_scope(self):
+        settings = {'ai_policy': 'legacy', 'detector': 'ai', 'ai_model': 'fixture',
+                    'ai_base_url': 'http://127.0.0.1:8081/v1'}
+        old_profile = Jobs._detection_policy(settings)
+        old_profile.pop('removal_scope')
+        old_profile['policy_version'] = 'legacy-unversioned'
+        old_cuts = [dict(CUT, source='ai', reason='Saved under the previous broader removal scope')]
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=old_cuts, analysis_done=True,
+                                  analysis_profile=old_profile)
+        self.jobs.settings_getter = lambda: dict(settings)
+        with patch('castwell.processing.detect_ads') as detect, patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            episode = self.wait()
+        self.assertEqual(episode['status'], 'error')
+        self.assertIn('Find ads again', episode['error'])
+        self.assertEqual(episode['cuts'], old_cuts)
+        self.assertEqual(episode['analysis_profile'], old_profile)
+        detect.assert_not_called()
+        render.assert_not_called()
+
     def test_empty_scene_cue_fallback_cannot_complete_even_with_clear_coverage(self):
         identifier = self.episode(transcript=TRANSCRIPT)
         self.jobs.settings_getter = lambda: {'ai_policy': 'scene', 'ai_base_url': '', 'ai_model': '',

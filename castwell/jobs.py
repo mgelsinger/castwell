@@ -203,6 +203,7 @@ class Jobs:
     @classmethod
     def _detection_policy(cls, settings, detector=None):
         """Snapshot only validated, nonsecret choices and request-profile identity."""
+        from .ad_scope import REMOVAL_SCOPE
         policy = settings.get('ai_policy', 'legacy')
         selected_detector = detector or settings.get('detector') or 'auto'
         reasoning = settings.get('ai_reasoning', False)
@@ -224,7 +225,7 @@ class Jobs:
                 raise ValueError('Classifier address cannot contain credentials or query parameters') from None
         if len(model) > 256 or any(ord(char) < 32 for char in model):
             raise ValueError('Invalid classifier model')
-        version, profile = 'legacy-unversioned', 'legacy-per-unit'
+        version, profile = processing.LEGACY_AI_POLICY_VERSION, 'legacy-per-unit'
         if selected_detector == 'heuristic':
             version, profile = 'commercial-cues-unversioned', 'commercial-cues'
         elif policy == 'verified':
@@ -249,7 +250,7 @@ class Jobs:
                 profile += '+' + edges.INFERENCE_PROFILE
         return {**cls._approval_policy(settings), 'detector': selected_detector, 'ai_policy': policy,
                 'ai_reasoning': reasoning, 'ai_base_url': address, 'ai_model': model,
-                'policy_version': version, 'inference_profile': profile}
+                'policy_version': version, 'inference_profile': profile, 'removal_scope': REMOVAL_SCOPE}
 
     @classmethod
     def _restore_detection_policy(cls, snapshot):

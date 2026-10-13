@@ -2,12 +2,16 @@
 
 import hashlib
 import copy
+import io
 import json
+import os
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from contextlib import closing
 from pathlib import Path
+import zipfile
 
 from castwell.library import Library
 
@@ -231,6 +235,88 @@ class LibraryTests(unittest.TestCase):
         self.assertIsNone(record['analysis_profile'])
         self.assertTrue(record['transcript_review'])
         self.assertTrue(record['analysis_done'])
+
+    def ready_media(self, profile, cuts):
+        self.library.import_entries([entry(feed_url='', media_url='')])
+        folder = self.library.directory('one')
+        original, cleaned = folder / 'original.mp3', folder / 'cleaned.mp3'
+        original.write_bytes(b'original source preserved for review')
+        cleaned.write_bytes(b'retained edited preview from saved cuts')
+        transcript = {'duration': 120, 'segments': [{'id': 0, 'start': 0, 'end': 120, 'text': 'Complete source.'}]}
+        self.library.update('one', audio=str(original), cleaned=str(cleaned) if cuts else None,
+                            transcript=transcript, cuts=cuts, analysis_done=True, analysis_profile=profile,
+                            status='ready', duration=120)
+        return original, cleaned
+
+    def test_known_prior_removal_scope_withholds_automatic_cleaned_readiness_without_mutation(self):
+        cuts = [{'start': 10, 'end': 20, 'approved': True, 'source': 'ai'}]
+        for profile in ({}, {'ai_policy': 'scene'}, {'removal_scope': 'previous-broader-scope'}):
+            with self.subTest(profile=profile):
+                original, cleaned = self.ready_media(profile, cuts)
+                record = self.library.get('one')
+                frozen = copy.deepcopy(record)
+                public = self.library.public(record, detail=True)
+                self.assertEqual(public['status'], 'review')
+                self.assertEqual(public['preferred_version'], 'original')
+                self.assertFalse(public['export_ready'])
+                self.assertTrue(public['has_cleaned'])
+                self.assertIn('rules changed', public['progress'])
+                self.assertEqual(public['cuts'], cuts)
+                self.assertEqual(self.library.summaries()[0]['status'], 'review')
+                self.assertEqual(self.library.get('one'), frozen)
+                self.assertEqual(cleaned.read_bytes(), b'retained edited preview from saved cuts')
+                self.assertEqual(original.read_bytes(), b'original source preserved for review')
+
+    def test_scope_guard_preserves_current_scope_manual_decisions_and_keep_original(self):
+        from castwell.ad_scope import REMOVAL_SCOPE
+        cuts = [{'start': 10, 'end': 20, 'approved': True, 'source': 'ai'}]
+        self.ready_media({'removal_scope': REMOVAL_SCOPE}, cuts)
+        public = self.library.public(self.library.get('one'))
+        self.assertEqual(public['status'], 'ready')
+        self.assertEqual(public['preferred_version'], 'cleaned')
+        self.assertTrue(public['export_ready'])
+        self.library.update('one', analysis_profile={'removal_scope': 'previous-broader-scope'})
+        podcast = self.library.get('one')['podcast_id']
+        self.library.set_podcast_mode([podcast], 'keep')
+        public = self.library.public(self.library.get('one'))
+        self.assertEqual(public['status'], 'ready')
+        self.assertEqual(public['preferred_version'], 'original')
+        self.assertTrue(public['export_ready'])
+        self.library.set_podcast_mode([podcast], 'remove')
+        self.library.update('one', cuts=[dict(cuts[0], source='manual')])
+        public = self.library.public(self.library.get('one'))
+        self.assertIsNone(self.library.get('one')['analysis_profile'])
+        self.assertEqual(public['status'], 'ready')
+        self.assertEqual(public['preferred_version'], 'cleaned')
+        self.assertTrue(public['export_ready'])
+
+    def test_old_scope_preferred_archive_and_rss_fail_closed_but_explicit_preview_survives(self):
+        from fastapi.testclient import TestClient
+        from castwell.app import create_app
+        cuts = [{'start': 10, 'end': 20, 'approved': True, 'source': 'ai'}]
+        self.ready_media({'ai_policy': 'scene'}, cuts)
+        with patch.dict(os.environ, {'CASTWELL_ALLOWED_HOSTS': 'testserver'}), TestClient(create_app(self.library.root)) as client:
+            detail = client.get('/api/episodes/one').json()
+            self.assertEqual(detail['status'], 'review')
+            self.assertFalse(detail['export_ready'])
+            self.assertNotIn('<guid isPermaLink="false">one</guid>', client.get('/api/export/feed').text)
+            exported = client.post('/api/export/archive', json={'ids': ['one'], 'include_transcripts': False})
+            with zipfile.ZipFile(io.BytesIO(exported.content)) as archive:
+                report = json.loads(archive.read('report.json'))
+                self.assertEqual(report['included'], [])
+                self.assertEqual(report['omitted'][0]['episode_id'], 'one')
+            self.assertEqual(client.get('/media/one/cleaned').content, b'retained edited preview from saved cuts')
+            for version in ('original', 'cleaned'):
+                exported = client.post('/api/export/archive', json={'ids': ['one'], 'version': version,
+                                                                   'include_transcripts': False})
+                with zipfile.ZipFile(io.BytesIO(exported.content)) as archive:
+                    self.assertEqual(json.loads(archive.read('report.json'))['included'][0]['version'], version)
+            # The original RSS fallback also needs public readiness when an old
+            # detector stored no cuts. A genuine Keep preference remains valid.
+            self.library.update('one', cuts=[], analysis_profile={'ai_policy': 'scene'})
+            self.assertNotIn('<guid isPermaLink="false">one</guid>', client.get('/api/export/feed').text)
+            self.library.set_podcast_mode([self.library.get('one')['podcast_id']], 'keep')
+            self.assertIn('<guid isPermaLink="false">one</guid>', client.get('/api/export/feed').text)
 
     def test_coverage_flag_is_backfilled_from_a_legacy_database(self):
         older = self.library.root / 'older'

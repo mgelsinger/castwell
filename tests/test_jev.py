@@ -6,6 +6,8 @@ from unittest.mock import Mock
 import pytest
 import requests
 
+from castwell import jev
+from castwell.ad_scope import INSTRUCTIONS
 from castwell.jev import classify_local_transcript, classify_transcript
 from castwell.processing import ProcessingError
 
@@ -247,6 +249,51 @@ def test_invalid_local_configuration_fails_before_network(monkeypatch, settings)
     session.assert_not_called()
 
 
+@pytest.mark.parametrize('provider', ['jev', 'kev'])
+def test_both_typed_providers_apply_free_crosspromo_scope_and_keep_mixed_review(monkeypatch, provider):
+    source = transcript(4)
+    texts = ['Listen to our other free podcast.', 'Buy its paid premium feed.',
+             'A humorous lead-in to the real sponsor offer.',
+             'Follow our free podcast and buy the sponsor plan']
+    for segment, text in zip(source['segments'], texts):
+        segment['text'] = text
+    labels = ['editorial', 'commercial', 'commercial', 'uncertain']
+    def decisions(answer, payload):
+        for identifier, label in enumerate(labels):
+            answer['answers'][f'kind_{identifier}'].update(
+                choice=label, probabilities={name: .98 if name == label else .01 for name in jev.CHOICES})
+    if provider == 'kev':
+        sent, _ = mock_local_api(monkeypatch, corrupt=decisions)
+        result = classify_local_transcript(source)
+        payload = json.loads(sent[0][0].body)
+        assert result['policy_version'] == jev.LOCAL_POLICY_VERSION
+    else:
+        payloads = []
+        def send(url, **options):
+            payload = options['json']
+            payloads.append(payload)
+            answer = response_for(payload)
+            decisions(answer, payload)
+            response = Mock(status_code=200)
+            response.json.return_value = answer
+            return response
+        monkeypatch.setattr(requests, 'post', send)
+        result = classify_transcript(source, api_key='fixture-key', allow_paid_api=True)
+        payload = payloads[0]
+        assert result['policy_version'] == jev.POLICY_VERSION
+    assert [row['choice'] for row in result['decisions']] == labels
+    assert [(cut['start'], cut['end']) for cut in result['cuts']] == [(5, 15)]
+    assert all(not cut['approved'] for cut in result['cuts'])
+    assert result['review'] and result['decisions'][3]['requires_review']
+    assert INSTRUCTIONS in payload['state']['task']
+    for name, question in payload['questions'].items():
+        if name.startswith('kind_'):
+            assert 'state.task' in question['instructions']
+            assert 'free' in question['criteria']['editorial'] and 'another podcast' in question['criteria']['editorial']
+            assert 'paid-subscription' in question['criteria']['commercial']
+            assert 'inseparably' in question['criteria']['uncertain']
+
+
 def test_local_request_has_no_inherited_credentials_proxy_or_netrc(monkeypatch, tmp_path):
     for name in ("TYPESAFE_API_KEY", "CASTWELL_AI_KEY", "KEV_API_KEY"):
         monkeypatch.setenv(name, "private-environment-secret")
@@ -275,7 +322,7 @@ def test_local_request_has_no_inherited_credentials_proxy_or_netrc(monkeypatch, 
     assert "secret" not in json.dumps(result)
     assert result["cuts"][0]["approved"] is False
     assert result["cuts"][0]["provider"] == result["cuts"][0]["source"] == "kev-local"
-    assert result["cuts"][0]["policy_version"] == result["policy_version"] == "kev-context-v2"
+    assert result["cuts"][0]["policy_version"] == result["policy_version"] == jev.LOCAL_POLICY_VERSION
     assert result["cuts"][0]["model"] == result["model"] == "kev-custom"
     assert result["cuts"][0]["segment_ids"] == [0]
     assert result["decisions"][0]["start"] == 0

@@ -4,6 +4,8 @@
 
 Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional reads, preserve unpaid jokes and program speech, and export copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast. Originals stay available, and every cut can be reviewed or restored. Reliable unattended ad removal remains the release goal; the current candidate requires review.
 
+**Removal scope:** sponsor/product reads only. Preserve promos for other free podcasts. Real sponsor, product, paid-service and paid-subscription reads remain targets even when humorous. The frozen 0.5.2 test packages predate this source-policy clarification and require manual review of promos.
+
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
 **Ad-removal readiness:** the released 0.5.1 classifier is too slow for routine batch use. The [full CUDA episode evaluation](docs/evaluations/2026-10-11-full-stdwytk-cuda.html) took 106:34 to classify a 79:55 recording, missed two commercial openings, and proposed one extra sponsor transition. It preserved the rutabaga parody. Manual approval remains required; this result does not meet the production ad-removal goal. Classifier improvements must pass measured speed and accuracy checks before replacing this baseline.

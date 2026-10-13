@@ -6,7 +6,8 @@ import json
 import pytest
 import requests
 
-from castwell import processing, scene_edges as edges
+from castwell import processing, scene_edges as edges, scene_review
+from castwell.ad_scope import INSTRUCTIONS
 
 
 def fixture(texts=None, ranges=None, selected=None, aligned=True):
@@ -29,7 +30,7 @@ def fixture(texts=None, ranges=None, selected=None, aligned=True):
                         "boundary": deepcopy(decision), "boundary_audited": True}
     selected = set(range(len(units))) if selected is None else selected
     cuts = [{"start": units[index]["start"], "end": units[index]["end"], "source": "ai", "approved": False,
-             "requires_review": True, "confidence": .99, "label": "commercial", "policy_version": "scene-boundary-v4",
+             "requires_review": True, "confidence": .99, "label": "commercial", "policy_version": scene_review.POLICY_VERSION,
              "verification": [deepcopy(audit[index])]} for index in sorted(selected)]
     return source, cuts, audit
 
@@ -153,6 +154,46 @@ def test_mixed_uncertain_and_noncontiguous_editorial_targets_are_retained_for_re
     assert not any(row["trimmed"] for row in audits[0].values())
     assert audits[0][4]["requires_review"] and audits[0][5]["requires_review"]
     assert all(cut["requires_review"] and not cut["approved"] for cut in cuts)
+
+
+def test_free_crosspromo_edge_is_trimmed_without_trimming_paid_humorous_setup(monkeypatch):
+    inputs = fixture(['Follow our other free podcast.', 'A joke sets up the real sponsor offer.',
+                      'Buy its paid subscription today.'])
+    original, audits = deepcopy(inputs), []
+    provider = Provider(lambda identifier: ('editorial', 'program_cross_promotion', 0) if identifier == 0
+                        else ('commercial', 'persuasive_setup', 2))
+    monkeypatch.setattr(processing, '_classifier_request', provider)
+    cuts = refine(inputs, decision_sink=audits.append)
+    assert inputs == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(2, 4), (4, 6)]
+    assert audits[0][0]['trimmed'] and audits[0][0]['evidence'] == inputs[0]['segments'][0]['text']
+    assert all(not row['trimmed'] for identifier, row in audits[0].items() if identifier != 0)
+    payload = provider.calls[0][1]
+    assert INSTRUCTIONS in payload['messages'][0]['content']
+    assert 'Inserted promotions for other podcasts, television' not in payload['messages'][0]['content']
+    schema = payload['response_format']['json_schema']['schema']
+    assert 'program_cross_promotion' in schema['properties']['decisions']['items']['properties']['role']['enum']
+
+
+@pytest.mark.parametrize('label,evidence_id', [('commercial', 0), ('editorial', 1)])
+def test_crosspromo_role_cannot_be_commercial_or_use_another_units_evidence(label, evidence_id):
+    request = edges.build_edge_plan(*fixture(['Free podcast preview', 'Buy a paid plan']))['requests'][0]
+    rows = [{'id': 0, 'label': label, 'role': 'program_cross_promotion', 'evidence_id': evidence_id,
+             'reason': 'Free podcast preview.'},
+            {'id': 1, 'label': 'commercial', 'role': 'offer_terms', 'evidence_id': 1,
+             'reason': 'Actual paid subscription.'}]
+    with pytest.raises(ValueError):
+        edges._parse({'decisions': rows}, request)
+
+
+def test_indivisible_crosspromo_with_sponsor_edge_is_retained_for_review(monkeypatch):
+    inputs = fixture(['Follow the free podcast and buy the sponsor plan'])
+    audits = []
+    monkeypatch.setattr(processing, '_classifier_request', Provider(lambda _: ('mixed', 'unresolved', 0)))
+    cuts = refine(inputs, decision_sink=audits.append)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
+    assert audits[0][0]['requires_review'] and not audits[0][0]['trimmed']
+    assert cuts[0]['requires_review'] and not cuts[0]['approved']
 
 
 def test_unaligned_parent_has_no_invented_sentence_cut(monkeypatch):
