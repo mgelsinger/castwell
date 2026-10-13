@@ -235,7 +235,7 @@ function Start-Process {{ throw 'The validation check must not launch anything' 
     assert all(arguments[arguments.index(name) + 1] == value for name, value in expected.items())
 
 
-@pytest.mark.skipif(not POWERSHELL, reason="PowerShell is unavailable")
+@pytest.mark.skipif(sys.platform != "win32" or not POWERSHELL, reason="Windows source launcher requires Windows and PowerShell")
 def test_source_reviewed_launch_selects_scene_and_preserves_saved_approval_preference(tmp_path):
     from castwell.library import Library
     import socket

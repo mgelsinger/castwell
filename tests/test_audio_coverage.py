@@ -1,6 +1,7 @@
 """CUDA coverage contracts, with no real model, network or decoder calls."""
 from copy import deepcopy
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
 from unittest.mock import Mock
 
 import numpy as np
@@ -206,8 +207,13 @@ def test_cuda_loader_configures_factory_before_using_shared_model_and_rejects_cp
                               get_session_options=lambda: SimpleNamespace(get_session_config_entry=lambda name: "1"))
     model = SimpleNamespace(session=session)
     monkeypatch.setattr(gpu, "cuda_vad_model", lambda: calls.append("cached_model") or model)
-    import faster_whisper.utils
-    monkeypatch.setattr(faster_whisper.utils, "get_assets_path", lambda: str(tmp_path))
+    whisper = ModuleType("faster_whisper")
+    whisper.__path__ = []
+    utils = ModuleType("faster_whisper.utils")
+    utils.get_assets_path = lambda: str(tmp_path)
+    whisper.utils = utils
+    monkeypatch.setitem(sys.modules, "faster_whisper", whisper)
+    monkeypatch.setitem(sys.modules, "faster_whisper.utils", utils)
     (tmp_path / "silero_vad_v6.onnx").write_bytes(b"mock ONNX artifact; not a model")
     selected, evidence = coverage._load_vad()
     assert selected is model and calls == ["configure", "cached_model"]
