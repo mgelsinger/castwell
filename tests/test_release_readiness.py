@@ -70,6 +70,8 @@ def test_ready_uses_only_local_readiness_and_preserves_library(installation):
     before = installation.library.get("release-fixture")
     report = run(installation)
     assert report["ready"] is True
+    assert report["operational_ready"] is True and report["production_ready"] is False
+    assert report["ad_removal_acceptance"]["status"] == "not_measured"
     assert report["inference_requests"] == report["library_mutations"] == 0
     assert installation.library.get("release-fixture") == before
     assert len(installation.calls) == 9
@@ -101,6 +103,16 @@ def test_cut_safety_settings_block_release(installation, field, value):
     installation.responses["/api/settings"][field] = value
     report = run(installation)
     assert report["ready"] is False and status(report, "cut_approval") == "error"
+
+
+def test_scene_automatic_profile_is_operational_without_claiming_accuracy_acceptance(installation):
+    installation.responses["/api/settings"].update(ai_policy="scene", review_only=False, auto_approve_threshold=.90)
+    report = run(installation)
+    assert report["operational_ready"] and status(report, "cut_approval") == "ok"
+    assert not report["production_ready"] and report["ad_removal_acceptance"]["status"] == "not_measured"
+    assert report["inference_requests"] == 0
+    installation.responses["/api/settings"]["auto_approve_threshold"] = .5
+    assert status(run(installation), "cut_approval") == "error"
 
 
 @pytest.mark.parametrize("addresses", [["0.0.0.0"], ["127.0.0.1", "::"], None])
@@ -160,6 +172,7 @@ def test_wrong_library_and_active_queue_block_release(installation):
     report = run(installation)
     assert report["ready"] is False
     assert status(report, "library_identity") == status(report, "queue_idle") == "error"
+    assert "http://127.0.0.1:8081/v1/models" not in installation.calls
 
 
 @pytest.mark.parametrize("path,identifier", [("/api/feeds/refresh/status", "feed_refresh_idle"),
@@ -170,6 +183,8 @@ def test_background_operations_block_release_when_episode_queue_is_idle(installa
     assert report["ready"] is False
     assert status(report, "queue_idle") == "ok"
     assert status(report, identifier) == "error"
+    if path == "/api/models/status":
+        assert "http://127.0.0.1:8081/v1/models" not in installation.calls
 
 
 def test_low_storage_blocks_batch_release(installation, monkeypatch):

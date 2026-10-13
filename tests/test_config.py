@@ -20,6 +20,7 @@ ENVIRONMENT = {
     "CASTWELL_AI_MODEL": "",
     "CASTWELL_AI_KEY": "",
     "CASTWELL_AI_POLICY": "",
+    "CASTWELL_CLASSIFIER_SLEEP_ADDRESS": "",
 }
 
 
@@ -200,12 +201,15 @@ class SettingsTests(unittest.TestCase):
             detect.assert_not_called()
 
     def test_model_preparation_uses_the_configured_cache_and_reports_progress(self):
+        from castwell import processing
         calls = []
         fake_whisper = types.ModuleType("faster_whisper")
         fake_whisper.WhisperModel = lambda *args, **kwargs: calls.append((args, kwargs))
         progress = []
-        with patch.dict("sys.modules", {"faster_whisper": fake_whisper}):
+        with patch.dict("sys.modules", {"faster_whisper": fake_whisper}), \
+                patch.object(processing._cached_model, "cache_clear") as clear:
             result = config.warm_transcription_model(self.settings, progress.append)
+        clear.assert_called_once_with()
         self.assertTrue(result["ok"])
         self.assertEqual(calls[0][0], ("base",))
         self.assertEqual(calls[0][1]["download_root"], str(self.root / "models"))
@@ -214,6 +218,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(len(progress), 2)
 
     def test_model_preparation_error_is_safe(self):
+        from castwell import processing
         fake_whisper = types.ModuleType("faster_whisper")
 
         def fail(*args, **kwargs):
@@ -223,6 +228,57 @@ class SettingsTests(unittest.TestCase):
         with patch.dict("sys.modules", {"faster_whisper": fake_whisper}), self.assertRaises(ProcessingError) as error:
             config.warm_transcription_model(self.settings)
         self.assertNotIn("private", str(error.exception))
+        self.assertTrue(processing._MODEL_LOCK.acquire(blocking=False))
+        processing._MODEL_LOCK.release()
+
+    def test_cached_preparation_waits_for_owned_classifier_and_releases_speech_resources(self):
+        from castwell import processing
+        selected = self.root / "Prepared speech model"
+        self.install_model(selected)
+        self.settings.update({"transcription_model": str(selected)})
+        phases = []
+        def sleep(address, **options):
+            self.assertEqual(address, "http://127.0.0.1:8089/v1")
+            self.assertFalse(processing._MODEL_LOCK.acquire(blocking=False))
+            phases.append("classifier_sleep")
+        class Engine:
+            def __del__(self):
+                phases.append("speech_released")
+        def load(model, **options):
+            self.assertEqual(model, str(selected.resolve()))
+            self.assertEqual(options["device"], "cuda")
+            self.assertEqual(options["compute_type"], "float16")
+            self.assertFalse(processing._MODEL_LOCK.acquire(blocking=False))
+            phases.append("speech_loaded")
+            return Engine()
+        def progress(message):
+            if message == "The transcription model is ready":
+                self.assertTrue(processing._MODEL_LOCK.acquire(blocking=False))
+                processing._MODEL_LOCK.release()
+                phases.append("ready")
+        fake_whisper = types.ModuleType("faster_whisper")
+        fake_whisper.WhisperModel = load
+        with patch.dict(os.environ, {"CASTWELL_CLASSIFIER_SLEEP_ADDRESS": "http://127.0.0.1:8089/v1"}), \
+                patch.dict("sys.modules", {"faster_whisper": fake_whisper}), \
+                patch("castwell.gpu.configure_cuda_runtime"), \
+                patch("castwell.gpu_phases.wait_classifier_sleep", side_effect=sleep), \
+                patch.object(processing._cached_model, "cache_clear", side_effect=lambda: phases.append("cached_speech_released")):
+            self.assertTrue(config.warm_transcription_model(self.settings, progress)["ok"])
+        self.assertEqual(phases, ["classifier_sleep", "cached_speech_released", "speech_loaded", "speech_released", "ready"])
+
+    def test_owned_preparation_sleep_failure_does_not_load_weights_or_hold_resource_lock(self):
+        from castwell import processing
+        fake_whisper = types.ModuleType("faster_whisper")
+        fake_whisper.WhisperModel = unittest.mock.Mock()
+        with patch.dict(os.environ, {"CASTWELL_CLASSIFIER_SLEEP_ADDRESS": "http://127.0.0.1:8089/v1"}), \
+                patch.dict("sys.modules", {"faster_whisper": fake_whisper}), \
+                patch("castwell.gpu.configure_cuda_runtime"), \
+                patch("castwell.gpu_phases.wait_classifier_sleep", side_effect=ProcessingError("Classifier is still using GPU memory.")):
+            with self.assertRaisesRegex(ProcessingError, "GPU memory"):
+                config.warm_transcription_model(self.settings)
+            fake_whisper.WhisperModel.assert_not_called()
+        self.assertTrue(processing._MODEL_LOCK.acquire(blocking=False))
+        processing._MODEL_LOCK.release()
 
 
 if __name__ == "__main__":

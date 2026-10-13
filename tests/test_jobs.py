@@ -127,7 +127,172 @@ class JobsTests(unittest.TestCase):
         self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
         self.assertEqual(transcribe.call_args.kwargs['language'], 'fr')
         self.assertEqual(detect.call_args.kwargs['detector'], 'ai')
-        self.assertEqual(detect.call_args.kwargs['config'], settings)
+        supplied = detect.call_args.kwargs['config']
+        self.assertEqual({key: supplied[key] for key in settings}, settings)
+        self.assertEqual(supplied['ai_policy'], 'legacy')
+
+    def test_queue_freezes_detector_endpoint_model_and_profile_but_not_key(self):
+        identifier = self.episode(transcript=TRANSCRIPT)
+        settings = {'ai_policy': 'verified', 'ai_reasoning': False, 'detector': 'ai',
+                    'ai_base_url': 'http://127.0.0.1:8081/v1', 'ai_model': 'original-model',
+                    'ai_key': 'first-private-key', 'review_only': True}
+        self.jobs.settings_getter = lambda: dict(settings)
+        release = threading.Event()
+        self.jobs.pool.submit(lambda: release.wait(3))
+        with patch('castwell.processing.detect_ads', return_value=[]) as detect:
+            try:
+                self.jobs.submit(identifier, 'process')
+                snapshot = self.library.get(identifier)['pending_job']['detection_policy']
+                self.assertNotIn('first-private-key', json.dumps(snapshot))
+                settings.update(ai_policy='legacy', ai_reasoning=True, detector='heuristic',
+                                ai_base_url='http://127.0.0.1:9999/v1', ai_model='replacement-model',
+                                ai_key='current-private-key')
+            finally:
+                release.set()
+            episode = self.wait()
+        self.assertEqual(episode['status'], 'ready', episode['error'])
+        selected = detect.call_args.kwargs['config']
+        for field in ('ai_policy', 'ai_reasoning', 'detector', 'ai_base_url', 'ai_model', 'inference_profile'):
+            self.assertEqual(selected[field], snapshot[field])
+        self.assertEqual(selected['ai_key'], 'current-private-key')
+        self.assertEqual(episode['analysis_profile'], snapshot)
+        self.assertNotIn('current-private-key', json.dumps(episode['analysis_profile']))
+
+    def test_retry_refuses_changed_detector_implementation_and_preserves_edits(self):
+        from castwell import ad_review
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=[CUT], analysis_done=True)
+        self.jobs.settings_getter = lambda: {'ai_policy': 'verified', 'review_only': True}
+        with patch('castwell.processing.detect_ads', side_effect=processing.ProcessingError('Unavailable')):
+            self.jobs.submit(identifier, 'process', {'redetect': True})
+            failed = self.wait()
+        snapshot = failed['pending_job']['detection_policy']
+        with patch.object(ad_review, 'POLICY_VERSION', 'different-policy'), \
+             patch('castwell.processing.detect_ads') as detect:
+            self.jobs.submit(identifier, 'process')
+            failed = self.wait()
+        self.assertEqual(failed['status'], 'error')
+        self.assertIn('profile changed', failed['error'])
+        self.assertEqual(failed['cuts'], [CUT])
+        self.assertEqual(failed['pending_job']['detection_policy'], snapshot)
+        detect.assert_not_called()
+
+    def test_scene_snapshot_includes_both_review_and_endpoint_profiles(self):
+        from castwell import scene_review, scene_edges, scene_pipeline
+        snapshot = Jobs._detection_policy({'ai_policy': 'scene', 'review_only': True})
+        self.assertEqual(snapshot['policy_version'], scene_pipeline.POLICY_VERSION + '+' + scene_review.POLICY_VERSION + '+' + scene_edges.POLICY_VERSION)
+        self.assertEqual(snapshot['inference_profile'], scene_review.INFERENCE_PROFILE + '+' + scene_edges.INFERENCE_PROFILE)
+        with patch.object(scene_edges, 'INFERENCE_PROFILE', 'changed-endpoint-profile'):
+            with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
+                Jobs._restore_detection_policy(snapshot)
+
+    def test_empty_scene_cue_fallback_cannot_complete_even_with_clear_coverage(self):
+        identifier = self.episode(transcript=TRANSCRIPT)
+        self.jobs.settings_getter = lambda: {'ai_policy': 'scene', 'ai_base_url': '', 'ai_model': '',
+                                             'ai_key': '', 'review_only': False}
+        with patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            episode = self.wait()
+        self.assertEqual(episode['status'], 'error')
+        self.assertIn('Cue-only detection cannot confirm', episode['error'])
+        self.assertFalse(episode['analysis_done'])
+        self.assertFalse(episode['transcript_review'])
+        self.assertEqual(episode['cuts'], [])
+        self.assertIsNone(episode['cleaned'])
+        self.assertTrue(Path(episode['audio']).is_file())
+        render.assert_not_called()
+
+    def test_scene_provider_failure_cannot_complete_after_listener_coverage_acknowledgement(self):
+        source = deepcopy(TRANSCRIPT)
+        source['quality'] = {'requires_review': True, 'warning': 'Review the original recording.'}
+        identifier = self.episode(transcript=source)
+        token = self.library.coverage_review_token(self.library.get(identifier))
+        self.library.acknowledge_coverage(identifier, token)
+        self.jobs.settings_getter = lambda: {'ai_policy': 'scene', 'ai_base_url': 'http://127.0.0.1:8081/v1',
+                                             'ai_model': 'fixture', 'ai_key': '', 'review_only': False}
+        with patch('castwell.scene_pipeline.classify_scene_pipeline',
+                   side_effect=processing.ProcessingError('Scene provider failed')), \
+             patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            episode = self.wait()
+        self.assertEqual(episode['status'], 'error')
+        self.assertIn('Scene provider failed', episode['error'])
+        self.assertFalse(episode['analysis_done'])
+        self.assertFalse(episode['transcript_review'])
+        self.assertTrue(self.library.coverage_review_current(episode))
+        self.assertEqual(episode['cuts'], [])
+        self.assertIsNone(episode['cleaned'])
+        render.assert_not_called()
+
+    def test_known_analysis_requires_explicit_redetection_after_model_change(self):
+        identifier = self.episode(transcript=TRANSCRIPT)
+        settings = {'ai_policy': 'verified', 'ai_model': 'first-model', 'review_only': True}
+        self.jobs.settings_getter = lambda: dict(settings)
+        with patch('castwell.processing.detect_ads', return_value=[]) as detect:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+            first_profile = finished['analysis_profile']
+            self.jobs.submit(identifier, 'process')
+            self.wait()
+            self.assertEqual(detect.call_count, 1)
+            settings['ai_model'] = 'second-model'
+            self.jobs.submit(identifier, 'process')
+            failed = self.wait()
+            self.assertEqual(failed['status'], 'error')
+            self.assertIn('Find ads again', failed['error'])
+            self.assertEqual(failed['analysis_profile'], first_profile)
+            self.assertEqual(detect.call_count, 1)
+            self.jobs.submit(identifier, 'process', {'redetect': True})
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'ready', finished['error'])
+        self.assertEqual(finished['analysis_profile']['ai_model'], 'second-model')
+        self.assertEqual(detect.call_count, 2)
+
+    def test_coverage_exception_skips_automatic_render_but_allows_manual_preview(self):
+        transcript = {'duration': 12, 'segments': [
+            {'id': 0, 'start': 0, 'end': 2, 'text': 'Opening.'},
+            {'id': 1, 'start': 7, 'end': 12, 'text': 'Return.'}]}
+        identifier = self.episode(transcript=transcript, cuts=[CUT], analysis_done=True)
+        with patch('castwell.processing.detect_ads') as detect, \
+             patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'review')
+        self.assertIn('coverage', finished['progress'])
+        self.assertTrue(finished['transcript_review'])
+        self.assertFalse(self.library.public(finished)['export_ready'])
+        render.assert_not_called()
+        detect.assert_not_called()
+        def manual_render(audio, output, cuts, **options):
+            output.write_bytes(b'manual edited preview')
+            return {'duration': 9, 'removed_seconds': 3}
+        with patch('castwell.processing.render_audio', side_effect=manual_render):
+            self.jobs.submit(identifier, 'render')
+            finished = self.wait()
+        self.assertEqual(finished['status'], 'review')
+        self.assertTrue(Path(finished['cleaned']).is_file())
+        self.assertEqual(self.library.public(finished)['preferred_version'], 'original')
+        self.assertFalse(self.library.public(finished)['export_ready'])
+        self.library.set_podcast_mode([self.library.get(identifier)['podcast_id']], 'keep')
+        with patch('castwell.processing.detect_ads') as detect:
+            self.jobs.submit(identifier, 'process', {'remove_ads': False})
+            kept = self.wait()
+        self.assertEqual(kept['status'], 'ready', kept['error'])
+        detect.assert_not_called()
+
+    def test_keep_podcast_accepts_empty_transcript_without_removal_coverage_gate(self):
+        identifier = self.episode(transcript={'duration': 12, 'segments': []})
+        self.library.set_podcast_mode([self.library.get(identifier)['podcast_id']], 'keep')
+        with patch('castwell.processing.detect_ads') as detect, \
+             patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            kept = self.wait()
+        public = self.library.public(kept)
+        self.assertEqual(kept['status'], 'ready', kept['error'])
+        self.assertTrue(kept['transcript_review'])
+        self.assertTrue(public['export_ready'])
+        self.assertEqual(public['preferred_version'], 'original')
+        detect.assert_not_called()
+        render.assert_not_called()
 
     @staticmethod
     def policy_candidate(transcript, detector, *, config, **kwargs):
@@ -151,7 +316,7 @@ class JobsTests(unittest.TestCase):
                         self.assertEqual(queued['pending_job']['approval_policy'],
                                          {'review_only': review, 'auto_approve_threshold': threshold})
                         self.assertNotIn('private-test-key', json.dumps(queued['pending_job']))
-                        self.assertNotIn('ai_base_url', json.dumps(queued['pending_job']))
+                        self.assertEqual(queued['pending_job']['detection_policy']['ai_base_url'], 'https://example.test/v1')
                         settings.update(review_only=False, auto_approve_threshold=.50)
                     finally:
                         release.set()
@@ -185,7 +350,7 @@ class JobsTests(unittest.TestCase):
         self.assertEqual(finished['status'], 'review', finished['error'])
         self.assertFalse(finished['cuts'][0]['approved'])
         self.assertEqual({key: detect.call_args.kwargs['config'][key] for key in expected}, expected)
-        self.assertEqual(detect.call_args.kwargs['config']['ai_model'], 'after')
+        self.assertEqual(detect.call_args.kwargs['config']['ai_model'], 'before')
         render.assert_not_called()
 
     def test_legacy_pending_job_without_policy_keeps_current_settings_behavior(self):

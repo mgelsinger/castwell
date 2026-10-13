@@ -594,7 +594,7 @@
     $('detail-status').replaceChildren(statusBadge(episode));
     $('detail-ad-mode').value = episode.ad_mode || 'remove';
     $('detail-ad-mode').disabled = state.policyBusy || state.actionBusy || !podcastFor(episode);
-    $('detail-policy-note').textContent = episode.ad_mode === 'keep' ? 'Preparation and preferred playback keep original audio.' : 'Review suggested cuts before removing audio.';
+    $('detail-policy-note').textContent = episode.ad_mode === 'keep' ? 'Preparation and preferred playback keep original audio.' : state.settings.ai_policy === 'scene' && !state.settings.review_only ? 'Resolved cuts create a listening copy. Unresolved episodes keep their original audio.' : 'Review suggested cuts before removing audio.';
     $('detail-description').textContent = plainText(episode.description);
     visible('detail-description', Boolean(episode.description));
     if (episode.error) showError('detail-error', new Error(episode.error));
@@ -626,13 +626,15 @@
     $('detail-process').replaceChildren(icon('spark'), document.createTextNode(busy ? 'Preparing…' : processLabel));
     const usesAI = state.settings.ai_configured && !['heuristic', 'Local rules'].includes(state.settings.detector);
     const verifiedAI = usesAI && state.settings.ai_policy !== 'legacy';
-    $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
-    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
+    const sceneAI = usesAI && state.settings.ai_policy === 'scene';
+    $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : sceneAI ? 'Transcribe · Check ad context and cut boundaries · Prepare listening copy' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
+    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${sceneAI ? 'AI scene and endpoint checks' : verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
     visible('detail-redetect', episode.has_transcript);
     $('detail-redetect').disabled = busy || state.actionBusy;
     visible('detail-retranscribe', episode.has_transcript && episode.has_audio);
     $('detail-retranscribe').disabled = busy || state.actionBusy;
     $('render-cuts').disabled = !episode.has_audio || busy || state.actionBusy;
+    $('confirm-coverage-review').disabled = !episode.coverage_review_token || busy || state.actionBusy || state.cutsDirty;
     $('save-cuts').disabled = busy || state.actionBusy;
     $('add-cut').disabled = busy;
     $('transcript-file').disabled = busy || state.actionBusy;
@@ -749,7 +751,8 @@
     const show = Boolean(quality?.requires_review);
     visible('transcript-quality-notice', show);
     if (!show) return;
-    $('transcript-quality-message').textContent = quality.warning || 'Some original audio has no transcript text. Gaps can be silence, music, or missed speech. Listen before choosing cuts.';
+    const coverageCompletion = state.detail.ad_mode === 'remove' ? ' The original stays preferred, and this episode is excluded from the completed removal batch until coverage is resolved.' : ' Your Keep original choice still uses the complete original recording.';
+    $('transcript-quality-message').textContent = `${quality.warning || 'Some original audio has no transcript text. Gaps can be silence, music, or missed speech. Listen before choosing cuts.'}${coverageCompletion}`;
     const gaps = (Array.isArray(quality.gaps) ? quality.gaps : []).filter((gap) => Number.isFinite(gap.start) && Number.isFinite(gap.end) && gap.start >= 0 && gap.end > gap.start);
     const select = $('transcript-gap'), previous = select.value;
     select.replaceChildren(...gaps.map((gap) => new Option(`${clock(gap.start)} - ${clock(gap.end)} (original)`, String(gap.start))));
@@ -809,6 +812,7 @@
   }
   function markCutsDirty() {
     state.cutsDirty = true;
+    $('confirm-coverage-review').disabled = true;
     renderCutSummary(); drawWaveform();
   }
   function setCutApproval(cut, approved) {
@@ -859,6 +863,8 @@
       if (cut.detected_bounds) message += ` Detector evidence applies only to the original ${Number(cut.detected_bounds.start).toFixed(2)} - ${Number(cut.detected_bounds.end).toFixed(2)} seconds.`;
     } else if (cut.requires_review) {
       message = `Review required by detector - ${cut.approved ? 'selected by you' : 'listen before selecting'}.`;
+    } else if (cut.approval_metadata?.eligible && cut.requires_review === false) {
+      message = `Ad context and cut boundaries checked - ${cut.approved ? 'selected for removal' : 'awaiting your approval'}. Model agreement can still be wrong.`;
     } else if (cut.requires_review === false && cut.label === 'commercial' && Array.isArray(cut.verification) && cut.verification.length) {
       message = `Both model checks passed - ${cut.approved ? 'selected for removal' : 'awaiting your approval'}. Model agreement can still be wrong.`;
     } else {
@@ -953,6 +959,13 @@
     setActionBusy(true);
     try {
       if (action === 'save') await saveCuts();
+      if (action === 'coverage-review') {
+        if (!state.detail?.coverage_review_token || state.cutsDirty) throw new Error('Save your cut changes before confirming coverage.');
+        const result = await api(episodeURL(state.detail.id, '/coverage-review'), { method: 'POST', body: { reviewed: true, review_token: state.detail.coverage_review_token } });
+        state.detail = result.episode || result;
+        renderDetail();
+        toast('Coverage review recorded. Export cleaned audio when your cuts are ready.');
+      }
       if (action === 'render') {
         await saveCuts(true);
         await api(episodeURL(state.detail.id, '/render'), { method: 'POST', body: {} });
@@ -1362,7 +1375,13 @@
       $('ai-configured-indicator').textContent = settings.ai_base_url && settings.ai_model ? 'Connected settings' : 'Optional';
       $('detection-policy-help').textContent = settings.ai_policy === 'legacy'
         ? 'This server uses legacy AI detection. Review suggestions carefully: detection can miss ads or flag conversation.'
-        : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
+        : settings.ai_policy === 'scene'
+          ? 'Local AI checks ad scenes, their exact endpoints, and word alignment. With approval off, resolved cuts are selected automatically. Unresolved episodes retain their original audio and stay out of the completed removal batch. Detection can still make mistakes.'
+          : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
+      if (settings.ai_policy === 'scene') {
+        $('setting-ai-reasoning').disabled = true;
+        $('setting-ai-reasoning').title = 'This detector uses fixed reasoning budgets for each stage.';
+      }
       $('settings-overrides').textContent = settings.env_overrides?.length ? 'Some settings are managed by the server environment.' : 'Settings are stored locally on this server.';
       $('save-settings').disabled = false;
       await Promise.allSettled([loadDiagnostics(), pollModelStatus()]);
@@ -1574,6 +1593,7 @@
   $('detail-retranscribe').addEventListener('click', () => detailAction('retranscribe'));
   $('save-cuts').addEventListener('click', () => detailAction('save'));
   $('render-cuts').addEventListener('click', () => detailAction('render'));
+  $('confirm-coverage-review').addEventListener('click', () => detailAction('coverage-review'));
   $('select-all-cuts').addEventListener('click', () => selectAllCuts(true));
   $('clear-cut-selection').addEventListener('click', () => selectAllCuts(false));
   $('add-cut').addEventListener('click', () => {

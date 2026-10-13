@@ -498,6 +498,74 @@ def run_catalogue_browser(page, feed, screenshot, auto_accept=None):
     screenshot("mobile-catalogue-paging")
 
 
+def run_coverage_browser(page, base, audio):
+    """Exercise explicit acknowledgement on isolated tone fixtures, not real listening."""
+    from playwright.sync_api import expect
+
+    note("Browser: explicit coverage acknowledgement stays separate from audio export")
+    unique_audio = audio.with_name("coverage-acknowledgement-fixture.wav")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio), "-metadata",
+                    "comment=coverage acknowledgement UI fixture", str(unique_audio)], check=True)
+    uploaded = page.request.post("/api/audio", multipart={"file": {
+        "name": "Coverage acknowledgement fixture.wav", "mimeType": "audio/wav",
+        "buffer": unique_audio.read_bytes(),
+    }})
+    assert uploaded.status == 201, uploaded.text()
+    identifier = uploaded.json()["id"]
+    imported = page.request.post(f"/api/episodes/{identifier}/transcript", data={
+        "duration": 24, "language": "en", "segments": [
+            {"id": 0, "start": 0, "end": 8, "text": "First synthetic transcript passage."},
+            {"id": 1, "start": 12, "end": 24, "text": "Second synthetic transcript passage."},
+        ],
+    })
+    assert imported.ok, imported.text()
+    saved = page.request.post(f"/api/episodes/{identifier}/cuts", data={"cuts": [
+        {"start": 2, "end": 3, "approved": True, "source": "manual", "reason": "Coverage UI fixture"},
+    ]})
+    assert saved.ok, saved.text()
+    original = episode(page, identifier)
+    assert original["title"] == "Coverage acknowledgement fixture"
+    assert original["transcript"]["quality"]["requires_review"] is True
+    assert original["export_ready"] is False and original["preferred_version"] == "original"
+    token = original["coverage_review_token"]
+    assert isinstance(token, str) and len(token) == 64
+
+    page.set_viewport_size({"width": 1440, "height": 1000})
+    page.goto(base, wait_until="networkidle")
+    page.locator("#podcast-filter").select_option("")
+    page.locator('[data-filter="all"]').click()
+    page.locator("#library-search").fill("Coverage acknowledgement fixture")
+    page.locator("#episodes").get_by_role("button", name="Open Coverage acknowledgement fixture", exact=True).click()
+    expect(page.locator("#transcript-quality-notice")).to_be_visible()
+    confirmation = page.locator("#confirm-coverage-review")
+    expect(confirmation).to_be_enabled()
+    page.locator("#tab-cuts").click()
+    page.get_by_label("Cut 1 start in seconds", exact=True).fill("2.1")
+    expect(confirmation).to_be_disabled()
+    with page.expect_response(lambda response: response.url.endswith(f"/{identifier}/cuts")
+                              and response.request.method == "POST") as updated:
+        page.locator("#save-cuts").click()
+    assert updated.value.ok, updated.value.text()
+    expect(confirmation).to_be_enabled()
+    with page.expect_response(lambda response: response.url.endswith(f"/{identifier}/coverage-review")
+                              and response.request.method == "POST") as acknowledged:
+        confirmation.click()
+    assert acknowledged.value.ok, acknowledged.value.text()
+    assert acknowledged.value.request.post_data_json == {"reviewed": True, "review_token": token}
+    expect(page.locator("#transcript-quality-notice")).to_be_hidden()
+    reviewed = episode(page, identifier)
+    quality = reviewed["transcript"]["quality"]
+    assert quality["requires_review"] is False
+    assert quality["gaps"] == original["transcript"]["quality"]["gaps"]
+    assert quality["user_review"]["listener_reported_listening"] is True
+    assert quality["user_review"]["human_listening_verified"] is False
+    assert quality["user_review"]["model_verified"] is False
+    assert reviewed["has_cleaned"] is False and reviewed["export_ready"] is False
+    assert reviewed["preferred_version"] == "original" and reviewed["status"] == "review"
+    assert reviewed["cuts"][0]["start"] == 2.1
+    page.locator("#close-detail").click()
+
+
 def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifacts):
     from playwright.sync_api import sync_playwright, expect
 
@@ -929,6 +997,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
                 page.screenshot(path=str(artifacts / "mobile-bulk-review.png"), full_page=False)
             run_suite_browser(page, feed, workspace, screenshot)
             run_catalogue_browser(page, feed, screenshot, auto_accept)
+            run_coverage_browser(page, base, playback_audio)
             assert not errors, "Browser errors:\n" + "\n".join(errors)
             note("PASS: gallery upload, review, real audio exports/playback, revision recovery, downloads, subscriptions, show preferences, mixed batches, ZIP archives, and desktop/mobile layouts")
         except Exception:

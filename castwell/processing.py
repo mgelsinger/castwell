@@ -189,6 +189,10 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
     language = language.strip().lower() if language else None
     if language == "auto":
         language = None
+    managed_classifier = os.environ.get("CASTWELL_CLASSIFIER_SLEEP_ADDRESS", "").strip()
+    if managed_classifier:
+        from .gpu_phases import wait_classifier_sleep
+        wait_classifier_sleep(managed_classifier, should_cancel=should_cancel, progress=progress)
     # Keep one reusable CUDA model and serialize inference rather than loading a
     # separate copy for every queued episode. Waiting jobs remain cancellable.
     while not _MODEL_LOCK.acquire(timeout=0.1):
@@ -233,10 +237,10 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
                                       "model": model})
         from .transcript_quality import analyze_transcript, recover_transcript_gaps
         if recover_gaps:
-            return recover_transcript_gaps(audio, result, engine, progress=progress, should_cancel=should_cancel)
-        result["quality"] = analyze_transcript(result)
-        result["quality"]["recovery"] = {"enabled": False}
-        return result
+            result = recover_transcript_gaps(audio, result, engine, progress=progress, should_cancel=should_cancel)
+        else:
+            result["quality"] = analyze_transcript(result)
+            result["quality"]["recovery"] = {"enabled": False}
     except (ValueError, ProcessingError):
         raise
     except Exception as exc:
@@ -246,7 +250,27 @@ def transcribe(audio: Path, model: str = "base", progress: Optional[Callable] = 
             if source is not None and callable(getattr(source, "close", None)):
                 source.close()
         finally:
+            if managed_classifier:
+                # Release speech weights before the owned classifier wakes.
+                # Never move neural inference to CPU when GPU memory is tight.
+                _cached_model.cache_clear()
+                engine = source = None
+                import gc
+                gc.collect()
             _MODEL_LOCK.release()
+
+    # Coverage uses the cached CUDA activity model after Whisper has released
+    # its inference lock and, for an owned classifier, its large speech weights.
+    # Failed or unchecked passages stay explicit review work in the transcript.
+    _check_cancel(should_cancel)
+    from .audio_coverage import assess_audio_coverage
+    if progress:
+        progress("Checking audio without transcript text")
+    result = assess_audio_coverage(audio, result, progress=progress, should_cancel=should_cancel)
+    _check_cancel(should_cancel)
+    if result.get("quality", {}).get("audio_coverage", {}).get("cancelled"):
+        raise ProcessingCancelled("Processing cancelled during audio coverage assessment.")
+    return result
 
 
 def validate_cuts(cuts: list, duration: float) -> list:
@@ -594,8 +618,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         raise ValueError("Detector configuration must be an object")
     config = config or {}
     ai_policy = config.get("ai_policy", "legacy")
-    if ai_policy not in {"legacy", "verified"}:
-        raise ValueError("AI policy must be legacy or verified")
+    if ai_policy not in {"legacy", "verified", "scene"}:
+        raise ValueError("AI policy must be legacy, verified, or scene")
     ai_reasoning = config.get("ai_reasoning", False)
     if not isinstance(ai_reasoning, bool):
         raise ValueError("AI reasoning must be a boolean")
@@ -616,8 +640,8 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
     key = key.strip()
     baseline = _heuristic_ads(transcript)
     if detector != "heuristic" and (base_url or model or key or detector == "ai"):
-        if ai_reasoning and ai_policy != "verified":
-            raise ValueError("AI reasoning requires the verified detection policy")
+        if ai_reasoning and ai_policy not in {"verified", "scene"}:
+            raise ValueError("AI reasoning requires a checked detection policy")
         if not base_url or not model:
             raise ProcessingError("AI ad detection requires both CASTWELL_AI_BASE_URL and CASTWELL_AI_MODEL. CASTWELL_AI_KEY is optional for local servers.")
         try:
@@ -631,6 +655,15 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         if window_chars < 800:
             transcript = _classification_transcript(source_transcript, max_chars=window_chars)
             baseline = _heuristic_ads(transcript)
+        if ai_policy == "scene":
+            from .scene_pipeline import classify_scene_pipeline
+            return classify_scene_pipeline(
+                transcript, base_url=base_url, model=model, key=key,
+                threshold=threshold, review_only=review_only, progress=progress,
+                should_cancel=should_cancel, window_chars=window_chars,
+                context_segments=context_segments, request_timeout=request_timeout,
+                allow_redirects=False, trust_env=False, ai_reasoning=False,
+            )
         if ai_policy == "verified":
             from .ad_review import classify_verified
             return classify_verified(transcript, base_url=base_url, model=model, key=key,
@@ -671,7 +704,12 @@ def detect_ads(transcript: dict, detector: str = "auto", *, config: Optional[dic
         if progress:
             progress("Checking explicit sponsorship and commercial cues")
         cuts = baseline
-        if ai_policy == "verified":
+        if ai_policy in {"verified", "scene"}:
+            if not cuts:
+                raise ProcessingError(
+                    "Cue-only detection cannot confirm that this episode has no advertisements. "
+                    "Configure the contextual classifier or save reviewed cuts after listening to the original audio."
+                )
             for cut in cuts:
                 cut["requires_review"] = True
                 cut["reason"] = "Unverified commercial cue; review its intent and boundaries before removing."

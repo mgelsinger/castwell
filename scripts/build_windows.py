@@ -190,6 +190,15 @@ def remove_duplicate_cuda_dlls(app: Path) -> list[str]:
 
 def bundle_guides(app: Path, root: Path = ROOT) -> None:
     """Keep local crosslinks usable without copying source-only guide history."""
+    included = {'windows.md', 'production.md', 'ad-removal-production-plan.md'}
+    for relative in ('ad-removal-production-plan.md',
+                     'evaluations/2026-10-12-ad-removal-system.md',
+                     'evaluations/2026-10-12-ad-removal-system.json'):
+        source = root / 'docs' / relative
+        if source.is_file():
+            target = app / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
     guide = root / 'docs' / 'windows.md'
     if guide.is_file():
         content = guide.read_text(encoding='utf-8')
@@ -201,7 +210,7 @@ def bundle_guides(app: Path, root: Path = ROOT) -> None:
         content = production.read_text(encoding='utf-8')
         def link(match):
             target = match.group(1)
-            if target.split('#', 1)[0] in {'windows.md', 'production.md'}:
+            if target.split('#', 1)[0] in included:
                 return match.group(0)
             return '](https://github.com/mgelsinger/castwell/blob/main/docs/' + target + ')'
         content = re.sub(r'\]\(([A-Za-z0-9_.-]+\.md(?:#[A-Za-z0-9_.-]+)?)\)', link, content)
@@ -374,6 +383,8 @@ def main() -> int:
     manifest = {'schema_version': 1, 'application': 'Castwell', 'version': version,
                 'platform': 'windows-x64', 'python': platform.python_version(),
                 'inference': 'nvidia-cuda-only', 'speech_and_classifier_weights_bundled': False,
+                'ad_removal_acceptance': 'not_verified_by_build',
+                'production_go_live_confirmed': False,
                 'llama_host_support': 'Generic x64 buffer registration library; all model layers must offload to NVIDIA CUDA',
                 'builtin_vad_model_bundled': True,
                 'builtin_vad_license': runtime_metadata.get('silero-vad-license'),

@@ -7,6 +7,8 @@ Cancelling a job therefore never throws away its original audio or transcript.
 from __future__ import annotations
 
 from concurrent.futures import Future
+import hashlib
+import importlib
 import json
 import math
 import os
@@ -118,8 +120,10 @@ class Jobs:
                     supplied['remove_ads'] = episode.get('ad_mode', 'remove') == 'remove'
                 request = {'operation': operation, 'options': supplied,
                            'prior_status': episode['status'], 'prior_progress': episode['progress']}
-                request['approval_policy'] = self._approval_policy(
-                    self.settings_getter() if self.settings_getter else {})
+                selected_settings = self.settings_getter() if self.settings_getter else {}
+                request['approval_policy'] = self._approval_policy(selected_settings)
+                if operation == 'process' and supplied['remove_ads'] and not supplied['download_only']:
+                    request['detection_policy'] = self._detection_policy(selected_settings, supplied.get('detector'))
             self.library.update(episode_id, status='queued', error=None, progress='Waiting to process', pending_job=request)
             self.pending.add(episode_id)
             self._cancellations[episode_id] = threading.Event()
@@ -196,6 +200,66 @@ class Jobs:
             raise ValueError('Invalid approval policy')
         return {'review_only': review, 'auto_approve_threshold': float(threshold)}
 
+    @classmethod
+    def _detection_policy(cls, settings, detector=None):
+        """Snapshot only validated, nonsecret choices and request-profile identity."""
+        policy = settings.get('ai_policy', 'legacy')
+        selected_detector = detector or settings.get('detector') or 'auto'
+        reasoning = settings.get('ai_reasoning', False)
+        address = settings.get('ai_base_url', '')
+        model = settings.get('ai_model', '')
+        if (policy not in {'legacy', 'verified', 'scene'} or selected_detector not in {'auto', 'ai', 'heuristic'}
+                or not isinstance(reasoning, bool) or not isinstance(address, str) or not isinstance(model, str)):
+            raise ValueError('Invalid detector policy')
+        address, model = address.strip().rstrip('/'), model.strip()
+        if address:
+            try:
+                parsed = urlsplit(address)
+                parsed.port
+                if (parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username is not None
+                        or parsed.password is not None or parsed.query or parsed.fragment
+                        or any(char.isspace() for char in address) or '\\' in address):
+                    raise ValueError
+            except ValueError:
+                raise ValueError('Classifier address cannot contain credentials or query parameters') from None
+        if len(model) > 256 or any(ord(char) < 32 for char in model):
+            raise ValueError('Invalid classifier model')
+        version, profile = 'legacy-unversioned', 'legacy-per-unit'
+        if selected_detector == 'heuristic':
+            version, profile = 'commercial-cues-unversioned', 'commercial-cues'
+        elif policy == 'verified':
+            from .ad_review import POLICY_VERSION, inference_settings
+            version = POLICY_VERSION
+            encoded = json.dumps(inference_settings(reasoning), sort_keys=True, separators=(',', ':'))
+            profile = 'verified-' + hashlib.sha256(encoded.encode()).hexdigest()
+        elif policy == 'scene':
+            from .scene_review import POLICY_VERSION, INFERENCE_PROFILE
+            version, profile = POLICY_VERSION, INFERENCE_PROFILE
+            from .scene_pipeline import POLICY_VERSION as PIPELINE_VERSION
+            version = PIPELINE_VERSION + '+' + version
+            # The optional endpoint audit is a separate policy component. Its
+            # arrival or revision invalidates an older queued profile explicitly.
+            try:
+                edges = importlib.import_module('.scene_edges', package='castwell')
+            except ModuleNotFoundError as exc:
+                if exc.name != 'castwell.scene_edges':
+                    raise
+            else:
+                version += '+' + edges.POLICY_VERSION
+                profile += '+' + edges.INFERENCE_PROFILE
+        return {**cls._approval_policy(settings), 'detector': selected_detector, 'ai_policy': policy,
+                'ai_reasoning': reasoning, 'ai_base_url': address, 'ai_model': model,
+                'policy_version': version, 'inference_profile': profile}
+
+    @classmethod
+    def _restore_detection_policy(cls, snapshot):
+        if not isinstance(snapshot, dict):
+            raise ValueError('Invalid saved detector policy')
+        current = cls._detection_policy(snapshot)
+        if current != snapshot:
+            raise processing.ProcessingError('The detector profile changed since this job was queued. Choose Find ads again to use the current detector; existing edits are retained.')
+        return current
+
     @staticmethod
     def _check_cancel(cancel):
         if cancel.is_set():
@@ -225,6 +289,11 @@ class Jobs:
             if 'approval_policy' in request:
                 # Queued work and retries keep the listener's original policy.
                 settings.update(self._approval_policy(request['approval_policy']))
+            if ('detection_policy' in request and operation == 'process'
+                    and self._option(options, 'remove_ads', True) and not self._option(options, 'download_only', False)):
+                settings.update(self._restore_detection_policy(request['detection_policy']))
+            # Legacy pending jobs intentionally retain their original behavior:
+            # approval controls stay frozen, other choices use current settings.
             if operation in ('process', 'download'):
                 self._process(episode_id, options, settings, cancel, download_only=operation == 'download')
             else:
@@ -336,8 +405,8 @@ class Jobs:
 
         if not self._option(options, 'remove_ads', True):
             has_speech = bool(transcript['segments'])
-            self.library.update(episode_id, status='ready' if has_speech else 'review',
-                                progress='Original audio and transcript ready; ads retained' if has_speech else 'No speech detected; review original audio')
+            self.library.update(episode_id, status='ready',
+                                progress='Original audio and transcript ready; ads retained' if has_speech else 'Original audio ready; no speech detected; ads retained')
             return
 
         episode = self.library.get(episode_id)
@@ -345,6 +414,10 @@ class Jobs:
         # redetection may replace them or an existing completed no-ad analysis.
         needs_detection = self._option(options, 'redetect', False) or (
             not episode.get('analysis_done') and not episode['cuts'])
+        profile = self._detection_policy(settings, self._option(options, 'detector', None))
+        if (not needs_detection and episode.get('analysis_profile') is not None
+                and episode['analysis_profile'] != profile):
+            raise processing.ProcessingError('This episode was analyzed with a different detector profile. Choose Find ads again to replace that analysis; existing edits are retained.')
         if needs_detection and transcript['segments']:
             self.progress(episode_id, 'detecting', 'Looking for advertisements in context')
             detector = self._option(options, 'detector', settings.get('detector') or 'auto')
@@ -356,18 +429,28 @@ class Jobs:
             cuts = processing.validate_cuts(cuts, duration)
             if cuts != episode['cuts']:
                 self.library.save_revision(episode_id, episode['cuts'], 'Before advertisement detection')
-            self._complete_stage(episode_id, 'redetect', cuts=cuts, analysis_done=True, cleaned=None,
+            self._complete_stage(episode_id, 'redetect', cuts=cuts, analysis_done=True, analysis_profile=profile, cleaned=None,
                                  cleaned_duration=0, removed_seconds=0)
         self._check_cancel(cancel)
-        self.render(episode_id, cancel)
+        self.render(episode_id, cancel, automatic=True)
 
-    def render(self, episode_id, cancel=None):
+    def render(self, episode_id, cancel=None, *, automatic=False):
         cancel = cancel or threading.Event()
         self._check_cancel(cancel)
         episode = self.library.get(episode_id)
         if not episode.get('audio') or not Path(episode['audio']).is_file():
             raise ValueError('Download the original audio before exporting cuts.')
         cuts = episode['cuts']
+        no_speech = (episode['transcript'] is not None and not episode['transcript']['segments']
+                     and not self.library.coverage_review_current(episode))
+        coverage_review = bool(episode.get('transcript_review'))
+        review = no_speech or coverage_review or any(not cut.get('approved') for cut in cuts)
+        if automatic and review:
+            message = ('No speech detected; review original audio' if no_speech else
+                       'Transcript coverage needs review; original audio retained' if coverage_review else
+                       'Review suggested cuts; original audio retained')
+            self.library.update(episode_id, status='review', progress=message)
+            return
         has_approved = any(cut.get('approved') for cut in cuts)
         if has_approved:
             self.progress(episode_id, 'rendering', 'Exporting audio with approved cuts')
@@ -378,9 +461,8 @@ class Jobs:
         else:
             self.library.update(episode_id, cleaned=None, cleaned_duration=0, removed_seconds=0)
         self._check_cancel(cancel)
-        no_speech = episode['transcript'] is not None and not episode['transcript']['segments']
-        review = no_speech or any(not cut.get('approved') for cut in cuts)
         message = ('No speech detected; review original audio' if no_speech else
+                   'Transcript coverage needs review; edited audio is a manual preview' if coverage_review else
                    'Review suggested cuts' if review else
                    'Approved cuts exported' if has_approved else
                    'No cuts selected; original audio retained')

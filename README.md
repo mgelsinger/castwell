@@ -1,18 +1,18 @@
 # Castwell
 
-**A complete local podcast library, with show shelves, batch tools, and cuts you control.**
+**CUDA podcast preparation, batch ad removal, and cuts you control.**
 
-A personal podcast suite that downloads episodes, creates searchable transcripts, and exports listening copies with your approved cuts. Browse show shelves and continue-listening rows, choose whether each podcast keeps its ads, and prepare or export episodes in batches. Originals stay available, and every cut can be reviewed or restored.
+A personal podcast suite that downloads episodes, transcribes them on NVIDIA CUDA, detects real promotional reads, and exports listening copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast and prepare or export episodes in batches. Originals stay available, and every cut can be reviewed or restored.
 
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
 **Ad-removal readiness:** the released 0.5.1 classifier is too slow for routine batch use. The [full CUDA episode evaluation](docs/evaluations/2026-10-11-full-stdwytk-cuda.html) took 106:34 to classify a 79:55 recording, missed two commercial openings, and proposed one extra sponsor transition. It preserved the rutabaga parody. Manual approval remains required; this result does not meet the production ad-removal goal. Classifier improvements must pass measured speed and accuracy checks before replacing this baseline.
 
-The [experimental speed repair](docs/evaluations/2026-10-12-classifier-speed-repair.md) classified the same transcript in 6:07 on CUDA and proposed every labeled commercial word, but still proposed seven protected words. A further boundary adjustment introduced new errors and was rejected. This prototype is not enabled in the application or the published downloads.
+The 0.5.2 test candidate connects compact scene detection and endpoint review to the application and CUDA launchers. On a different complete 75:13 recording, classification took 7:19, but missed 42.60 seconds of commercial word duration and proposed 11.96 seconds of protected word duration. The fresh accuracy gate failed, so this candidate remains subject to manual approval. The published 0.5.1 downloads still contain the older detector. See the [system evaluation and model tradeoffs](docs/evaluations/2026-10-12-ad-removal-system.md) and [implementation and acceptance plan](docs/ad-removal-production-plan.md) for the remaining work and test limits.
 
 ![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
 
-## A library built around listening
+## Prepare episodes, review cuts, and export batches
 
 - **Browse your shows.** Subscribe by RSS, import OPML, or upload recordings. Explore podcast shelves, new episodes, your review queue, and continue-listening rows. Filter the full library, save favorites, and pick up where you left off.
 - **Choose ads per podcast.** Save **Keep original** or **Remove ads** for each show, or update several shows together. Preparation follows those choices within a mixed batch. Keeping ads skips ad detection; removing ads prepares suggestions for approval.

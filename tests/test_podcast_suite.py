@@ -260,19 +260,62 @@ def test_zip_prefers_per_show_policy_reports_omissions_and_cleans_workspace(suit
     library.set_podcast_mode([library.get('keep')['podcast_id']], 'keep')
     response = client.post('/api/export/archive', json={'ids': ['remove', 'keep', 'upload', 'missing']})
     assert response.status_code == 200 and response.headers['content-type'] == 'application/zip'
-    assert response.headers['x-castwell-included'] == '2'
+    assert response.headers['x-castwell-included'] == '1'
     with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
         report = json.loads(archive.read('report.json'))
-        assert report['included_count'] == 2 and report['omitted_count'] == 2
-        remove = next(item for item in report['included'] if item['episode_id'] == 'remove')
+        assert report['included_count'] == 1 and report['omitted_count'] == 3
+        remove = next(item for item in report['omitted'] if item['episode_id'] == 'remove')
         keep = next(item for item in report['included'] if item['episode_id'] == 'keep')
-        assert remove['version'] == 'cleaned' and remove['approved_cut_count'] == 1
+        assert 'review' in remove['detail']
         assert keep['version'] == 'original' and keep['approved_cut_count'] == 0
-        assert archive.read(remove['file']) == b'cleaned-remove'
         assert archive.read(keep['file']) == b'original-keep'
         assert 'private-media' not in archive.read('report.json').decode()
         assert str(library.root) not in archive.read('report.json').decode()
     assert list((library.root / '.exports').iterdir()) == []
+    # Explicit cleaned exports remain available as manual previews, without
+    # entering the preferred completed batch or podcast feed.
+    response = client.post('/api/export/archive', json={'ids': ['remove'], 'version': 'cleaned'})
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        report = json.loads(archive.read('report.json'))
+        assert report['included'][0]['version'] == 'cleaned'
+        assert report['included'][0]['pending_review'] is True
+        assert archive.read(report['included'][0]['file']) == b'cleaned-remove'
+    assert '<guid isPermaLink="false">remove</guid>' not in client.get('/api/export/feed').text
+
+
+def test_coverage_warnings_block_remove_completion_but_keep_original_is_ready(suite):
+    app, client = suite
+    library = app.state.library
+    cuts = [{'start': 1, 'end': 2, 'approved': True}]
+    transcript = {'duration': 12, 'segments': [
+        {'id': 0, 'start': 0, 'end': 2, 'text': 'Opening.'},
+        {'id': 1, 'start': 7, 'end': 12, 'text': 'Return.'}]}
+    for identifier in ('remove', 'keep'):
+        prepared(library, identifier, cuts, cleaned=True)
+        library.update(identifier, transcript=transcript)
+    prepared(library, 'upload', cuts=[])
+    library.update('upload', transcript=transcript)
+    library.set_podcast_mode([library.get('keep')['podcast_id']], 'keep')
+    summaries = {episode['id']: episode for episode in library.summaries()}
+    assert summaries['remove']['status'] == 'review'
+    assert summaries['remove']['preferred_version'] == 'original'
+    assert summaries['remove']['export_ready'] is False
+    assert summaries['keep']['status'] == 'ready'
+    assert summaries['keep']['preferred_version'] == 'original'
+    assert summaries['keep']['export_ready'] is True
+    response = client.post('/api/export/archive', json={'ids': ['remove', 'keep', 'upload']})
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        report = json.loads(archive.read('report.json'))
+        assert [item['episode_id'] for item in report['included']] == ['keep']
+        assert [item['episode_id'] for item in report['omitted']] == ['remove', 'upload']
+        assert archive.read(report['included'][0]['file']) == b'original-keep'
+    feed = client.get('/api/export/feed').text
+    assert '<guid isPermaLink="false">remove</guid>' not in feed
+    assert '<guid isPermaLink="false">upload</guid>' not in feed
+    assert '<guid isPermaLink="false">keep</guid>' in feed
+    # Warnings also survive reopening and lightweight reads used by RSS.
+    reopened = Library(library.root)
+    assert reopened.get('remove', include_large=False)['transcript_review'] is True
 
 
 def test_zip_form_streams_native_download_and_strips_imported_transcript_metadata(suite):

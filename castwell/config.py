@@ -67,8 +67,8 @@ def _validated(values: dict) -> dict:
             raise ValueError("Language must be a two or three letter language code, or auto")
     if "detector" in result and result["detector"] not in ("auto", "ai", "heuristic"):
         raise ValueError("Detector must be auto, ai, or heuristic")
-    if "ai_policy" in result and result["ai_policy"] not in ("legacy", "verified"):
-        raise ValueError("AI policy must be legacy or verified")
+    if "ai_policy" in result and result["ai_policy"] not in ("legacy", "verified", "scene"):
+        raise ValueError("AI policy must be legacy, verified, or scene")
     if "auto_approve_threshold" in result:
         threshold = result["auto_approve_threshold"]
         if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not math.isfinite(threshold) or not 0.5 <= threshold <= 1:
@@ -270,6 +270,10 @@ def warm_transcription_model(settings, progress: Optional[Callable] = None) -> d
     configure_cuda_runtime()
     if progress:
         progress("Preparing the local transcription model; the first run may download model weights")
+    from . import processing
+    import gc
+    managed_classifier = os.environ.get("CASTWELL_CLASSIFIER_SLEEP_ADDRESS", "").strip()
+    engine = None
     try:
         from faster_whisper import WhisperModel
     except (ImportError, OSError) as exc:
@@ -281,8 +285,22 @@ def warm_transcription_model(settings, progress: Optional[Callable] = None) -> d
         local = Path(model).expanduser()
         if local.is_dir():
             model = str(local.resolve())
-        engine = WhisperModel(model, device="cuda", compute_type="float16", download_root=str(cache))
-        del engine
+        # Preparation and episode transcription share the same CUDA resource
+        # lock. No ModelPreparation state lock is held while loading weights.
+        with processing._MODEL_LOCK:
+            try:
+                if managed_classifier:
+                    from .gpu_phases import wait_classifier_sleep
+                    wait_classifier_sleep(managed_classifier, progress=progress)
+                # Explicit preparation may select a different speech model.
+                # Release idle cached speech weights before allocating its copy.
+                processing._cached_model.cache_clear()
+                engine = WhisperModel(model, device="cuda", compute_type="float16", download_root=str(cache))
+            finally:
+                engine = None
+                gc.collect()
+    except ProcessingError:
+        raise
     except Exception as exc:
         raise ProcessingError("Model preparation failed. Check the model files, NVIDIA driver, CUDA 12 and cuDNN 9 runtime libraries, available GPU memory, network access, and disk space.") from exc
     if progress:

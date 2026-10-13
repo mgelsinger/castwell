@@ -6,6 +6,8 @@ Local inference requires a supported NVIDIA GPU and an NVIDIA driver compatible 
 
 ## Choose a distribution
 
+Version **0.5.2 is a manual-review test candidate**, with a faster scene detector and stricter batch completion checks. Its fresh ad-removal accuracy gate failed. Its files are `Castwell-0.5.2-Windows-x64-Setup.exe` and `Castwell-0.5.2-Windows-x64-Portable.zip`. Review every proposed cut and unresolved speech passage before exporting. See the included [evaluation](evaluations/2026-10-12-ad-removal-system.md) and [remaining work](ad-removal-production-plan.md). Neither this candidate nor 0.5.1 establishes safe unattended removal.
+
 Get the Windows assets from [Castwell releases](https://github.com/mgelsinger/castwell/releases/latest):
 
 - **Castwell-0.5.1-Windows-x64-Setup.exe** installs for the current Windows user and creates a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
@@ -21,7 +23,7 @@ To move a portable installation that uses its default library, stop Castwell and
 
 Open Castwell from its Start menu shortcut or portable executable. Choose the **Data folder** if needed, optionally choose a local classifier, then select **Start**. The desktop launcher checks the GPU, starts the local service, and opens the podcast library in your browser. The service listens on loopback by default. Keep the launcher running while you use the library and use its stop or close control when finished.
 
-1. In the library's settings, choose a Whisper model and select **Download model**. This explicit preparation downloads free model weights; the application does not silently download speech weights when an episode is queued. The packaged default is `small.en` for English speech. Select a multilingual model if your podcasts need it.
+1. In the library's settings, choose a Whisper model and select **Download model**. This explicit preparation downloads free model weights; the application does not silently download speech weights when an episode is queued. The published 0.5.1 package defaults to `small.en`. The 0.5.2 candidate defaults a new library to `large-v3` when the exact pinned Qwen profile is selected; other new desktop profiles retain `small.en`. Existing and explicitly selected speech models remain unchanged. Select a multilingual model if your podcasts need it.
 2. Add podcasts by RSS, import OPML, or upload recordings. Set **Keep original** or **Remove ads** for each show. Matching selections include episodes beyond the displayed catalogue page; batches of 50 or more ask for confirmation before preparation.
 3. Prepare episodes in batches. Transcription uses CUDA and float16. **Keep original** retains ads and skips ad classification. **Remove ads** proposes cuts for manual review.
 4. Listen around each proposed cut, adjust the boundaries, and approve the selections you want. Render approved cuts to make a cleaned listening copy. Original audio remains available.
@@ -32,7 +34,7 @@ Without speech weights, you can browse, download originals, import existing tran
 
 Use the desktop launcher's local-model controls to select an existing compatible GGUF file and start the bundled llama.cpp service. The local classifier uses the NVIDIA GPU. Weight files are not part of the installer, and choosing a file does not download it or spend money. Model size must fit the available GPU memory and the selected context.
 
-The launcher verifies the selected file. The exact pinned **Qwen3.8-27B Q4_K_M** from the [reviewed profile](https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#qwen38-27b-reviewed-profile) automatically uses `reviewed-qwen3.8-cuda`, including the evaluated bounded reasoning settings: a 1,024-token reasoning budget and a 4,096-token output cap. Other GGUF files use `generic-local-cuda`; selecting them does not establish equivalent detection quality or enable the reviewed Qwen request profile. The launcher reports the selected profile when ready.
+The launcher verifies the selected file. The exact pinned **Qwen3.8-27B Q4_K_M** from the [reviewed profile](https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#qwen38-27b-reviewed-profile) automatically uses `reviewed-qwen3.8-cuda`. The published 0.5.1 package uses a 1,024-token reasoning budget and a 4,096-token output cap. The 0.5.2 candidate uses a nonthinking compact sweep, then focused boundaries and endpoints with separate 256-token reasoning budgets; it defaults to manual approval because ad-removal acceptance has not passed. Other GGUF files use `generic-local-cuda`; selecting them does not establish equivalent detection quality or enable the reviewed Qwen request profile. The launcher reports the selected profile when ready.
 
 Run **Test AI connection** in the library's settings after startup. A passing connection test confirms that the service returns valid results; it does not establish ad-detection accuracy. Keep **Require my approval for every cut** enabled for either profile and review the proposed boundaries, especially jokes, unpaid parodies, and host reads.
 

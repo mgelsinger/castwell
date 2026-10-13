@@ -24,7 +24,7 @@ Prepare the English speech model once. This downloads about 0.5 GB and does not 
 .venv\Scripts\python.exe -c "from faster_whisper.utils import download_model; download_model('small.en', cache_dir='.local/models/whisper', use_auth_token=False)"
 ```
 
-The app launcher uses this cache. Its default speech model is `small.en`; pass `-SpeechModel` to choose another installed model. The command resolves the publisher's current speech-model revision. For exact speech-model reproduction, download an explicit revision to a local directory and pass that directory with `-SpeechModel`; the tested small.en snapshot was `d1d751a5f8271d482d14ca55d9e2deeebbae577f`.
+The app launcher uses this cache and preserves saved speech choices. A new source library started with `-ReviewedProfile` defaults to `large-v3`, which was used in the complete-recording CUDA test. Other new source profiles retain `small.en`; pass `-SpeechModel` to select any prepared model explicitly. To prepare the larger free model, replace `small.en` with `large-v3` in the command above. Startup never downloads it automatically. The command resolves the publisher's current speech-model revision. For exact speech-model reproduction, download an explicit revision to a local directory and pass that directory with `-SpeechModel`; the tested small.en snapshot was `d1d751a5f8271d482d14ca55d9e2deeebbae577f`, and the tested large-v3 snapshot was `edaa852ec7e145841d8ffdb056a99866b5f0a478`.
 
 ## Prepare native llama.cpp
 

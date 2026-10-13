@@ -220,6 +220,38 @@ class LibraryTests(unittest.TestCase):
         detail = self.library.public(self.library.get('one'), detail=True)
         self.assertEqual(detail['transcript'], transcript)
 
+    def test_manual_cut_save_clears_detector_profile_without_losing_transcript_warning(self):
+        self.library.import_entries([entry()])
+        transcript = {'duration': 120, 'segments': [], 'quality': {'requires_review': True}}
+        profile = {'ai_policy': 'verified', 'ai_model': 'model'}
+        self.library.update('one', transcript=transcript, cuts=[], analysis_profile=profile, analysis_done=True)
+        self.assertEqual(self.library.get('one')['analysis_profile'], profile)
+        self.library.update('one', cuts=[{'start': 20, 'end': 30, 'approved': True, 'source': 'manual'}])
+        record = self.library.get('one')
+        self.assertIsNone(record['analysis_profile'])
+        self.assertTrue(record['transcript_review'])
+        self.assertTrue(record['analysis_done'])
+
+    def test_coverage_flag_is_backfilled_from_a_legacy_database(self):
+        older = self.library.root / 'older'
+        older.mkdir()
+        transcript = {'duration': 120, 'segments': [
+            {'id': 0, 'start': 0, 'end': 4, 'text': 'Opening.'},
+            {'id': 1, 'start': 14, 'end': 120, 'text': 'Return.'}]}
+        with closing(sqlite3.connect(older / 'library.sqlite3')) as db, db:
+            db.execute('CREATE TABLE episodes (id TEXT PRIMARY KEY, metadata TEXT NOT NULL, '
+                       'status TEXT NOT NULL DEFAULT "available", error TEXT, progress TEXT NOT NULL DEFAULT "", '
+                       'audio TEXT, cleaned TEXT, transcript TEXT, cuts TEXT NOT NULL DEFAULT "[]", '
+                       'duration REAL NOT NULL DEFAULT 0, removed_seconds REAL NOT NULL DEFAULT 0)')
+            db.execute('INSERT INTO episodes (id,metadata,status,transcript,duration) VALUES (?,?,?,?,?)',
+                       ('one', json.dumps(entry()), 'ready', json.dumps(transcript), 120))
+        migrated = Library(older)
+        record = migrated.get('one', include_large=False)
+        self.assertTrue(record['transcript_review'])
+        self.assertIsNone(record['analysis_profile'])
+        self.assertEqual(migrated.public(record)['status'], 'review')
+        self.assertEqual(migrated.get('one')['transcript'], transcript)
+
     def test_detail_warns_about_uncheckable_legacy_timestamps_without_failing(self):
         self.library.import_entries([entry()])
         transcript = {'segments': [{'text': 'Legacy speech without timestamps.'}]}

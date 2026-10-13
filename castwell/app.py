@@ -94,6 +94,12 @@ class CutsRequest(BaseModel):
     cuts: list[dict] = Field(max_length=10000)
 
 
+class CoverageReviewRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    reviewed: bool = Field(strict=True)
+    review_token: str = Field(strict=True, min_length=64, max_length=64, pattern=r'^[a-f0-9]{64}$')
+
+
 
 class EpisodeState(BaseModel):
     favorite: bool | None = None
@@ -561,11 +567,20 @@ def create_app(data_dir=None):
 
     @app.post('/api/settings/test-classifier')
     def test_classifier():
-        return settings.test_classifier()
+        # Hold both admission locks through the provider call, so neither a
+        # queued episode nor model preparation can start between check and use.
+        with jobs.lock, model_work.lock:
+            if (jobs.pending or any(record['status'] in ACTIVE_STATUSES for record in library.all(include_large=False))
+                    or model_work.state['status'] in {'running', 'queued', 'preparing', 'downloading', 'loading'}):
+                raise HTTPException(409, 'Finish queued episodes and speech model preparation before testing the classifier.')
+            return settings.test_classifier()
 
     @app.post('/api/models/prepare', status_code=202)
     def prepare_model():
-        return {'started': model_work.submit()}
+        with jobs.lock:
+            if jobs.pending:
+                raise HTTPException(409, 'Finish queued episodes before preparing a speech model.')
+            return {'started': model_work.submit()}
 
     @app.get('/api/models/status')
     def model_status():
@@ -580,8 +595,16 @@ def create_app(data_dir=None):
         if body.download_only and (body.redetect or body.retranscribe):
             raise ValueError('Audio-only downloads cannot also request transcription or ad detection')
 
+    def ensure_speech_preparation_idle():
+        # Admission callers hold jobs.lock then model_work.lock. The preparation
+        # worker releases its state lock before loading or invoking callbacks.
+        if model_work.state['status'] in {'running', 'queued', 'preparing', 'downloading', 'loading'}:
+            raise HTTPException(409, 'Finish speech model preparation before preparing episodes.')
+
     def queue_selection(ids, operation, options=None, retry=False):
-        with jobs.lock:
+        with jobs.lock, model_work.lock:
+            if operation == 'process':
+                ensure_speech_preparation_idle()
             records, results = selected_records(ids)
             for record in records:
                 episode_id = record['id']
@@ -619,7 +642,9 @@ def create_app(data_dir=None):
     @app.post('/api/episodes/{episode_id}/process', status_code=202)
     def process(episode_id: str, body: ProcessRequest):
         check_process_options(body)
-        return {'queued': jobs.submit(episode_id, 'process', body)}
+        with jobs.lock, model_work.lock:
+            ensure_speech_preparation_idle()
+            return {'queued': jobs.submit(episode_id, 'process', body)}
 
     @app.post('/api/process', status_code=202)
     def batch(body: BatchRequest):
@@ -660,6 +685,23 @@ def create_app(data_dir=None):
             raise ValueError('Prepare and review this episode before exporting cuts')
         return {'queued': jobs.submit(episode_id, 'render')}
 
+    @app.post('/api/episodes/{episode_id}/coverage-review')
+    def review_coverage(episode_id: str, body: CoverageReviewRequest):
+        if body.reviewed is not True:
+            raise ValueError('Confirm that you listened and addressed any missed advertisements before resolving coverage.')
+        with jobs.lock:
+            ensure_idle(episode_id)
+            record = library.get(episode_id)
+            if record['status'] in ACTIVE_STATUSES:
+                raise HTTPException(409, 'This episode is processing. Wait for it to finish.')
+            current = library.coverage_review_token(record)
+            if current is None:
+                raise ValueError('An existing managed original and transcript are required before reviewing coverage.')
+            if current != body.review_token:
+                raise HTTPException(409, 'The original audio or transcript changed. Reopen the episode and review its current coverage.')
+            reviewed = library.acknowledge_coverage(episode_id, body.review_token)
+            return library.public(reviewed, detail=True)
+
     @app.post('/api/episodes/{episode_id}/transcript')
     def import_transcript(episode_id: str, body: dict):
         with jobs.lock:
@@ -668,7 +710,7 @@ def create_app(data_dir=None):
             transcript = processing.validate_transcript(body, record['duration'] or None)
             if record['cuts']:
                 library.save_revision(episode_id, record['cuts'], 'Before replacing the transcript')
-            library.update(episode_id, transcript=transcript, cuts=[], cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=False, pending_job=None, error=None, status='available', progress='Transcript imported. Process to detect ads.')
+            library.update(episode_id, transcript=transcript, coverage_review=None, cuts=[], cleaned=None, cleaned_duration=0, removed_seconds=0, analysis_done=False, pending_job=None, error=None, status='available', progress='Transcript imported. Process to detect ads.')
             return library.public(library.get(episode_id), detail=True)
 
     @app.get('/api/episodes/{episode_id}/transcript')

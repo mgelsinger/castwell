@@ -1,10 +1,10 @@
 # Castwell production operation
 
-Castwell supports a local, single-user podcast library with batch preparation and reviewed audio exports. Its production boundary is a trusted computer with one server worker, durable local storage, and manual approval of ad cuts. The release checks below verify software and installation readiness. A full-podcast listening test remains the acceptance step for your shows and recording conditions.
+Castwell prepares podcast batches with a per-show Remove ads or Keep original choice, CUDA transcription, and reviewed audio exports. Its production boundary is a trusted computer with one server worker, durable local storage, and manual approval of ad cuts. The release checks below verify software and installation readiness. Accurate ad removal is a separate release requirement; library and installer checks cannot satisfy it.
 
 **The current ad-removal classifier has not passed production acceptance.** In the [full CUDA recording evaluation](evaluations/2026-10-11-full-stdwytk-cuda.html), classification took 106:34 for a 79:55 episode and still missed two ad openings and proposed an extra sponsor transition. The fake rutabaga read was preserved. Installation checks and successful exports do not make that performance acceptable for routine batch processing. Keep every cut subject to review until the replacement workflow has measured speed and accuracy evidence, followed by listening verification.
 
-The [experimental speed repair](evaluations/2026-10-12-classifier-speed-repair.md) reduced classification to 6:07 on the same transcript and GPU. It covered all labeled commercial words but proposed seven protected words. A later boundary adjustment regressed accuracy and was rejected. The tested prototype remains separate from application detection and packaged releases; this result has not cleared production acceptance.
+The source candidate now connects compact scene detection with focused endpoint review to the app and CUDA launchers. The frozen fresh test used 44 real classifier requests across one complete recording and two unused tails. The 75:13 complete recording took 7:19 to classify, with a separate 4:44 for CUDA large-v3 transcription, but missed 42.60 seconds of commercial word duration and proposed 11.96 seconds of protected word duration. The Skeptoid tail missed a further 4.62 seconds of promotional word duration. All cuts remain unapproved; this version has not passed production acceptance. See the [ad-removal plan](ad-removal-production-plan.md).
 
 ## Start the suite on Windows
 
@@ -16,13 +16,15 @@ Use the installed project environment and pinned native llama.cpp/Qwen3.8 profil
 .\scripts\start_suite.ps1 -ReviewedProfile
 ```
 
-The launcher honors the saved or explicitly selected speech model and selects `small.en` when none is saved. `-ReviewedProfile` selects the verified v8 contextual detector, bounded Qwen reasoning, and manual approval; it does not change the speech model. Without that switch, the launcher retains your saved processing settings. Model weights and FFmpeg must already be installed; the suite launcher does not download them or spend money on a provider. It verifies pinned model/runtime files, checks existing process ownership before reusing ports, and writes service state under `.local/runtime`.
+The source launcher honors every saved or explicitly selected speech model. A new library with `-ReviewedProfile` defaults to `large-v3`, the speech model used in the complete-recording test; other new source profiles retain `small.en`. `-ReviewedProfile` selects the compact scene and endpoint candidate with fixed bounded stage settings and manual approval by default; an explicitly saved approval preference persists. Model weights and FFmpeg must already be installed; the suite launcher does not download them or spend money on a provider. It verifies pinned model/runtime files, checks existing process ownership before reusing ports, and writes service state under `.local/runtime`.
+
+The owned classifier sleeps between tasks so transcription can use the GPU. Castwell waits for that sleep state before loading Whisper and releases Whisper after transcription before the classifier wakes. Explicit speech-model preparation uses the same resource lock, releases cached speech weights, and waits for the owned classifier to sleep. Preparation and episode processing cannot be admitted concurrently; downloads and rendering remain available. Neural speech recognition, voice activity checks, and local classification require CUDA. Ordinary decoding and file operations can use the host processor.
 
 Open `http://127.0.0.1:8000`. Select a podcast and choose **Remove ads** or **Keep original**. Removing ads prepares suggestions for your review; it does not promise that every commercial will be recognized. Keeping ads prepares transcripts and retains the original recording. The saved podcast choice applies when you queue episodes, so changing it later does not alter an already queued job.
 
 Select episodes or all episodes in a podcast to download, prepare, retry, cancel, export approved cuts, update listening state, or download an archive. Preparation and download selections of 50 or more episodes show the total and require confirmation before queueing. Review boundaries before exporting cleaned audio. A batch reports each item so successful work remains usable when another episode fails. ZIP exports allow up to 500 episodes and 10 GiB of audio and transcript payload, plus manifest and container headers. Oversized transcript attachments are omitted with a report entry while their audio remains included.
 
-`-ValidateOnly` verifies the installed prerequisites without starting services. `-Port`, `-ClassifierPort`, `-DataDirectory`, `-ModelCache`, and `-SpeechModel` support an existing custom installation. The suite does not change transcription quality settings by downloading a larger untested model.
+`-ValidateOnly` verifies the installed prerequisites without starting services. `-Port`, `-ClassifierPort`, `-DataDirectory`, `-ModelCache`, and `-SpeechModel` support an existing custom installation. The suite never downloads speech weights during startup. Prepare the selected model explicitly if it is missing.
 
 Stop the recorded services while the queue is idle:
 
@@ -48,7 +50,9 @@ The checker returns exit code `0` when its operational checks pass and `1` when 
 
 The command makes only local GET requests, with a 32 MiB limit per JSON response for larger catalogues. It checks app health, podcast APIs, dependencies, cached transcription files, manual approval settings, actual app and classifier listen addresses, idle queue and background operations, SQLite integrity, stored cut ranges, referenced recordings, matching episode IDs, and available storage. A configured local classifier is checked through its model list, without inference. Hosted classifiers are never contacted. Reports omit transcripts, titles, subscription addresses, credentials, and stored media paths.
 
-`ready: true` means the installation checks passed within the stated local scope. The report always retains a warning that podcast accuracy needs a listening acceptance test. It does not validate model weights by inference, prove word alignment, simulate an interrupted download, or establish internet-facing security.
+`ready: true` means the installation checks passed within the stated local scope. The report separately records `production_ready: false` when ad-removal acceptance has not been measured by that check. It does not validate model weights by inference, prove word alignment, simulate an interrupted download, or establish internet-facing security.
+
+Unapproved cuts, unresolved detector decisions, or uncertain transcription coverage keep a Remove ads episode pending. A manual partial export can be previewed, but the original remains its preferred listening copy and it is excluded from completed preferred exports. Listen to every flagged audio passage, add or adjust missed ads, and save before choosing **I've listened and addressed any missed ads**. That explicit action records your report of listening; it does not claim model verification or automatically render audio. Changes to the original or transcript invalidate that acknowledgement.
 
 ## Release verification
 
@@ -76,7 +80,7 @@ Before using cleaned audio as your normal listening copy, test a complete episod
 5. Listen around every splice and check the cleaned audio beginning and ending. Compare the removed duration with your selections and confirm the original is still playable.
 6. Restart Castwell while idle. Confirm show choices, favorites, played state, playback positions, transcripts, cut revisions, and prepared recordings remain available. Repeat the installation checker.
 
-For unattended removal, the current evidence is insufficient. The [matched model comparison](standardized-model-comparison-2026-10-08.md) and [policy pilot](policy-pilot-2026-10-09.md) include missed commercial speech and incorrectly selected editorial/parody speech. The v9 experiment was withheld because it introduced a commercial boundary regression. Qwen3.8 with v8 and manual approval remains the selected local setup. Speech gaps, music, blended promotions, jokes, and inaccurate timestamps all need listening judgment.
+For unattended removal, the current evidence is insufficient. The [matched model comparison](standardized-model-comparison-2026-10-08.md) and [policy pilot](policy-pilot-2026-10-09.md) include missed commercial speech and incorrectly selected editorial/parody speech. The v9 experiment was withheld because it introduced a commercial boundary regression. The 0.5.2 candidate selects Qwen3.8 with compact scenes and endpoint review, subject to manual approval; the earlier v8 setup remains historical evidence. Speech gaps, music, blended promotions, jokes, and inaccurate timestamps all need listening judgment.
 
 ## Backup and recovery
 

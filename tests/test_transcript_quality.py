@@ -193,6 +193,7 @@ def test_crop_cancellation_reaps_decoder(monkeypatch, tmp_path):
 def test_transcribe_adds_diagnostics_and_recovery_defaults_on(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "faster_whisper", Mock())
+    monkeypatch.setattr("castwell.audio_coverage.assess_audio_coverage", lambda audio, transcript, **options: transcript)
     monkeypatch.setattr("castwell.processing.probe_duration", lambda audio: 20)
     opening = SimpleNamespace(start=0, end=4, text="Opening.", words=[])
     returning = SimpleNamespace(start=14, end=20, text="Return.", words=[])
@@ -209,6 +210,7 @@ def test_transcribe_adds_diagnostics_and_recovery_defaults_on(monkeypatch):
 def test_transcribe_can_disable_gap_recovery_but_keeps_diagnostics(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "faster_whisper", Mock())
+    monkeypatch.setattr("castwell.audio_coverage.assess_audio_coverage", lambda audio, transcript, **options: transcript)
     monkeypatch.setattr("castwell.processing.probe_duration", lambda audio: 20)
     opening = SimpleNamespace(start=0, end=4, text="Opening.", words=[])
     engine, crop = engine_for(monkeypatch, [])

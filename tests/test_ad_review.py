@@ -557,6 +557,6 @@ def test_invalid_reasoning_flag_never_reaches_provider(value):
 
 def test_reasoning_cannot_be_silently_ignored_by_legacy_ai():
     with patch('castwell.processing._classifier_request') as request:
-        with pytest.raises(ValueError, match='verified'):
+        with pytest.raises(ValueError, match='checked detection policy'):
             classify(transcript('Some speech.'), config={'ai_reasoning': True, 'ai_policy': 'legacy'})
     request.assert_not_called()
