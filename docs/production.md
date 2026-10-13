@@ -2,6 +2,10 @@
 
 Castwell supports a local, single-user podcast library with batch preparation and reviewed audio exports. Its production boundary is a trusted computer with one server worker, durable local storage, and manual approval of ad cuts. The release checks below verify software and installation readiness. A full-podcast listening test remains the acceptance step for your shows and recording conditions.
 
+**The current ad-removal classifier has not passed production acceptance.** In the [full CUDA recording evaluation](evaluations/2026-10-11-full-stdwytk-cuda.html), classification took 106:34 for a 79:55 episode and still missed two ad openings and proposed an extra sponsor transition. The fake rutabaga read was preserved. Installation checks and successful exports do not make that performance acceptable for routine batch processing. Keep every cut subject to review until the replacement workflow has measured speed and accuracy evidence, followed by listening verification.
+
+The [experimental speed repair](evaluations/2026-10-12-classifier-speed-repair.md) reduced classification to 6:07 on the same transcript and GPU. It covered all labeled commercial words but proposed seven protected words. A later boundary adjustment regressed accuracy and was rejected. The tested prototype remains separate from application detection and packaged releases; this result has not cleared production acceptance.
+
 ## Start the suite on Windows
 
 For the portable app and full installer, follow [Windows desktop installation](windows.md). Both bundle CUDA inference runtimes and require NVIDIA hardware. The desktop launcher owns its services, verifies GPU execution, and stops instead of switching inference to CPU. Speech weights and classifier weights remain separate.

@@ -6,6 +6,10 @@ A personal podcast suite that downloads episodes, creates searchable transcripts
 
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
+**Ad-removal readiness:** the released 0.5.1 classifier is too slow for routine batch use. The [full CUDA episode evaluation](docs/evaluations/2026-10-11-full-stdwytk-cuda.html) took 106:34 to classify a 79:55 recording, missed two commercial openings, and proposed one extra sponsor transition. It preserved the rutabaga parody. Manual approval remains required; this result does not meet the production ad-removal goal. Classifier improvements must pass measured speed and accuracy checks before replacing this baseline.
+
+The [experimental speed repair](docs/evaluations/2026-10-12-classifier-speed-repair.md) classified the same transcript in 6:07 on CUDA and proposed every labeled commercial word, but still proposed seven protected words. A further boundary adjustment introduced new errors and was rejected. This prototype is not enabled in the application or the published downloads.
+
 ![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
 
 ## A library built around listening
