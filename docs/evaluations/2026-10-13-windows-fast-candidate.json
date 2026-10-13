@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-13",
+  "version": "0.5.3",
+  "status": "Manual-review Windows fast candidate",
+  "runtime_checks_passed": true,
+  "all_private_harness_assertions_passed": false,
+  "ad_removal_accuracy_passed": false,
+  "production_go_live_confirmed": false,
+  "scope": "Frozen CUDA execution, real batched speech, synthetic fast detection, native sleep/wake, fixture exports, desktop start/stop, relocation, installation and uninstall. Not real podcast detection or listening acceptance.",
+  "application_code_revision": "66f055a1a674afd1ad6ea8a4ef366131b2ff4ecd",
+  "source_tree_sha256": "220d5c4fd82f04a2e90e9c89ce2ae9f66e0712a331d3ca6bffd080aac40e46f1",
+  "application_executable_sha256": "a74b8919d347532b63663f25ea3edacb85ff018e296f6b7da9335e0f43c1990a",
+  "build_manifest_sha256": "5cccd63e260a9e58db4502983e44d579f40eb24bb57d370a0a3bc57764013122",
+  "artifacts": [
+    {
+      "name": "Castwell-0.5.3-Windows-x64-Portable.zip",
+      "sha256": "35ff4d3bebd8b54b24b1937c575656d9ca48ca11d301ecef5f1e4e46112dd71b",
+      "bytes": 2060056825
+    },
+    {
+      "name": "Castwell-0.5.3-Windows-x64-Setup.exe",
+      "sha256": "cffb5ed33848e29c918ee3146a2a211ebb8e1b60285b4f847ac4e7fdb68b4a9b",
+      "bytes": 1301469804
+    }
+  ],
+  "inference": "nvidia-cuda-only",
+  "speech_and_classifier_weights_bundled": false,
+  "signed": false,
+  "published_release": false,
+  "build_used_existing_wheelhouse_and_native_inputs": true,
+  "model_downloads": 0,
+  "paid_api_calls": 0,
+  "packages": {
+    "portable": {
+      "frozen_runtime_passed": true,
+      "cuda": {
+        "ready": true,
+        "device_count": 1,
+        "float16_supported": true,
+        "allocation_verified": true,
+        "kernel_verified": true,
+        "gpus": [
+          {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "driver_version": "610.47",
+            "memory_total_mb": 24564
+          }
+        ],
+        "errors": [],
+        "vad": {
+          "ready": true,
+          "provider": "CUDAExecutionProvider",
+          "cpu_fallback_disabled": true
+        }
+      },
+      "transcription": {
+        "device": "cuda",
+        "compute_type": "float16",
+        "implicit_downloads": false
+      },
+      "desktop_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "requires_external_python_on_path": false,
+      "requires_external_ffmpeg_on_path": false,
+      "synthetic_known_cut_rendered_seconds": 8.0,
+      "local_fixture_feed_episodes": 2,
+      "fixture_archive_entries": 3,
+      "speech_crop": {
+        "duration_seconds": 20.0,
+        "segments": 1,
+        "timestamped_word_entries": 60,
+        "cached_model": true,
+        "model": "small.en",
+        "current_podcast_ad_mode": "keep",
+        "execution": {
+          "version": "cuda-batch-v4",
+          "mode": "batched",
+          "device": "cuda",
+          "compute_type": "float16",
+          "batch_size": 8,
+          "beam_size": 5,
+          "temperature": 0.0,
+          "word_timestamps": true,
+          "condition_on_previous_text": false
+        },
+        "accuracy_acceptance_test": false
+      },
+      "semantic_default_library_preference": true
+    },
+    "installed": {
+      "frozen_runtime_passed": true,
+      "cuda": {
+        "ready": true,
+        "device_count": 1,
+        "float16_supported": true,
+        "allocation_verified": true,
+        "kernel_verified": true,
+        "gpus": [
+          {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "driver_version": "610.47",
+            "memory_total_mb": 24564
+          }
+        ],
+        "errors": [],
+        "vad": {
+          "ready": true,
+          "provider": "CUDAExecutionProvider",
+          "cpu_fallback_disabled": true
+        }
+      },
+      "transcription": {
+        "device": "cuda",
+        "compute_type": "float16",
+        "implicit_downloads": false
+      },
+      "desktop_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "requires_external_python_on_path": false,
+      "requires_external_ffmpeg_on_path": false,
+      "synthetic_known_cut_rendered_seconds": 8.0,
+      "local_fixture_feed_episodes": 2,
+      "fixture_archive_entries": 3,
+      "speech_crop": {
+        "duration_seconds": 20.0,
+        "segments": 1,
+        "timestamped_word_entries": 60,
+        "cached_model": true,
+        "model": "small.en",
+        "current_podcast_ad_mode": "keep",
+        "execution": {
+          "version": "cuda-batch-v4",
+          "mode": "batched",
+          "device": "cuda",
+          "compute_type": "float16",
+          "batch_size": 8,
+          "beam_size": 5,
+          "temperature": 0.0,
+          "word_timestamps": true,
+          "condition_on_previous_text": false
+        },
+        "accuracy_acceptance_test": false
+      },
+      "semantic_default_library_preference": true,
+      "shortcut_valid": true,
+      "uninstall_registry_valid": true,
+      "current_user": true,
+      "uninstall_preserved_libraries": true
+    }
+  },
+  "portable_relocation": {
+    "default_data_resolved_after_move": true,
+    "original_and_cleaned_audio_unchanged": true,
+    "transcript_and_cut_state_preserved": true,
+    "listening_state_preserved": true,
+    "visible_native_window": true,
+    "asr_or_ad_classifier_inference_run": false
+  },
+  "frozen_fast_profile_probe": {
+    "application_from_frozen_build": true,
+    "same_executable_hash_as_portable": true,
+    "visible_native_window": true,
+    "classifier_profile": "reviewed-qwen3.8-cuda",
+    "default_and_effective_settings": {
+      "ai_policy": "fast",
+      "review_only": true,
+      "ai_reasoning": false,
+      "transcription_batch_size": 8
+    },
+    "explicit_review_false_overridden": true,
+    "native_context_tokens_observed": 32768,
+    "synthetic_connection_result": {
+      "ok": true,
+      "model": "castwell-local",
+      "detected_ads": 1
+    },
+    "fresh_generation_requests_observed": 2,
+    "reasoning_budgets_observed": [
+      6144,
+      1024
+    ],
+    "full_cuda_offloads_observed": [
+      [
+        66,
+        66
+      ],
+      [
+        66,
+        66
+      ]
+    ],
+    "idle_sleep_before_and_after_observed": true,
+    "woke_for_generation_observed": true,
+    "shutdown": {
+      "gui_exit_code": 0,
+      "app_port_closed": true,
+      "model_port_closed": true
+    },
+    "native_token_preflight": {
+      "mandatory_successful_code_path": true,
+      "direct_request_route_log_observation": false,
+      "basis": "Frozen fast execution requires native context and input-token preflights before both inference stages; the successful fast result establishes passage through that mandatory path. Native logs at this verbosity do not include request route URLs."
+    },
+    "private_harness_caveat": {
+      "original_exit_code": 1,
+      "failed_assertion": "Native token preflight must have run",
+      "reason": "The private harness incorrectly required an HTTP route string in the native log after actual inference and sleep/wake checks succeeded.",
+      "original_failure_preserved": true,
+      "resolution": "Reviewed original report, harness order, native log and frozen preflight code contract. No repeat generation and no application source changes.",
+      "original_report_sha256": "ef7a1cbb980d6e352bb9608cf87a10e6dc34aee61135259ccda0788ea449c9b2",
+      "native_log_sha256": "be2689d7de01bd59a01525682b8c935f573d96c759fd4f80a556e056fc7a131f"
+    },
+    "runtime_timings_are_not_episode_benchmarks": true,
+    "fresh_speech_run_in_same_managed_classifier_process": false
+  },
+  "distribution_smoke": {
+    "passed": true,
+    "elapsed_seconds": 135.72,
+    "classifier_api_calls": 0,
+    "model_downloads": 0,
+    "temporary_workspace_removed": true,
+    "batch8_override": "Private harness adapter changed only the two already-planned speech jobs to batch 8 through the settings API; frozen application and tracked smoke source unchanged.",
+    "batch8_speech_jobs": 2,
+    "original_report_sha256": "5ad876d60a06d778c56c2f583292706b90a308d08630c56527bfe77301396e5d",
+    "batch8_report_sha256": "3ea4fd5a8191c12bf88f02f8fee7596c5e6af4d3886d0aec569d026db59f96af"
+  },
+  "source_ci": {
+    "url": "https://github.com/mgelsinger/castwell/actions/runs/38408113350",
+    "revision": "66f055a1a674afd1ad6ea8a4ef366131b2ff4ecd",
+    "python_3_12": {
+      "passed": 985,
+      "skipped": 3,
+      "subtests_passed": 162
+    },
+    "python_3_10": {
+      "passed": 977,
+      "skipped": 11,
+      "subtests_passed": 162
+    },
+    "browser_and_hour_long_batch_fixtures_passed": true
+  },
+  "source_episode_benchmark": {
+    "report": "2026-10-13-five-minute-cuda.md",
+    "machine_readable_report": "2026-10-13-five-minute-cuda.json",
+    "separate_from_package_validation": true,
+    "manual_review_still_required": true,
+    "independent_listening_acceptance_completed": false
+  }
+}

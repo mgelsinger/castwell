@@ -12,6 +12,8 @@ Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional re
 
 **Accuracy still requires review.** The final run preserved every labeled program word and the reference-labeled rutabaga parody, but left **1.31 seconds of commercial word duration** outside the cuts across 14 word entries. These are consumed development recordings with provisional speech timings, not independent listening-verified acceptance. The app rejects incomplete analyses and suspicious sponsor omissions, and fast mode always requires saved manual review. Speed acceptance is not production accuracy acceptance.
 
+Both **0.5.3 Windows candidates** passed actual CUDA speech processing at batch size 8, exports, and desktop startup/shutdown. Portable relocation and current-user installation/uninstallation passed while preserving the test libraries. The separate fast classifier check verified full GPU offload and sleep/wake. See the [package validation record](docs/evaluations/2026-10-13-windows-fast-candidate.json) and [Windows setup guide](docs/windows.md). These are unsigned review candidates; speech and classifier weights are separate.
+
 The published 0.5.1 downloads contain the older detector, which took [106:34 to classify a 79:55 episode](docs/evaluations/2026-10-11-full-stdwytk-cuda.html). Frozen 0.5.2 candidates predate the current scope and fast path. Their failed accuracy results and successful distribution checks remain in the [historical evaluation](docs/evaluations/2026-10-12-ad-removal-system.md). See the [acceptance plan](docs/ad-removal-production-plan.md) for the remaining release requirements.
 
 ![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
