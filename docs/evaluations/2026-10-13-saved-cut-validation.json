@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-10-14T00:28:18.194952+00:00",
+  "purpose": "Offline validation of the frozen consumed July development recording; not an accuracy acceptance test.",
+  "private_audit_sha256": "a8eb694e35ef9f298c4931002a702aaf5e21bfe8d37e4297790c0a12ba29f7fb",
+  "inputs": {
+    "transcript": {
+      "sha256": "e7c61f29e218d2a001c18b294d8c8117a70164f561604900578273ab51986a30",
+      "bytes": 1904957
+    },
+    "decisions": {
+      "sha256": "1f300d5c6fb12b2dbf7c18cfd335f63466b8430bbca616e5b61f80cb4dd66651",
+      "bytes": 442155
+    },
+    "cuts": {
+      "sha256": "0206b2ba13b7e9bbc4582c290128c5de1b0f4715d0d1ef21caaba0f085579343",
+      "bytes": 21315
+    },
+    "audio": {
+      "sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "bytes": 72295605
+    },
+    "preview": {
+      "sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+      "bytes": 91557934
+    },
+    "benchmark_report": {
+      "sha256": "745b192976f217a7f4969615e6e78645eb5af4beab301ba67c87bb016fde855f",
+      "bytes": 22819
+    },
+    "audit_script": {
+      "sha256": "eb8f371a8c442b53aef14bdf60bb4d7ca32936d32629480cc7c0eb403a820e41",
+      "bytes": 20971
+    },
+    "ffmpeg": {
+      "sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+      "bytes": 101897728
+    },
+    "ffprobe": {
+      "sha256": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07",
+      "bytes": 101692928
+    },
+    "listening_packet": {
+      "sha256": "f4302a60d9bd0ff9629e3a176779cddfd665218c10140bdf6cb1cafa672feb20",
+      "bytes": 37307
+    }
+  },
+  "saved_decision_audit": {
+    "source_word_count": 12110,
+    "cut_count": 15,
+    "endpoint_count": 30,
+    "invalid_cut_boundary_count": 0,
+    "positive_duration_commercial_words": 1955,
+    "commercial_word_seconds": 632.340000000005,
+    "commercial_word_seconds_outside_cuts": 0.0,
+    "commercial_word_entries_not_fully_selected": 0,
+    "noncommercial_source_word_intersections": 0,
+    "noncommercial_source_word_seconds_selected": 0,
+    "zero_duration_commercial_points_outside_cuts": 0,
+    "retained_gaps_between_commercial_words": 9,
+    "retained_gap_seconds": 12.72999999999837,
+    "source_duration_seconds": 4513.123265,
+    "cut_union_seconds": 698.3100000000011,
+    "intended_retained_duration_seconds": 3814.813264999999,
+    "overlapping_cut_seconds_before_union": 0.0,
+    "source_word_consistency_passed": true,
+    "retained_gaps_fully_inside_existing_windows": 9,
+    "cut_endpoints_inside_existing_windows": 30,
+    "source_and_preview_full_decode_passed": true,
+    "decoded_duration_within_sample_boundary_tolerance": false,
+    "decoded_duration_error_seconds": -0.026122448978185275,
+    "preview_decode_matches_declared_edit_timeline": true,
+    "source_decoded_minus_declared_duration_seconds": 0.026122755101823714,
+    "independent_listening_verified": false,
+    "acceptance_eligible": false,
+    "inference_requests": 0
+  },
+  "audio_validation": {
+    "source": {
+      "full_decode_passed": true,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "container_duration_seconds": 4513.123265,
+      "decoded_sample_frames": 199029888,
+      "decoded_seconds": 4513.149387755102,
+      "decode_wall_timeout_seconds": 120
+    },
+    "preview": {
+      "full_decode_passed": true,
+      "codec": "mp3",
+      "sample_rate": 44100,
+      "channels": 2,
+      "container_duration_seconds": 3814.813265,
+      "decoded_sample_frames": 168233265,
+      "decoded_seconds": 3814.8132653061225,
+      "decode_wall_timeout_seconds": 120
+    },
+    "expected_from_decoded_source_seconds": 3814.8393877551007,
+    "decoded_duration_error_seconds": -0.026122448978185275,
+    "source_decoded_minus_declared_duration_seconds": 0.026122755101823714,
+    "preview_decoded_minus_declared_edit_duration_seconds": 3.061236384382937e-07,
+    "sample_boundary_tolerance_seconds": 0.0007256235827664399,
+    "decoded_duration_within_sample_boundary_tolerance": false,
+    "preview_decode_matches_declared_edit_timeline": true,
+    "container_duration_error_seconds": 9.094947017729282e-13,
+    "benchmark_render_duration_matches": true,
+    "interpretation": "The renderer caps edits at the declared source duration. Compare both that declared timeline and the entire decoded source. Codec framing/delay/padding can make them differ; this audit does not determine whether any excess decoded tail is audible. Tolerance allows two sample boundaries per cut plus two samples. Duration checks do not establish waveform identity."
+  },
+  "decoded_tail": {
+    "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+    "ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+    "pcm_format": "f32le",
+    "start_sample_frame": 199028736,
+    "sample_frames": 1152,
+    "sample_rate": 44100,
+    "channels": 2,
+    "duration_seconds": 0.026122448979591838,
+    "sample_values": 2304,
+    "zero_sample_values": 1344,
+    "nonzero_sample_values": 960,
+    "peak_absolute_sample": 2.0231502276146784e-05,
+    "rms_sample": 2.482714474938203e-06,
+    "all_decoded_float_samples_exactly_zero": false,
+    "tail_pcm_sha256": "0f037aa0b7ff42aa9e4d81b38615f00ecc639f2749dbbea2837bc055039aa775",
+    "scope": "Only decoded PCM beginning at the nearest sample boundary to declared source duration; no audibility threshold or listening claim."
+  },
+  "listening_packet": {
+    "manifest_sha256": "f4302a60d9bd0ff9629e3a176779cddfd665218c10140bdf6cb1cafa672feb20",
+    "page_sha256": "c430cb87765adddcecbc3456a2d5f7596064441207f16480688879a0d42ba0dc",
+    "aggregate": {
+      "checks": 18,
+      "audio_files": 36,
+      "original_seconds": 253.42326530612246,
+      "proposal_seconds": 83.73326530612245,
+      "cut_endpoints_covered": 30,
+      "retained_gaps_covered": 9,
+      "retained_gap_seconds": 12.72999999999837,
+      "previous_discrepancy_windows_covered": 10,
+      "previous_reference_error_entries_covered": 14,
+      "decoded_source_tail_all_float_samples_zero": false,
+      "inference_requests": 0,
+      "application_modified": false,
+      "acceptance_eligible": false,
+      "independent_listening_verified": false,
+      "proposed_cuts_approved_in_application": false,
+      "total_listening_seconds": 337.1565306122449
+    },
+    "method": "Map window boundaries through the saved cut union, then decode that interval from the existing frozen full preview. No cuts are re-rendered or approved.",
+    "browser_check": {
+      "cards": 18,
+      "playable_audio_files": 36,
+      "export_checked": true,
+      "isolated_persistence_checked": true,
+      "horizontal_overflow": false,
+      "javascript_errors": [],
+      "listening_performed": false,
+      "acceptance_verified": false,
+      "synthetic_notes_left_in_packet": false,
+      "page_sha256": "c430cb87765adddcecbc3456a2d5f7596064441207f16480688879a0d42ba0dc"
+    }
+  },
+  "software_checks": {
+    "focused_audit_tests_passed": 34,
+    "focused_audit_tests_wall_seconds": 0.61,
+    "app_browser_smoke_passed": true,
+    "app_browser_smoke_wall_seconds": 51.6,
+    "mobile_preview_controls_clear_sticky_footer": true,
+    "main_playback_position_version_speed_preserved": true,
+    "preview_cut_save_requests": 0
+  },
+  "limits": [
+    "Source word labels are saved model decisions, not independent truth or new reference labels.",
+    "Retained gaps contain unclassified audio; they can include silence, music or unrecognized speech. No semantic content is inferred.",
+    "Matching hashes, boundaries and decoded duration do not establish audible cut quality or complete ad removal.",
+    "Existing listening-window overlap does not establish that anyone listened.",
+    "No holdouts, models, library data, approvals or cut decisions were changed.",
+    "The separate provisional-reference result remains 1.31 commercial word-seconds outside cuts across 14 entries.",
+    "The extra decoded source tail contains nonzero PCM samples; no audible significance is inferred.",
+    "Listening excerpts omit most of the full episode and cannot establish whole-episode accuracy.",
+    "Previously tested Windows packages predate these source UI and project-license changes."
+  ]
+}

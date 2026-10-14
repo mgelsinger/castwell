@@ -571,6 +571,127 @@ def run_coverage_browser(page, base, audio):
     page.locator("#close-detail").click()
 
 
+def run_boundary_preview_browser(page, base, episode_id, artifacts):
+    """Real browser audio checks; no detector calls or saved cut changes."""
+    from playwright.sync_api import expect
+
+    note("Browser: hear both cut edges without changing cleaned playback or approvals")
+    saved_cuts = episode(page, episode_id)["cuts"]
+    cut_writes = []
+
+    def record_write(request):
+        if request.method == "POST" and urlsplit(request.url).path == f"/api/episodes/{episode_id}/cuts":
+            cut_writes.append(request.url)
+
+    page.on("request", record_write)
+    page.set_viewport_size({"width": 1440, "height": 1100})
+    page.goto(base, wait_until="networkidle")
+    page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
+    page.locator("#tab-cuts").click()
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return a.readyState >= 2 && new URL(a.currentSrc).pathname.endsWith('/cleaned'); }", label="cleaned preview fixture")
+    player = page.locator("#audio-player")
+    player.evaluate("a => { a.pause(); a.currentTime = 9; }")
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return !a.seeking && Math.abs(a.currentTime-9)<.05; }", label="preserved main playhead")
+    main_source = player.evaluate("a => a.currentSrc")
+    main_rate = player.evaluate("a => a.playbackRate")
+    start = page.locator('[data-preview-edge="start"][data-cut-index="0"]')
+    end = page.locator('[data-preview-edge="end"][data-cut-index="0"]')
+
+    def playing_from(low, high):
+        wait_js(page, """({low, high}) => {
+            const a = document.querySelector('#cut-preview-audio');
+            return a && !a.paused && a.readyState >= 2 && !a.error
+                && new URL(a.currentSrc).pathname.endsWith('/original')
+                && a.currentTime >= low && a.currentTime < high;
+        }""", {"low": low, "high": high}, label="original boundary audio")
+
+    def stopped():
+        wait_js(page, "() => !document.querySelector('#cut-preview-audio')", label="boundary preview stopped")
+
+    start.click()
+    playing_from(3, 4)
+    assert player.evaluate("a => a.paused && Math.abs(a.currentTime-9)<.05")
+    assert player.evaluate("a => a.currentSrc") == main_source
+    assert player.evaluate("a => a.playbackRate") == main_rate
+    expect(page.locator('#cut-list input[type=checkbox]').first).to_be_checked()
+    expect(page.locator('#mark-cut-start')).to_be_disabled()
+    expect(page.locator('#mark-cut-end')).to_be_disabled()
+    for control in page.locator('#cut-list .set-playhead').all():
+        expect(control).to_be_disabled()
+        expect(control).to_have_attribute('title', 'Stop the preview to use the episode playhead.')
+    expect(page.get_by_label('Cut 1 start in seconds', exact=True)).to_be_enabled()
+    page.locator('#cut-preview-audio').evaluate("""a => {
+        window.boundaryPreviewTimes = [a.currentTime];
+        a.addEventListener('timeupdate', () => window.boundaryPreviewTimes.push(a.currentTime));
+    }""")
+    stopped()
+    observed = page.evaluate('Math.max(...window.boundaryPreviewTimes)')
+    assert 8.4 <= observed <= 9.5, observed
+    assert player.evaluate("a => a.paused && Math.abs(a.currentTime-9)<.05")
+    expect(page.locator('#mark-cut-start')).to_be_enabled()
+    expect(page.locator('#mark-cut-end')).to_be_disabled()
+    for control in page.locator('#cut-list .set-playhead').all():
+        expect(control).to_be_enabled()
+
+    end.click()
+    playing_from(11, 12)
+    expect(page.locator('#cut-preview-status-0')).to_contain_text('Original')
+    if artifacts:
+        page.locator('#cut-list').scroll_into_view_if_needed()
+        page.screenshot(path=str(artifacts / 'desktop-cut-boundary-preview.png'), full_page=False)
+    player.evaluate('a => { a.currentTime = 5; }')
+    stopped()
+    end.click()
+    playing_from(11, 12)
+    page.locator('#play-original').click()
+    stopped()
+    page.locator('#play-cleaned').click()
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return a.readyState >= 2 && !a.seeking && new URL(a.currentSrc).pathname.endsWith('/cleaned'); }", label="main cleaned source restored")
+
+    start.click()
+    end.click()
+    playing_from(11, 12)
+    page.locator('.cut-preview-stop').first.click()
+    stopped()
+    end.click()
+    playing_from(11, 12)
+    player.evaluate('a => a.play()')
+    stopped()
+    wait_js(page, "() => !document.querySelector('#audio-player').paused", label="normal playback resumed")
+    player.evaluate('a => a.pause()')
+
+    # Use unsaved edits and original duration, not the shorter cleaned duration.
+    page.get_by_label('Cut 1 start in seconds', exact=True).fill('0')
+    start.click()
+    playing_from(0, 1)
+    page.get_by_label('Cut 1 end in seconds', exact=True).fill('24')
+    stopped()
+    end.click()
+    playing_from(21, 22)
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator('#cut-preview-status-0').evaluate("node => node.scrollIntoView({block: 'nearest'})")
+    wait_js(page, "() => { const d=document.querySelector('#episode-dialog'); return document.documentElement.scrollWidth<=innerWidth+1 && d.scrollWidth<=d.clientWidth+1; }", label="mobile boundary controls fit")
+    wait_js(page, """() => {
+        const dialog = document.querySelector('#episode-dialog').getBoundingClientRect();
+        const footer = document.querySelector('.cut-footer').getBoundingClientRect();
+        return [...document.querySelectorAll('#cut-list .cut-audition button:not([hidden]), #cut-preview-status-0')].every(node => {
+            const r = node.getBoundingClientRect();
+            return r.top >= dialog.top && r.bottom <= footer.top - 8;
+        });
+    }""", label="mobile preview controls clear sticky export footer")
+    if artifacts:
+        page.screenshot(path=str(artifacts / 'mobile-cut-boundary-preview.png'), full_page=False)
+    stopped()
+    start.click()
+    playing_from(0, 1)
+    page.locator('#close-detail').click()
+    stopped()
+    expect(page.locator('#episode-dialog')).not_to_be_visible()
+    assert not cut_writes, cut_writes
+    assert episode(page, episode_id)['cuts'] == saved_cuts
+    page.remove_listener('request', record_write)
+
+
 def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifacts):
     from playwright.sync_api import sync_playwright, expect
 
@@ -837,6 +958,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             rendered = page.request.post(f"/api/episodes/{playback_id}/render", data={})
             assert rendered.status == 202, rendered.text()
             wait_episode(page, playback_id, "ready", cleaned=True)
+            run_boundary_preview_browser(page, base, playback_id, artifacts)
             quality_url = f"**/api/episodes/{playback_id}"
 
             def intercept_quality(route):
