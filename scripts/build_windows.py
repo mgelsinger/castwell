@@ -25,6 +25,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'packaging' / 'windows-requirements.lock'
 FORBIDDEN = {'.gguf', '.sqlite', '.sqlite3', '.db', '.mp3', '.m4a', '.wav', '.mp4'}
+PROJECT_LICENSE_FILES = ('LICENSE', 'NOTICE')
 
 
 def digest(path: Path) -> str:
@@ -41,12 +42,26 @@ def source_fingerprint(root: Path = ROOT) -> str:
     files += [root / 'scripts' / 'desktop_entry.py', root / 'pyproject.toml',
               root / 'packaging' / 'castwell.spec', root / 'packaging' / 'castwell.iss',
               root / 'packaging' / 'windows-requirements.lock', root / 'packaging' / 'windows-runtime.json']
+    files += [root / name for name in PROJECT_LICENSE_FILES]
     value = hashlib.sha256()
     for path in sorted(set(files)):
         if path.is_file():
             value.update(path.relative_to(root).as_posix().encode('utf-8') + b'\0')
             value.update(digest(path).encode('ascii') + b'\n')
     return value.hexdigest()
+
+
+def project_license_files(root: Path) -> list[Path]:
+    paths = [root / name for name in PROJECT_LICENSE_FILES]
+    for path in paths:
+        if not path.is_file() or not path.read_bytes().strip():
+            raise ValueError('Missing or empty project distribution file: ' + path.name)
+    return paths
+
+
+def bundle_project_notices(app: Path, root: Path) -> None:
+    for source in project_license_files(root):
+        shutil.copy2(source, app / source.name)
 
 
 def run(command, *, env=None) -> None:
@@ -269,6 +284,7 @@ def main() -> int:
     args = parser.parse_args()
     if platform.system() != 'Windows' or struct.calcsize('P') != 8 or sys.version_info[:2] != (3, 12):
         parser.error('Build with 64-bit CPython 3.12 on Windows')
+    project_license_files(ROOT)
     if not args.skip_installer and (not args.inno_path or not args.inno_path.is_file()):
         parser.error('--inno-path must point to ISCC.exe for the installer build')
     if not args.notices_dir.is_dir() or not any(args.notices_dir.iterdir()):
@@ -349,10 +365,7 @@ def main() -> int:
     notices = app / 'THIRD-PARTY-NOTICES'
     shutil.copytree(args.notices_dir, notices, dirs_exist_ok=True)
     dependencies = wheel_notices(args.wheelhouse, notices)
-    for filename in ('LICENSE',):
-        source = ROOT / filename
-        if source.is_file():
-            shutil.copy2(source, app / filename)
+    bundle_project_notices(app, ROOT)
     bundle_guides(app)
     python_license = Path(sys.base_prefix) / 'LICENSE.txt'
     if python_license.is_file():

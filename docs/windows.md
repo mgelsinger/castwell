@@ -15,6 +15,8 @@ Version **0.5.3 is a manual-review candidate** with whole-episode CUDA detection
 - **Castwell-0.5.3-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
 - **Castwell-0.5.3-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
 
+The source is now licensed under [GNU AGPLv3 only](../LICENSE). The existing local candidates predate that change. Final public archives must be rebuilt with `LICENSE`, `NOTICE`, the completed third-party source inventory, updated instructions, and fresh checksums before publication.
+
 Each completed build produces a manifest and `SHA256SUMS.txt` identifying its exact artifacts and source. Frozen runtime and installation checks are separate from the source episode benchmark; the benchmark alone does not validate an installer. [Published releases](https://github.com/mgelsinger/castwell/releases) can contain earlier versions, so check the version before comparing behavior.
 
 These artifacts are unsigned. Windows may show an unknown-publisher or SmartScreen prompt. Compare the artifact's SHA-256 value with its accompanying checksum before running it.

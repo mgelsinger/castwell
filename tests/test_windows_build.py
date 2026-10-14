@@ -5,6 +5,7 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 
@@ -75,6 +76,68 @@ class WindowsArtifactTests(unittest.TestCase):
             self.assertEqual(self.build.source_fingerprint(directory), first)
             source.write_text('updated', encoding='utf-8')
             self.assertNotEqual(self.build.source_fingerprint(directory), first)
+
+    def test_project_terms_change_the_frozen_source_identity(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            prior = self.build.source_fingerprint(directory)
+            for name in ('LICENSE', 'NOTICE'):
+                path = directory / name
+                path.write_text('Project terms', encoding='utf-8')
+                added = self.build.source_fingerprint(directory)
+                self.assertNotEqual(added, prior, name)
+                path.write_text('Updated project terms', encoding='utf-8')
+                updated = self.build.source_fingerprint(directory)
+                self.assertNotEqual(updated, added, name)
+                prior = updated
+
+    def test_missing_or_empty_project_terms_stop_before_build_work(self):
+        arguments = ['build_windows.py', '--ffmpeg-dir', 'unused', '--llama-dir', 'unused',
+                     '--cuda-dir', 'unused', '--notices-dir', 'unused', '--skip-installer']
+        for name in ('LICENSE', 'NOTICE'):
+            for contents in (None, b' \n\t'):
+                with self.subTest(name=name, contents=contents), tempfile.TemporaryDirectory() as root:
+                    directory = Path(root)
+                    for other in ('LICENSE', 'NOTICE'):
+                        (directory / other).write_bytes(b'Project terms')
+                    if contents is None:
+                        (directory / name).unlink()
+                    else:
+                        (directory / name).write_bytes(contents)
+                    with (mock.patch.object(self.build, 'ROOT', directory),
+                          mock.patch.object(self.build.platform, 'system', return_value='Windows'),
+                          mock.patch.object(self.build.struct, 'calcsize', return_value=8),
+                          mock.patch.object(self.build.sys, 'version_info', (3, 12)),
+                          mock.patch.object(self.build.sys, 'argv', arguments),
+                          mock.patch.object(self.build, 'native_files') as native,
+                          mock.patch.object(self.build, 'run') as command,
+                          mock.patch.object(self.build.subprocess, 'run') as process):
+                        with self.assertRaisesRegex(ValueError, 'Missing or empty project distribution file: ' + name):
+                            self.build.main()
+                        native.assert_not_called()
+                        command.assert_not_called()
+                        process.assert_not_called()
+                    self.assertFalse((directory / '.local').exists())
+
+    def test_project_terms_reach_portable_without_changing_dependency_notices(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            app = directory / 'app'
+            notices = app / 'THIRD-PARTY-NOTICES'
+            notices.mkdir(parents=True)
+            dependency = notices / 'dependency.txt'
+            dependency.write_bytes(b'Unchanged dependency terms')
+            for name in ('LICENSE', 'NOTICE'):
+                (directory / name).write_bytes((name + '\nProject terms\n').encode())
+            self.build.bundle_project_notices(app, directory)
+            target = directory / 'portable.zip'
+            self.build.archive_portable(app, target)
+            with zipfile.ZipFile(target) as archive:
+                for name in ('LICENSE', 'NOTICE'):
+                    self.assertEqual(archive.read('Castwell/' + name), (directory / name).read_bytes())
+                self.assertEqual(archive.read('Castwell/THIRD-PARTY-NOTICES/dependency.txt'),
+                                 b'Unchanged dependency terms')
+            self.assertEqual(dependency.read_bytes(), b'Unchanged dependency terms')
 
     def test_cuda_deduplication_retains_canonical_and_rejects_mismatches(self):
         with tempfile.TemporaryDirectory() as root:

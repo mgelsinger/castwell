@@ -1,4 +1,5 @@
 # Preserve the exact frozen input bytes, including their original line endings.
+/LICENSE text eol=lf
 /tests/fixtures/ad_read_challenge.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tests/fixtures/ad_read_holdout_v2.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tests/fixtures/ad_read_source_credit_v1.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

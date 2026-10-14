@@ -6,6 +6,8 @@ Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional re
 
 **Removal scope:** sponsor/product reads only. Preserve promos for other free podcasts. Real sponsor, product, paid-service and paid-subscription reads remain targets even when humorous.
 
+**License:** [GNU AGPLv3 only](LICENSE). Everyone, including companies, may use Castwell under its terms. Covered distributed derivatives must retain the license, and users of modified network versions must be offered the corresponding source. See [licensing](#licensing) for the scope.
+
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
 **Five-minute target:** the 0.5.3 source candidate processed a complete **75:13 episode in 5:15**, equivalent to **4:11 per hour of audio**, on an RTX 3090 Ti. This included cold CUDA model loading, fresh transcription, whole-episode detection, boundary review, waveform/database preparation, and export. Initial downloads were excluded. It uses batched large-v3 and native llama.cpp with Qwen, without CPU neural inference. See the [timing, accuracy, and model tradeoffs](docs/evaluations/2026-10-13-five-minute-cuda.md).
@@ -339,3 +341,11 @@ python download_podcast.py <feed_url> <output_directory>
 ```
 
 It creates dated filenames, skips existing downloads, and ignores feed items without playable enclosures. Avoid putting premium subscription credentials in shared terminal history.
+
+## Licensing
+
+Castwell's original code is licensed under the **GNU Affero General Public License, version 3 only** (`AGPL-3.0-only`). See [LICENSE](LICENSE) for the full terms and [NOTICE](NOTICE) for the project notice.
+
+Commercial use, modification, and charging for copies or services are allowed under those terms. When covered copies or derivatives are distributed, recipients must receive the required corresponding source and the same license rights. A modified version used interactively over a network must offer its corresponding source to those users. These requirements preserve access to covered code; they do not prohibit commercial competition or require unrelated, independent software to adopt Castwell's license.
+
+Third-party components and model weights retain their own licenses. Windows packages include separate third-party notices; Castwell's AGPL designation does not replace those terms. Podcast recordings and other user content are not relicensed by this project. Castwell is provided without warranty, as described in the license.
