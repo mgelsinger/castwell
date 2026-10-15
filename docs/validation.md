@@ -2,6 +2,14 @@
 
 These checks establish working application flows; they do not establish universal advertisement detection.
 
+## October 14 tolerance comparison and 0.5.4 source checks
+
+The [matched CUDA comparison](evaluations/2026-10-14-tolerance-comparison.md) completed four full outputs across two reused recordings, plus one failed reduced-reasoning attempt. All four completed runs met the five-minute-per-audio-hour goal. Current two-pass and experimental one-pass outputs were byte-identical within each recording. The quieter August pair saved 32.14 seconds with one pass; July timing is confounded by a game closing during the experiment. Seven local classifier requests and no paid API calls were used. The default remains the current two-pass setup, and the comparison does not establish listening-verified residual-ad or show-loss acceptance.
+
+The final 0.5.4 source regression run passed **1,066 tests and 173 subtests in 70.81 seconds**. Two symlink tests skipped because this Windows account cannot create symbolic links. JavaScript syntax and whitespace checks passed. One upstream Starlette test-client deprecation warning remains. These checks include the 29 comparator tests and 14 Windows packaging tests. They are software checks, not 1,066 model evaluations.
+
+Full decoding and interval audits passed their declared-timeline checks. The July evidence was carried forward only after verifying exact audio, cut, word and ownership equivalence with the prior audited output. August source and its unique rendered output were decoded fresh after timing. Retained unknown gaps and the roughly 26 ms source-duration discrepancy remain disclosed. Actual checks of the rebuilt portable and installer artifacts are separate from this source validation.
+
 ## October 13 cut listening controls and offline audit
 
 The source now has separate **Hear start / Hear end** previews using original audio, bounded to three seconds either side and normal playback speed. The main episode player retains its position, audio version, and speed. Previews stop on completion, edits, seeking, source changes, ordinary playback, closing the episode, and backgrounding the page. Playhead-copy controls are disabled during preview to avoid confusing the two positions. Empty suggestions explicitly do not mean the episode is ad-free.

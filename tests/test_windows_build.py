@@ -77,6 +77,46 @@ class WindowsArtifactTests(unittest.TestCase):
             source.write_text('updated', encoding='utf-8')
             self.assertNotEqual(self.build.source_fingerprint(directory), first)
 
+    def test_release_source_refuses_dirty_staged_and_untracked_inputs_before_head_lookup(self):
+        for status in (' M castwell/private-name.py\0', 'M  packaging/private-name.spec\0',
+                       '?? castwell/private-name.py\0'):
+            with self.subTest(status=status), mock.patch.object(self.build.subprocess, 'run') as process:
+                process.return_value = mock.Mock(returncode=0, stdout=status)
+                with self.assertRaisesRegex(ValueError, 'uncommitted changes') as error:
+                    self.build.clean_source_revision(Path('fixture'))
+                self.assertNotIn('private-name', str(error.exception))
+                self.assertEqual(process.call_count, 1)
+                command = process.call_args.args[0]
+                self.assertEqual(command[:6], ['git', 'status', '--porcelain=v1', '-z', '--untracked-files=all', '--'])
+                for path in ('castwell', 'packaging', 'README.md', 'LICENSE', 'NOTICE',
+                             'scripts/build_windows.py', 'scripts/desktop_entry.py',
+                             'docs/windows.md', 'docs/third-party-sources.json',
+                             'docs/evaluations/2026-10-14-tolerance-comparison.md'):
+                    self.assertIn(path, command)
+                self.assertNotIn('tests', command)
+
+    def test_release_source_requires_full_revision_and_rejects_head_changes(self):
+        revision = 'a' * 40
+        for value in (revision + '\n', 'short', 'g' * 40, revision + '\n' + revision):
+            with self.subTest(value=value), mock.patch.object(self.build.subprocess, 'run') as process:
+                process.side_effect = [mock.Mock(returncode=0, stdout=''), mock.Mock(returncode=0, stdout=value)]
+                if value == revision + '\n':
+                    self.assertEqual(self.build.clean_source_revision(expected=revision), revision)
+                else:
+                    with self.assertRaisesRegex(ValueError, 'exact project source revision'):
+                        self.build.clean_source_revision()
+                self.assertEqual(process.call_args.args[0], ['git', 'rev-parse', '--verify', 'HEAD'])
+        with mock.patch.object(self.build.subprocess, 'run') as process:
+            process.side_effect = [mock.Mock(returncode=0, stdout=''), mock.Mock(returncode=0, stdout='b' * 40)]
+            with self.assertRaisesRegex(ValueError, 'revision changed'):
+                self.build.clean_source_revision(expected=revision)
+
+    def test_release_source_verification_errors_hide_git_output(self):
+        with mock.patch.object(self.build.subprocess, 'run') as process:
+            process.return_value = mock.Mock(returncode=1, stdout='private path', stderr='private credentials')
+            with self.assertRaisesRegex(ValueError, '^Cannot verify committed release inputs$'):
+                self.build.clean_source_revision()
+
     def test_project_terms_change_the_frozen_source_identity(self):
         with tempfile.TemporaryDirectory() as root:
             directory = Path(root)
@@ -166,25 +206,53 @@ class WindowsArtifactTests(unittest.TestCase):
             directory = Path(root)
             (directory / 'docs').mkdir()
             (directory / 'docs' / 'windows.md').write_text(
-                '[Production](production.md)\nMaintainers can exercise both artifacts: source command', encoding='utf-8')
+                '[Production](production.md) [Terms](../LICENSE) [Notice](../NOTICE#terms)\n'
+                'Maintainers can exercise both artifacts: source command', encoding='utf-8')
             (directory / 'docs' / 'production.md').write_text(
-                '[Windows](windows.md) [Model](local-models.md#profile) [Proof](experiment.md)', encoding='utf-8')
+                '[Windows](windows.md) [Sources](third-party-sources.md) '
+                '[Model](local-models.md#profile) [Proof](experiment.md)', encoding='utf-8')
+            (directory / 'docs' / 'third-party-sources.md').write_text('source limitations', encoding='utf-8')
+            (directory / 'docs' / 'third-party-sources.json').write_text('{"complete": false}', encoding='utf-8')
+            (directory / 'docs' / 'source-history.md').write_text('source history', encoding='utf-8')
             evaluations = directory / 'docs' / 'evaluations'
             evaluations.mkdir()
             for extension in ('md', 'json'):
                 (evaluations / ('2026-10-13-five-minute-cuda.' + extension)).write_text('current evidence', encoding='utf-8')
+                (evaluations / ('2026-10-14-tolerance-comparison.' + extension)).write_text('tolerance evidence', encoding='utf-8')
+            (evaluations / '2026-10-13-five-minute-cuda.md').write_text(
+                '[History](../source-history.md#results) [Saved](2026-10-13-saved-cut-validation.json)', encoding='utf-8')
+            (evaluations / '2026-10-13-saved-cut-validation.json').write_text('saved cuts', encoding='utf-8')
             app = directory / 'app'
             app.mkdir()
             self.build.bundle_guides(app, directory)
             quickstart = (app / 'QUICKSTART.md').read_text(encoding='utf-8')
-            self.assertEqual(quickstart, '[Production](production.md)\n')
+            self.assertEqual(quickstart, '[Production](production.md) [Terms](LICENSE) [Notice](NOTICE#terms)\n')
             self.assertEqual((app / 'windows.md').read_text(encoding='utf-8'), quickstart)
+            self.assertIn('[Terms](../LICENSE)', (directory / 'docs' / 'windows.md').read_text(encoding='utf-8'))
             production = (app / 'production.md').read_text(encoding='utf-8')
             self.assertIn('[Windows](windows.md)', production)
+            self.assertIn('[Sources](third-party-sources.md)', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/local-models.md#profile', production)
             self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/experiment.md', production)
             for extension in ('md', 'json'):
-                self.assertEqual((app / 'evaluations' / ('2026-10-13-five-minute-cuda.' + extension)).read_text(encoding='utf-8'), 'current evidence')
+                self.assertEqual((app / 'evaluations' / ('2026-10-14-tolerance-comparison.' + extension)).read_text(encoding='utf-8'), 'tolerance evidence')
+            evidence = (app / 'evaluations' / '2026-10-13-five-minute-cuda.md').read_text(encoding='utf-8')
+            self.assertIn('https://github.com/mgelsinger/castwell/blob/main/docs/source-history.md#results', evidence)
+            self.assertIn('[Saved](2026-10-13-saved-cut-validation.json)', evidence)
+            self.assertEqual((app / 'evaluations' / '2026-10-13-five-minute-cuda.json').read_text(encoding='utf-8'), 'current evidence')
+            self.assertIn('[History](../source-history.md#results)',
+                          (evaluations / '2026-10-13-five-minute-cuda.md').read_text(encoding='utf-8'))
+            self.assertEqual((app / 'evaluations' / '2026-10-13-saved-cut-validation.json').read_text(encoding='utf-8'), 'saved cuts')
+            self.assertEqual((app / 'third-party-sources.md').read_text(encoding='utf-8'), 'source limitations')
+            self.assertEqual((app / 'third-party-sources.json').read_bytes(),
+                             (app / 'THIRD-PARTY-NOTICES' / 'source-inventory.json').read_bytes())
+            revision = 'a' * 40
+            self.build.bundle_guides(app, directory, source_ref=revision)
+            production = (app / 'production.md').read_text(encoding='utf-8')
+            self.assertIn('https://github.com/mgelsinger/castwell/blob/' + revision + '/docs/experiment.md', production)
+            evidence = (app / 'evaluations' / '2026-10-13-five-minute-cuda.md').read_text(encoding='utf-8')
+            self.assertIn('https://github.com/mgelsinger/castwell/blob/' + revision + '/docs/source-history.md#results', evidence)
+            self.assertNotIn('/blob/main/', production + evidence)
 
     def test_pinned_model_notice_is_required_and_integrity_checked(self):
         with tempfile.TemporaryDirectory() as root:

@@ -1,0 +1,27 @@
+# Windows media component source inventory
+
+Assessed October 14, 2026 for the pinned Windows build inputs. The [machine-readable inventory](third-party-sources.json) records artifact hashes, source revisions, recipe inputs and the remaining gaps. The packaged copy also lives in `THIRD-PARTY-NOTICES/source-inventory.json`.
+
+This is a source inventory, not a complete corresponding-source bundle or a legal clearance statement. It does not change Castwell's AGPL-3.0-only terms or the separate terms of its dependencies. A Castwell source ZIP supplies the project source; it does not supply all third-party source archives. The local candidate can be rebuilt and tested while these distribution limitations remain explicit. No public release publication is established by this inventory.
+
+## FFmpeg command-line executables
+
+The pinned Gyan archive is `ffmpeg-8.1.2-essentials_build.zip`, SHA256 `db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec`. Its README identifies a GPL v3 static build and FFmpeg source commit [`38b88335f99e76ed89ff3c93f877fdefce736c13`](https://github.com/FFmpeg/FFmpeg/tree/38b88335f99e76ed89ff3c93f877fdefce736c13). The [publisher release](https://github.com/GyanD/codexffmpeg/releases/tag/8.1.2) supplies the archive and matching release identity. Castwell packages `ffmpeg.exe` and `ffprobe.exe`, not the archive's entire tool collection.
+
+The publisher README contains configuration output and 32 external-component version entries. Those entries are retained in the JSON, including abbreviated revisions and the unpinned `openal-soft latest` entry. Several enabled libraries, including libass, libopenjpeg, font/text libraries, compression libraries and TLS dependencies, have no exact version in that table. A complete dependency source manifest, build recipe, exact toolchain snapshot and complete patch set were not located in the inspected official materials. The [Gyan build page](https://www.gyan.dev/ffmpeg/builds/) is the publisher's source of build information.
+
+## PyAV's separate FFmpeg libraries
+
+The locked wheel is `av-16.1.0-cp312-cp312-win_amd64.whl`, SHA256 `f49243b1d27c91cd8c66fdba90a674e344eb8eb917264f36117bf2b6879118fd`. PyAV's BSD-3-Clause wrapper uses a different FFmpeg build from the command-line executables above. Its [pinned vendor metadata](https://github.com/PyAV-Org/PyAV/blob/v16.1.0/scripts/ffmpeg-latest.json) selects [vendor release 8.0.1-3](https://github.com/PyAV-Org/pyav-ffmpeg/releases/tag/8.0.1-3), source commit `9e63121cf6ef9bc1744956c7a4cb772589c80806`, built around FFmpeg 8.0.1.
+
+The official Windows vendor archive was downloaded and its published SHA256 verified: `49b09fc8c28f8667cedce3cca14b535b3ada411ba66b0de2beaf0b01ef265916`. It contains 35 DLLs. The PyAV wheel contains 31 renamed DLLs: 13 are byte-identical to their vendor counterpart, while 18 have changed bytes and equal sizes. All 31 renamed filenames were independently reconstructed from the original vendor bytes and ordered dependency hashes using the documented delvewheel 1.11.2 algorithm. This supports the vendor mapping; the 18 rewritten DLLs were not independently byte-reproduced. Individual hashes and mappings are in the JSON.
+
+The pinned [build recipe](https://github.com/PyAV-Org/pyav-ffmpeg/blob/9e63121cf6ef9bc1744956c7a4cb772589c80806/scripts/build-ffmpeg.py), [build support](https://github.com/PyAV-Org/pyav-ffmpeg/blob/9e63121cf6ef9bc1744956c7a4cb772589c80806/scripts/cibuildpkg.py), [patches](https://github.com/PyAV-Org/pyav-ffmpeg/tree/9e63121cf6ef9bc1744956c7a4cb772589c80806/patches) and [Windows CI configuration](https://github.com/PyAV-Org/pyav-ffmpeg/blob/9e63121cf6ef9bc1744956c7a4cb772589c80806/.github/workflows/build-ffmpeg.yml) expose 19 pinned source inputs applicable to the Windows build. Their source URLs and upstream-declared SHA256 values are recorded; those source archives were not downloaded or bundled by this inventory. Linux-only dependency groups are excluded from that Windows list.
+
+The recipe's FFmpeg patch changes configure classification for x264/x265. The wrapper's license and resulting configure banner do not establish the terms of every codec dependency. Exact Windows MSYS2 compiler/runtime package snapshots, copied iconv/zlib runtime sources and a complete corresponding-source set remain unverified.
+
+## Packaging and remaining work
+
+The Windows builder includes Castwell's current `LICENSE` and `NOTICE`, locked-wheel metadata and available wheel licenses, native notices, runtime provenance, and this inventory. The JSON also retains existing pinned references for llama.cpp, NVIDIA redistributables, Silero VAD and installer tooling. Those references are not a claim that this focused media audit completed every dependency's source review. Speech and classifier weights remain separate from the packages.
+
+Before claiming a complete corresponding-source distribution, obtain the missing exact publisher manifests and build instructions, assemble the actual source archives and modifications for the precise shipped binaries, and verify the external codec and runtime terms. A separately validated reproducible media build is another way to close the missing provenance. FFmpeg's [official licensing guidance](https://ffmpeg.org/legal.html) explains why exact binary correspondence and external-library terms matter. No dependency replacement or new binary build was performed during this inventory audit.

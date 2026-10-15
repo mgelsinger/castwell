@@ -26,6 +26,20 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'packaging' / 'windows-requirements.lock'
 FORBIDDEN = {'.gguf', '.sqlite', '.sqlite3', '.db', '.mp3', '.m4a', '.wav', '.mp4'}
 PROJECT_LICENSE_FILES = ('LICENSE', 'NOTICE')
+BUNDLED_GUIDES = ('ad-removal-production-plan.md',
+                 'third-party-sources.md',
+                 'third-party-sources.json',
+                 'evaluations/2026-10-12-ad-removal-system.md',
+                 'evaluations/2026-10-12-ad-removal-system.json',
+                 'evaluations/2026-10-13-five-minute-cuda.md',
+                 'evaluations/2026-10-13-five-minute-cuda.json',
+                 'evaluations/2026-10-13-saved-cut-validation.json',
+                 'evaluations/2026-10-14-tolerance-comparison.md',
+                 'evaluations/2026-10-14-tolerance-comparison.json')
+RELEASE_INPUTS = ('castwell', 'pyproject.toml', 'README.md', 'LICENSE', 'NOTICE',
+                  'packaging', 'scripts/build_windows.py', 'scripts/desktop_entry.py',
+                  'docs/windows.md', 'docs/production.md',
+                  *('docs/' + relative for relative in BUNDLED_GUIDES))
 
 
 def digest(path: Path) -> str:
@@ -34,6 +48,28 @@ def digest(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):
             value.update(chunk)
     return value.hexdigest()
+
+
+def clean_source_revision(root: Path = ROOT, expected: str | None = None) -> str:
+    """Name only committed release inputs; never expose dirty paths in errors."""
+    def git(arguments):
+        try:
+            result = subprocess.run(['git', *arguments], cwd=root, capture_output=True,
+                                    text=True, timeout=30, check=False)
+        except (OSError, subprocess.SubprocessError):
+            raise ValueError('Cannot verify committed release inputs') from None
+        if result.returncode:
+            raise ValueError('Cannot verify committed release inputs')
+        return result.stdout
+    status = git(['status', '--porcelain=v1', '-z', '--untracked-files=all', '--', *RELEASE_INPUTS])
+    if status:
+        raise ValueError('Release inputs contain uncommitted changes; commit or discard them before building')
+    revision = git(['rev-parse', '--verify', 'HEAD']).strip()
+    if not re.fullmatch(r'[0-9a-f]{40}', revision):
+        raise ValueError('Cannot determine the exact project source revision')
+    if expected is not None and revision != expected:
+        raise ValueError('Project source revision changed during the build; rebuild from the intended commit')
+    return revision
 
 
 def source_fingerprint(root: Path = ROOT) -> str:
@@ -203,23 +239,26 @@ def remove_duplicate_cuda_dlls(app: Path) -> list[str]:
     return removed
 
 
-def bundle_guides(app: Path, root: Path = ROOT) -> None:
+def bundle_guides(app: Path, root: Path = ROOT, source_ref: str = 'main') -> None:
     """Keep local crosslinks usable without copying source-only guide history."""
-    included = {'windows.md', 'production.md', 'ad-removal-production-plan.md'}
-    for relative in ('ad-removal-production-plan.md',
-                     'evaluations/2026-10-12-ad-removal-system.md',
-                     'evaluations/2026-10-12-ad-removal-system.json',
-                     'evaluations/2026-10-13-five-minute-cuda.md',
-                     'evaluations/2026-10-13-five-minute-cuda.json'):
+    included = {'windows.md', 'production.md', 'ad-removal-production-plan.md',
+                'third-party-sources.md'}
+    for relative in BUNDLED_GUIDES:
         source = root / 'docs' / relative
         if source.is_file():
             target = app / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
+    inventory = app / 'third-party-sources.json'
+    if inventory.is_file():
+        notices = app / 'THIRD-PARTY-NOTICES'
+        notices.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(inventory, notices / 'source-inventory.json')
     guide = root / 'docs' / 'windows.md'
     if guide.is_file():
         content = guide.read_text(encoding='utf-8')
         content = content.split('Maintainers can exercise both artifacts', 1)[0].rstrip() + '\n'
+        content = re.sub(r'\]\(\.\./(LICENSE|NOTICE)(#[^)]+)?\)', r'](\1\2)', content)
         for filename in ('QUICKSTART.md', 'windows.md'):
             (app / filename).write_text(content, encoding='utf-8')
     production = root / 'docs' / 'production.md'
@@ -229,9 +268,33 @@ def bundle_guides(app: Path, root: Path = ROOT) -> None:
             target = match.group(1)
             if target.split('#', 1)[0] in included:
                 return match.group(0)
-            return '](https://github.com/mgelsinger/castwell/blob/main/docs/' + target + ')'
+            return '](https://github.com/mgelsinger/castwell/blob/' + source_ref + '/docs/' + target + ')'
         content = re.sub(r'\]\(([A-Za-z0-9_.-]+\.md(?:#[A-Za-z0-9_.-]+)?)\)', link, content)
         (app / 'production.md').write_text(content, encoding='utf-8')
+    # Source-only history and checkout instructions remain usable in package
+    # copies without recursively copying their entire documentation tree.
+    docs = (root / 'docs').resolve()
+    guide_sources = {relative: relative for relative in BUNDLED_GUIDES if relative.endswith('.md')}
+    guide_sources.update({'windows.md': 'windows.md', 'QUICKSTART.md': 'windows.md',
+                          'production.md': 'production.md'})
+    for relative, source_relative in guide_sources.items():
+        destination = app / relative
+        if not destination.is_file():
+            continue
+        def source_link(match):
+            target = match.group(1)
+            filename, separator, anchor = target.partition('#')
+            if not filename or ':' in filename or filename.startswith('/'):
+                return match.group(0)
+            if (destination.parent / filename).is_file():
+                return match.group(0)
+            source_target = (docs / source_relative).parent / filename
+            source_target = source_target.resolve()
+            if not source_target.is_relative_to(docs) or not source_target.is_file():
+                return match.group(0)
+            return '](https://github.com/mgelsinger/castwell/blob/' + source_ref + '/docs/' + source_target.relative_to(docs).as_posix() + separator + anchor + ')'
+        content = re.sub(r'\]\(([^)\s]+)\)', source_link, destination.read_text(encoding='utf-8'))
+        destination.write_text(content, encoding='utf-8')
 
 
 def validate_notice_pins(notices: Path, metadata: dict) -> None:
@@ -285,6 +348,7 @@ def main() -> int:
     if platform.system() != 'Windows' or struct.calcsize('P') != 8 or sys.version_info[:2] != (3, 12):
         parser.error('Build with 64-bit CPython 3.12 on Windows')
     project_license_files(ROOT)
+    source_revision = clean_source_revision(ROOT)
     if not args.skip_installer and (not args.inno_path or not args.inno_path.is_file()):
         parser.error('--inno-path must point to ISCC.exe for the installer build')
     if not args.notices_dir.is_dir() or not any(args.notices_dir.iterdir()):
@@ -366,7 +430,7 @@ def main() -> int:
     shutil.copytree(args.notices_dir, notices, dirs_exist_ok=True)
     dependencies = wheel_notices(args.wheelhouse, notices)
     bundle_project_notices(app, ROOT)
-    bundle_guides(app)
+    bundle_guides(app, source_ref=source_revision)
     python_license = Path(sys.base_prefix) / 'LICENSE.txt'
     if python_license.is_file():
         shutil.copy2(python_license, notices / 'Python-LICENSE.txt')
@@ -395,6 +459,7 @@ def main() -> int:
         runtime_verified = True
     if source_fingerprint() != source_hash:
         raise ValueError('Application source changed after freeze; rebuild before creating release artifacts')
+    clean_source_revision(ROOT, expected=source_revision)
     manifest = {'schema_version': 1, 'application': 'Castwell', 'version': version,
                 'platform': 'windows-x64', 'python': platform.python_version(),
                 'inference': 'nvidia-cuda-only', 'speech_and_classifier_weights_bundled': False,
@@ -410,6 +475,9 @@ def main() -> int:
                 'dependency_metadata_exception': 'faster-whisper declares onnxruntime; onnxruntime-gpu supplies the GPU-only runtime namespace instead',
                 'dependency_lock_sha256': digest(LOCK), 'native_inputs': inputs,
                 'source_tree_sha256': source_hash,
+                'application_source_revision': source_revision,
+                'application_source_url': 'https://github.com/mgelsinger/castwell/tree/' + source_revision,
+                'third_party_corresponding_source_bundle_complete': False,
                 'python_dependencies': dependencies,
                 'files': [{'path': path.relative_to(app).as_posix(), 'sha256': digest(path),
                            'bytes': path.stat().st_size} for path in sorted(app.rglob('*')) if path.is_file()]}
@@ -423,6 +491,7 @@ def main() -> int:
         run([args.inno_path, f'/DAppVersion={version}', f'/DSourceDir={app}',
              f'/DOutputDir={args.output_dir.resolve()}', ROOT / 'packaging' / 'castwell.iss'])
         artifacts.append(args.output_dir / f'Castwell-{version}-Windows-x64-Setup.exe')
+    clean_source_revision(ROOT, expected=source_revision)
     manifest['artifacts'] = [{'name': path.name, 'sha256': digest(path), 'bytes': path.stat().st_size} for path in artifacts]
     report = args.output_dir / f'Castwell-{version}-Windows-x64-manifest.json'
     report.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

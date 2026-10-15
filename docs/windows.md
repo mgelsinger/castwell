@@ -8,14 +8,16 @@ The tested configuration uses an **NVIDIA RTX 3090 Ti with 24 GB VRAM** and 128 
 
 ## Choose a distribution
 
-Version **0.5.3 is a manual-review candidate** with whole-episode CUDA detection and batched speech recognition. On the tested GPU, a fresh 75:13 episode completed in **315.16 seconds**, equivalent to **251.40 seconds per audio hour**. It selected zero protected reference word-seconds and left 1.31 commercial word-seconds outside the cuts. This meets the measured speed target; it does not establish error-free or unattended removal. See the included [five-minute CUDA evaluation](evaluations/2026-10-13-five-minute-cuda.md) for reference limits and the exact measurements.
+Version **0.5.4 is a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
 
-**Version 0.5.3 has not been published to GitHub Releases.** The candidate's two local Windows build outputs are named:
+**Version 0.5.4 has not been published to GitHub Releases.** The candidate's two local Windows build outputs are named:
 
-- **Castwell-0.5.3-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
-- **Castwell-0.5.3-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
+- **Castwell-0.5.4-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
+- **Castwell-0.5.4-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
 
-The source is now licensed under [GNU AGPLv3 only](../LICENSE). The existing local candidates predate that change. Final public archives must be rebuilt with `LICENSE`, `NOTICE`, the completed third-party source inventory, updated instructions, and fresh checksums before publication.
+The source is licensed under [GNU AGPLv3 only](../LICENSE). Version 0.5.4 builds include `LICENSE`, `NOTICE`, the current review controls and instructions. The older 0.5.3 archives predate those changes. Before public distribution, complete the corresponding-source requirements for bundled dependencies described in the [source inventory](third-party-sources.md); a successful runtime check does not establish redistribution compliance or ad-removal accuracy.
+
+The historical 0.5.3 benchmark processed a fresh 75:13 episode in **315.16 seconds**, equivalent to **251.40 seconds per audio hour**. Its provisional reference score selected zero protected word-seconds and left 1.31 commercial word-seconds outside the cuts. That met the measured speed goal but did not establish audible accuracy. The [five-minute CUDA evaluation](evaluations/2026-10-13-five-minute-cuda.md) preserves those results.
 
 Each completed build produces a manifest and `SHA256SUMS.txt` identifying its exact artifacts and source. Frozen runtime and installation checks are separate from the source episode benchmark; the benchmark alone does not validate an installer. [Published releases](https://github.com/mgelsinger/castwell/releases) can contain earlier versions, so check the version before comparing behavior.
 
@@ -67,7 +69,7 @@ The desktop package uses the selected local CUDA classifier through the launcher
 
 ## Experimental fast settings
 
-Version 0.5.3 includes **Experimental fast CUDA**. It reads the whole episode's context before checking the exact words at commercial boundaries. Its intended scope removes sponsor/product reads while preserving unpaid parody, editorial speech, and promotions for other free podcasts. The measured speed result applies to the tested configuration and recordings; it is not a guarantee for every episode or GPU.
+Version 0.5.4 retains **Experimental fast CUDA**. It reads the whole episode's context before checking the exact words at commercial boundaries. Its intended scope removes sponsor/product reads while preserving unpaid parody, editorial speech, and promotions for other free podcasts. This is the current reviewed profile, not an automatic switch to the reduced-reasoning experiment. Measured speed applies to the tested configuration and recordings; it is not a guarantee for every episode or GPU.
 
 With the exact reviewed Qwen3.8 artifact selected in the managed launcher, Settings offers **Scene and endpoint review** and **Experimental fast CUDA**. Fast is the default when no explicit scene/fast preference exists. A saved desktop preference takes precedence over a saved source policy; explicit scene/fast selections remain unchanged. Older libraries that relied on an implicit scene default move to fast with mandatory review. Other local GGUF files keep their existing profile and context. Hosted-provider settings remain stored separately from the desktop's local policy choice.
 
@@ -81,7 +83,7 @@ The [architecture guide](https://github.com/mgelsinger/castwell/blob/main/docs/a
 
 ## Earlier distributions
 
-The published 0.5.1 detector and the 0.5.2 scene candidate are historical baselines. Their [earlier evaluation](evaluations/2026-10-12-ad-removal-system.md) failed the desired speed/accuracy combination. The 0.5.2 packages passed separate [runtime and installation checks](https://github.com/mgelsinger/castwell/blob/main/docs/evaluations/2026-10-13-windows-candidate.json), but predate the clarified policy preserving free podcast promos. Those results do not validate the new 0.5.3 artifacts or establish unattended removal.
+The published 0.5.1 detector and the 0.5.2 scene candidate are historical baselines. Their [earlier evaluation](evaluations/2026-10-12-ad-removal-system.md) failed the desired speed/accuracy combination. The 0.5.2 packages passed separate [runtime and installation checks](https://github.com/mgelsinger/castwell/blob/main/docs/evaluations/2026-10-13-windows-candidate.json), but predate the clarified policy preserving free podcast promos. Historical package results do not validate a rebuilt 0.5.4 artifact or establish unattended removal.
 
 ## Open an existing library
 
@@ -121,8 +123,8 @@ Maintainers can exercise both artifacts with the standard-library Windows smoke 
 
 ```powershell
 python scripts/smoke_windows_distribution.py `
-  --portable "dist\windows\Castwell-0.5.1-Windows-x64-Portable.zip" `
-  --installer "dist\windows\Castwell-0.5.1-Windows-x64-Setup.exe" `
+  --portable "dist\windows\candidate-0.5.4\Castwell-0.5.4-Windows-x64-Portable.zip" `
+  --installer "dist\windows\candidate-0.5.4\Castwell-0.5.4-Windows-x64-Setup.exe" `
   --speech-model "D:\Models\faster-whisper-small.en" `
   --speech-audio "D:\Test audio\short-speech.wav" `
   --artifacts ".local\windows-distribution-check"
