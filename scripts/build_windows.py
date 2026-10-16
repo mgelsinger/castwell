@@ -334,9 +334,13 @@ def bundle_guides(app: Path, root: Path = ROOT, source_ref: str = 'main') -> Non
                 return match.group(0)
             source_target = (docs / source_relative).parent / filename
             source_target = source_target.resolve()
-            if not source_target.is_relative_to(docs) or not source_target.is_file():
+            repository = root.resolve()
+            if not source_target.is_relative_to(repository) or not source_target.is_file():
                 return match.group(0)
-            return '](https://github.com/mgelsinger/castwell/blob/' + source_ref + '/docs/' + source_target.relative_to(docs).as_posix() + separator + anchor + ')'
+            checkout_relative = source_target.relative_to(repository)
+            if checkout_relative.parts[0] not in {'docs', 'packaging', 'scripts'}:
+                return match.group(0)
+            return '](https://github.com/mgelsinger/castwell/blob/' + source_ref + '/' + checkout_relative.as_posix() + separator + anchor + ')'
         content = re.sub(r'\]\(([^)\s]+)\)', source_link, destination.read_text(encoding='utf-8'))
         destination.write_text(content, encoding='utf-8')
 

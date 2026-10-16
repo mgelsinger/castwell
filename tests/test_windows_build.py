@@ -212,7 +212,10 @@ class WindowsArtifactTests(unittest.TestCase):
             (directory / 'docs' / 'production.md').write_text(
                 '[Windows](windows.md) [Sources](third-party-sources.md) '
                 '[Model](local-models.md#profile) [Proof](experiment.md)', encoding='utf-8')
-            (directory / 'docs' / 'third-party-sources.md').write_text('source limitations', encoding='utf-8')
+            (directory / 'packaging').mkdir()
+            (directory / 'packaging' / 'windows-sources.lock.json').write_text('{}', encoding='utf-8')
+            (directory / 'docs' / 'third-party-sources.md').write_text(
+                '[Source lock](../packaging/windows-sources.lock.json)', encoding='utf-8')
             (directory / 'docs' / 'third-party-sources.json').write_text('{"complete": false}', encoding='utf-8')
             (directory / 'docs' / 'source-history.md').write_text('source history', encoding='utf-8')
             evaluations = directory / 'docs' / 'evaluations'
@@ -244,7 +247,8 @@ class WindowsArtifactTests(unittest.TestCase):
             self.assertIn('[History](../source-history.md#results)',
                           (evaluations / '2026-10-13-five-minute-cuda.md').read_text(encoding='utf-8'))
             self.assertEqual((app / 'evaluations' / '2026-10-13-saved-cut-validation.json').read_text(encoding='utf-8'), 'saved cuts')
-            self.assertEqual((app / 'third-party-sources.md').read_text(encoding='utf-8'), 'source limitations')
+            self.assertEqual((app / 'third-party-sources.md').read_text(encoding='utf-8'),
+                             '[Source lock](https://github.com/mgelsinger/castwell/blob/main/packaging/windows-sources.lock.json)')
             self.assertEqual((app / 'third-party-sources.json').read_bytes(),
                              (app / 'THIRD-PARTY-NOTICES' / 'source-inventory.json').read_bytes())
             revision = 'a' * 40
@@ -254,6 +258,8 @@ class WindowsArtifactTests(unittest.TestCase):
             evidence = (app / 'evaluations' / '2026-10-13-five-minute-cuda.md').read_text(encoding='utf-8')
             self.assertIn('https://github.com/mgelsinger/castwell/blob/' + revision + '/docs/source-history.md#results', evidence)
             self.assertNotIn('/blob/main/', production + evidence)
+            self.assertIn('/blob/' + revision + '/packaging/windows-sources.lock.json',
+                          (app / 'third-party-sources.md').read_text(encoding='utf-8'))
 
     def test_pinned_model_notice_is_required_and_integrity_checked(self):
         with tempfile.TemporaryDirectory() as root:
