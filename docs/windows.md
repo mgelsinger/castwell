@@ -8,17 +8,17 @@ The tested configuration uses an **NVIDIA RTX 3090 Ti with 24 GB VRAM** and 128 
 
 ## Choose a distribution
 
-Version **0.5.5 is being prepared as a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
+Version **0.5.5 is built and locally validated as a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
 
-**Version 0.5.5 has not been published to GitHub Releases.** Its planned Windows build outputs are named:
+**Version 0.5.5 has not been published to GitHub Releases.** Its completed local Windows build outputs are named:
 
 - **Castwell-0.5.5-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
 - **Castwell-0.5.5-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
 - **Castwell-0.5.5-Dependency-Sources.zip**, a separate source and notice archive for the exact bundled dependencies. It is for inspecting or rebuilding dependencies and is not required to run the app.
 
-The source is licensed under [GNU AGPLv3 only](../LICENSE). Version 0.5.5 packaging includes `LICENSE`, `NOTICE`, the current review controls and instructions. The older 0.5.3 archives predate those changes. The 0.5.4 packages passed their own [package checks](evaluations/2026-10-14-windows-tolerance-candidate.json); those results do not validate the rebuilt 0.5.5 artifacts.
+The source is licensed under [GNU AGPLv3 only](../LICENSE). Version 0.5.5 packaging includes `LICENSE`, `NOTICE`, the current review controls and instructions. Both rebuilt packages passed actual CUDA speech/classifier, native window, export, relocation and installation checks. See the [0.5.5 results matrix](evaluations/2026-10-15-windows-source-candidate.md) and [exact artifact evidence](evaluations/2026-10-15-windows-source-candidate.json). The older 0.5.3 archives predate the licensing changes; [0.5.4 package results](evaluations/2026-10-14-windows-tolerance-candidate.json) remain historical evidence.
 
-Version 0.5.5 replaces the previous media binaries with controlled FFmpeg 8.1.2 audio tools and `PyAV 16.1.0+castwell1` linked to the same source-pinned shared FFmpeg libraries. The build retains the official source archives, recipes, codec sources, toolchain sources, and notices. The dependency-source archive's completion remains pending final packaging verification. Public release is held for Microsoft runtime redistribution setup under a qualifying grant, requiring administrator approval, and independent audible acceptance. The Microsoft setup requirement concerns maintainer redistribution preparation; Castwell's own installer remains current-user. See the [source inventory](third-party-sources.md). Runtime checks do not establish redistribution compliance or ad-removal accuracy.
+Version 0.5.5 replaces the previous media binaries with controlled FFmpeg 8.1.2 audio tools and `PyAV 16.1.0+castwell1` linked to the same source-pinned shared FFmpeg libraries. The dependency-source archive is complete for the reviewed inventory: official source archives, recipes, codec sources, toolchain sources and notices are retained and matched to the packaged binaries. Public release is held for Microsoft runtime redistribution setup under a qualifying grant, requiring administrator approval, and independent audible acceptance. The Microsoft setup requirement concerns maintainer redistribution preparation; Castwell's own installer remains current-user. See the [source inventory](third-party-sources.md). Runtime checks do not establish redistribution compliance or ad-removal accuracy.
 
 The historical 0.5.3 benchmark processed a fresh 75:13 episode in **315.16 seconds**, equivalent to **251.40 seconds per audio hour**. Its provisional reference score selected zero protected word-seconds and left 1.31 commercial word-seconds outside the cuts. That met the measured speed goal but did not establish audible accuracy. The [five-minute CUDA evaluation](evaluations/2026-10-13-five-minute-cuda.md) preserves those results.
 
@@ -153,7 +153,7 @@ The fetcher runs [the media recipe](../scripts/build_windows_media.py) and [the 
 
 Downloads, source trees, object files and logs stay under the build directory. Reuse an existing verified build with the fetcher's `--media-build <media-directory>` and `--pyav-build-manifest <receipt.json>` options. Changed recipes, headers, binaries, licenses or wheel bytes reject reuse. The fetcher emits paths for FFmpeg, llama.cpp, CUDA, Microsoft runtime files, notices and the PyAV receipt in `vendor-manifest.json`; it does not activate them in the current shell.
 
-Once the [dependency-source inventory](third-party-sources.md) is finalized, collect its exact pinned source and notice archive:
+Collect the exact pinned source and notice archive from the reviewed [dependency-source inventory](third-party-sources.md):
 
 ```powershell
 python scripts/bundle_dependency_sources.py `
@@ -184,5 +184,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
 ```
 
 The builder checks the source archive against the frozen application's bound binaries before producing the portable ZIP, installer, manifest and checksums. It copies the matching source archive alongside them. Preserve and distribute those exact matching files together after all release holds are resolved. A complete source-collection flag does not grant Microsoft redistribution rights or establish audible ad-removal acceptance.
+
+Export the application source separately from the exact revision in the build manifest. Disable working-tree newline conversion for this export so archive files match their committed Git blobs. For the validated 0.5.5 candidate:
+
+```powershell
+git -c core.autocrlf=false -c core.eol=lf archive --format=zip --prefix=Castwell-0.5.5-Source/ --output=dist/windows/candidate-0.5.5/Castwell-0.5.5-Source.zip 3d72dcac3929d9f77f220db1ac43565334660848
+if ($LASTEXITCODE -ne 0) { throw 'Application source export failed' }
+```
+
+A later documentation commit does not change that binary revision. Verify the archive against the complete committed tree and retain its checksum with the final delivery records.
 
 For an explicitly incomplete local test candidate, omit `--dependency-source-bundle` and `--require-dependency-sources`; the manifest reports that corresponding-source completion is false. The hosted Windows workflow takes that path and adds `--skip-runtime-check` because its runner has no NVIDIA GPU. Neither omission is a release approval. Validate each finished package with the runtime and installation checks above, followed by independent listening acceptance; earlier package and model results remain historical evidence.

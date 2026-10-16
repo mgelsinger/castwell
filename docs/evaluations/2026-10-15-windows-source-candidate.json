@@ -1,0 +1,458 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-15",
+  "version": "0.5.5",
+  "application_source_revision": "3d72dcac3929d9f77f220db1ac43565334660848",
+  "operational_package_checks_passed": true,
+  "source_collection_complete": true,
+  "source_collection_scope": "Pinned source/notice collection and binary bindings only; not legal certification or ad-removal acceptance",
+  "ad_removal_accuracy_verified": false,
+  "production_go_live_confirmed": false,
+  "full_episode_detection_runs": 0,
+  "paid_api_calls": 0,
+  "model_downloads": 0,
+  "classifier_requests_total": 4,
+  "classifier_requests_per_package": 2,
+  "frozen_artifacts": {
+    "portable": {
+      "name": "Castwell-0.5.5-Windows-x64-Portable.zip",
+      "sha256": "d33c9a563c299023805d3bb222819221c058fb4c6a8426e00b005f565cb61611",
+      "bytes": 1963018688
+    },
+    "installer": {
+      "name": "Castwell-0.5.5-Windows-x64-Setup.exe",
+      "sha256": "1cfa9b8fa2aff9bdef1bbc8f02bf7d4cc637d7789bc723d65f859df52ff81a4a",
+      "bytes": 1230122037
+    },
+    "build_manifest": {
+      "name": "Castwell-0.5.5-Windows-x64-manifest.json",
+      "sha256": "4c15573260db4ebbc100264dce2aa14d8bf3cbf58d8f59f8948f21bf9f47f5b2",
+      "bytes": 396270
+    },
+    "application_source": {
+      "name": "Castwell-0.5.5-Source.zip",
+      "sha256": "4f1f75289c68ea7c8719b51102d7c1bc1fcce95bc284dccfd1b33c9b6344687f",
+      "bytes": 6299805
+    },
+    "dependency_sources": {
+      "name": "Castwell-0.5.5-Dependency-Sources.zip",
+      "sha256": "30686a5561da949630d1301e6546443d82a2262401dee3696a5417bfbf902a14",
+      "bytes": 336175180
+    }
+  },
+  "application_source_proof": {
+    "passed": true,
+    "application_source_revision": "3d72dcac3929d9f77f220db1ac43565334660848",
+    "sha256": "4f1f75289c68ea7c8719b51102d7c1bc1fcce95bc284dccfd1b33c9b6344687f",
+    "archive_file_count": 227,
+    "git_archive_comment_matches": true,
+    "all_files_match_committed_blobs": true,
+    "complete_committed_tree_present": true,
+    "source_files_executed": false
+  },
+  "dependency_source_proof": {
+    "archive": "Castwell-0.5.5-Dependency-Sources.zip",
+    "sha256": "30686a5561da949630d1301e6546443d82a2262401dee3696a5417bfbf902a14",
+    "bytes": 336175180,
+    "source_lock_sha256": "d4bc05f3427594c787418e39bfc35593d9c7320b8fa656d975220fa61d11c222",
+    "source_requirements_complete": true
+  },
+  "packages": {
+    "portable": {
+      "passed": true,
+      "classifier_requests": 2,
+      "paid_api_calls": 0,
+      "model_downloads": 0,
+      "all_classifier_layers_on_cuda": true,
+      "offloaded_layers": 66,
+      "total_model_layers": 66,
+      "full_offload_log_events": 3,
+      "native_context_tokens": 32768,
+      "desktop_defaults": {
+        "ai_policy": "fast",
+        "ai_policy_options": [
+          "scene",
+          "fast"
+        ],
+        "review_only": true,
+        "detector": "ai",
+        "ai_reasoning": false,
+        "transcription_batch_size": 8
+      },
+      "synthetic_request_profile": {
+        "thinking": false,
+        "max_output_tokens": 128,
+        "maximum_requests": 2
+      },
+      "classifier_scope": "Two synthetic format/label checks plus sleep/wake and speech handoff; not the ad detector or full-episode accuracy",
+      "classifier_speech_handoff": {
+        "cached_large_v3_preparation_calls": 1,
+        "keep_original_speech_jobs": 1,
+        "speech_seconds": 20.0,
+        "aligned_word_count": 65,
+        "classifier_asleep_during_speech": true,
+        "original_audio_unchanged": true,
+        "gpu_memory_returned_to_observed_idle": true,
+        "direct_weight_cache_introspection": false
+      },
+      "standard_cached_speech_check": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "standard_workflow": {
+        "known_cut_rendered_seconds": 8.0,
+        "local_feed_episode_count": 2,
+        "export_archive_file_count": 3,
+        "external_python_on_path": false,
+        "external_ffmpeg_on_path": false,
+        "default_library_preference_verified": true,
+        "fresh_classifier_preferences_verified": true
+      },
+      "native_launcher": {
+        "visible_window_verified": true,
+        "owned_server_started_and_stopped": true,
+        "automatic_weight_downloads": false
+      },
+      "observed_gpus": [
+        {
+          "name": "NVIDIA GeForce RTX 3090 Ti",
+          "memory_total_mb": 24564
+        }
+      ],
+      "cuda_vad_provider": "CUDAExecutionProvider",
+      "cuda_vad_cpu_fallback_disabled": true,
+      "missing_gpu_rejection": {
+        "passed": true,
+        "method": "CUDA visibility mask simulation",
+        "model_inference_run": false
+      },
+      "source_identity": {
+        "passed": true,
+        "build_manifest_sha256": "bd00a8bc6cc0e08d334f0b1bac0a65c0f1861bea7af53597886f3fbc17d74012",
+        "manifest_files_verified": 2013,
+        "source_static_assets_matched": 3,
+        "repository_notice_files_verified": 22,
+        "source_binary_bindings_verified": 71,
+        "pinned_vc_runtime_verified": true,
+        "project_license_and_inventory_match_source": true,
+        "dependency_source_pointer_verified": true,
+        "source_collection_complete": true,
+        "ad_removal_accuracy_verified": false,
+        "production_go_live_confirmed": false
+      },
+      "owned_launcher_and_children_stopped": true,
+      "graceful_shutdown": true,
+      "evidence_sha256": {
+        "classifier_report": "b96c4d26a9375b54543c6ba84d6b6459147664cc416caf7f9e0fe12eb4018a5d",
+        "classifier_log": "efa642e1e2271d308c337b9fbd1cac3ec8290dc4fb066ded9c37ced69bb95be6"
+      }
+    },
+    "installed": {
+      "passed": true,
+      "classifier_requests": 2,
+      "paid_api_calls": 0,
+      "model_downloads": 0,
+      "all_classifier_layers_on_cuda": true,
+      "offloaded_layers": 66,
+      "total_model_layers": 66,
+      "full_offload_log_events": 3,
+      "native_context_tokens": 32768,
+      "desktop_defaults": {
+        "ai_policy": "fast",
+        "ai_policy_options": [
+          "scene",
+          "fast"
+        ],
+        "review_only": true,
+        "detector": "ai",
+        "ai_reasoning": false,
+        "transcription_batch_size": 8
+      },
+      "synthetic_request_profile": {
+        "thinking": false,
+        "max_output_tokens": 128,
+        "maximum_requests": 2
+      },
+      "classifier_scope": "Two synthetic format/label checks plus sleep/wake and speech handoff; not the ad detector or full-episode accuracy",
+      "classifier_speech_handoff": {
+        "cached_large_v3_preparation_calls": 1,
+        "keep_original_speech_jobs": 1,
+        "speech_seconds": 20.0,
+        "aligned_word_count": 65,
+        "classifier_asleep_during_speech": true,
+        "original_audio_unchanged": true,
+        "gpu_memory_returned_to_observed_idle": true,
+        "direct_weight_cache_introspection": false
+      },
+      "standard_cached_speech_check": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "standard_workflow": {
+        "known_cut_rendered_seconds": 8.0,
+        "local_feed_episode_count": 2,
+        "export_archive_file_count": 3,
+        "external_python_on_path": false,
+        "external_ffmpeg_on_path": false,
+        "default_library_preference_verified": true,
+        "fresh_classifier_preferences_verified": true
+      },
+      "native_launcher": {
+        "visible_window_verified": true,
+        "owned_server_started_and_stopped": true,
+        "automatic_weight_downloads": false
+      },
+      "observed_gpus": [
+        {
+          "name": "NVIDIA GeForce RTX 3090 Ti",
+          "memory_total_mb": 24564
+        }
+      ],
+      "cuda_vad_provider": "CUDAExecutionProvider",
+      "cuda_vad_cpu_fallback_disabled": true,
+      "missing_gpu_rejection": {
+        "passed": true,
+        "method": "CUDA visibility mask simulation",
+        "model_inference_run": false
+      },
+      "source_identity": {
+        "passed": true,
+        "build_manifest_sha256": "bd00a8bc6cc0e08d334f0b1bac0a65c0f1861bea7af53597886f3fbc17d74012",
+        "manifest_files_verified": 2013,
+        "source_static_assets_matched": 3,
+        "repository_notice_files_verified": 22,
+        "source_binary_bindings_verified": 71,
+        "pinned_vc_runtime_verified": true,
+        "project_license_and_inventory_match_source": true,
+        "dependency_source_pointer_verified": true,
+        "source_collection_complete": true,
+        "ad_removal_accuracy_verified": false,
+        "production_go_live_confirmed": false
+      },
+      "owned_launcher_and_children_stopped": true,
+      "graceful_shutdown": true,
+      "evidence_sha256": {
+        "classifier_report": "dec24276e8cf95e746f83d7fb0437ee2346cb3ac4b844fea3e829b96d98cf7ae",
+        "classifier_log": "83c56768c8f7d1b84991992bf57231533210850de22ea5e1e635c880cc9867d0"
+      }
+    }
+  },
+  "portable_classifier_and_standard_ui_extractions_separate": true,
+  "portable_relocation": {
+    "default_data_resolved_after_move": true,
+    "listening_state_preserved": true,
+    "original_and_cleaned_audio_unchanged": true,
+    "transcript_and_cut_state_preserved": true,
+    "visible_native_window": true
+  },
+  "installation": {
+    "current_user": true,
+    "shortcut_verified": true,
+    "registry_verified": true,
+    "uninstalled_after_test": true,
+    "owned_test_libraries_preserved_by_uninstaller": true
+  },
+  "cleanup": {
+    "owned_launcher_and_children_stopped": true,
+    "owned_temporary_package_workspace_removed": true,
+    "user_library_accessed": false,
+    "private_diagnostic_fixture_libraries_retained": true
+  },
+  "preserved_preliminary_failures": [
+    {
+      "id": "preflight-v1",
+      "passed": false,
+      "scope": "Frozen source archive check",
+      "failure": "Source ZIP Windows newline conversion differed from exact Git blobs",
+      "source_archive_regenerated_by_root": true,
+      "classifier_requests": 0,
+      "paid_api_calls": 0,
+      "model_downloads": 0,
+      "app_or_model_processes_started": 0,
+      "log_sha256": "2bbf43c7f84d925400a93bc470f046abce46e2d8befd8da104f3ffff8d593b05",
+      "diagnostic_sha256": "70ac789f024ae86a95761e923fb137af857e380c17b5f98ca6700012ed84333d"
+    },
+    {
+      "id": "distribution-v2",
+      "passed": false,
+      "scope": "Unpacked portable identity and bundled guide check",
+      "failure": "third-party-sources.md linked outside bundle instead of to shipped source lock",
+      "classifier_requests": 0,
+      "paid_api_calls": 0,
+      "model_downloads": 0,
+      "app_or_model_processes_started": 0,
+      "owned_workspace_removed": true,
+      "log_sha256": "ce6532f631f2bcdf92cf2bd71b2209a31d0fd0688ecc09443c690a0271e186a7",
+      "report_sha256": "d190d5b2672c9122a56e5a8d28ea2b548f55add334666d6bc946dc5fe82583e8",
+      "diagnostic_sha256": "5cecaf7a5851894c8044ce6e239a0403943b96dbe0925365e404d02744e15abc"
+    }
+  ],
+  "preliminary_failure_resolution": "Regenerated only the application source ZIP for exact Git bytes, then corrected the bundled guide link in a newly frozen and rebuilt package. Both preliminary failures occurred before any app/model process or classifier request.",
+  "evidence_sha256": {
+    "distribution_report": "15d1dc1a8b31c71d6f193c527ee8e99f6623ed7edd6ae6d9521aa90b8f8a44cd",
+    "frozen_input_proof": "43f71de662e3bbf61f72d4935e5fadf0e08f2f50553ad634b3ebeecb0a78b305",
+    "preliminary_attempt_ledger": "aa78c4165b9961abd8096e4ae7a1a3e13573b4b71e00bfde12d805908ab7647d",
+    "wrapper": "157d99e4b9791c277a6399061ea28b153be2c2cf504f704f9d877f07bf1eb4e9",
+    "classifier_helper": "7de838e02425f5371eac03a0624ed99edd28e9852819c941384d13d5ac269811"
+  },
+  "limitations": [
+    "Synthetic package checks do not measure ad-removal accuracy, episode throughput or independent listening acceptance.",
+    "Source collection completion does not certify contractual eligibility or other release gates.",
+    "CUDA rejection uses a visibility mask on the NVIDIA test machine, not separate unsupported hardware."
+  ],
+  "package_evidence_origin": {
+    "public_safe_staging_sha256": "924eea23af31ebf557881cc55bc915ecce96f8723bd388b1c8025e5ca124e9e7",
+    "private_complete_report_sha256": "9f70f9107bcc03ac0a5e5327d1564d64523083d34db15cba51735b17ad81b0e7",
+    "independent_evidence_audit_passed": true,
+    "audit_scope": "Reconciled frozen identities, reports and native logs, four completed generations, CUDA offload, cleanup and public evidence redaction; no extra inference."
+  },
+  "archive_integrity": {
+    "schema_version": 1,
+    "scope": "Independent archive CRC and exact delivery file hashing; no model inference",
+    "artifacts": [
+      {
+        "name": "Castwell-0.5.5-Dependency-Sources.zip",
+        "bytes": 336175180,
+        "sha256": "30686a5561da949630d1301e6546443d82a2262401dee3696a5417bfbf902a14",
+        "zip_crc_verified": true,
+        "members": 49,
+        "uncompressed_bytes": 338553041
+      },
+      {
+        "name": "Castwell-0.5.5-Source.zip",
+        "bytes": 6299805,
+        "sha256": "4f1f75289c68ea7c8719b51102d7c1bc1fcce95bc284dccfd1b33c9b6344687f",
+        "zip_crc_verified": true,
+        "members": 241,
+        "uncompressed_bytes": 11563203
+      },
+      {
+        "name": "Castwell-0.5.5-Windows-x64-Portable.zip",
+        "bytes": 1963018688,
+        "sha256": "d33c9a563c299023805d3bb222819221c058fb4c6a8426e00b005f565cb61611",
+        "zip_crc_verified": true,
+        "members": 2015,
+        "uncompressed_bytes": 3179637487
+      }
+    ],
+    "passed": true
+  },
+  "source_collection_counts": {
+    "locked_artifacts": 46,
+    "reviewed_component_groups": 9,
+    "bound_binary_files": 71,
+    "supplemental_notice_files": 22
+  },
+  "frozen_source_ci": [
+    {
+      "conclusion": "success",
+      "headSha": "3d72dcac3929d9f77f220db1ac43565334660848",
+      "status": "completed",
+      "url": "https://github.com/mgelsinger/castwell/actions/runs/38841223299",
+      "jobs": [
+        {
+          "name": "test (3.12)",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841223299/job/116781522448"
+        },
+        {
+          "name": "test (3.10)",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841223299/job/116781522578"
+        },
+        {
+          "name": "browser",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841223299/job/116781522657"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "headSha": "3d72dcac3929d9f77f220db1ac43565334660848",
+      "status": "completed",
+      "url": "https://github.com/mgelsinger/castwell/actions/runs/38841228947",
+      "jobs": [
+        {
+          "name": "browser",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841228947/job/116781542201"
+        },
+        {
+          "name": "test (3.10)",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841228947/job/116781542397"
+        },
+        {
+          "name": "test (3.12)",
+          "conclusion": "success",
+          "url": "https://github.com/mgelsinger/castwell/actions/runs/38841228947/job/116781542480"
+        }
+      ]
+    }
+  ],
+  "local_software_tests": {
+    "source_integration_suite": {
+      "passed": 1106,
+      "subtests": 193,
+      "skipped": 2,
+      "skips": "Windows symlink permissions",
+      "warnings": "One Starlette deprecation warning"
+    },
+    "final_packaged_guide_regression_checks": {
+      "passed": 29,
+      "subtests": 34
+    },
+    "scope": "Software checks, not model accuracy evaluations"
+  },
+  "decoder_compatibility": {
+    "reports": [
+      {
+        "path": "docs/evaluations/2026-10-15-controlled-media.json",
+        "sha256": "ac4a24d4d47f4d6bcd8e62d0c10cd3f941329470fddea1ad01c59fc3db3b2f90"
+      },
+      {
+        "path": "docs/evaluations/2026-10-15-controlled-pyav-pcm.json",
+        "sha256": "5ad777eb100b0d8e36219e09540b1c4ac3af9fe6ef6e1a46c12599f8ca5e3a66"
+      },
+      {
+        "path": "docs/evaluations/2026-10-15-controlled-batch-pcm.json",
+        "sha256": "287dd28190aefe679455b78376a246049c62c37c05fd2a9620028ea0dd079473"
+      }
+    ],
+    "all_seven_export_formats_passed": true,
+    "all_eight_input_formats_passed": true,
+    "wav_splices_sample_exact": true,
+    "complete_recordings_per_transcription_decode_path": 2,
+    "pyav_and_batched_ffmpeg_inputs_byte_identical_to_prior_decoders": true,
+    "full_episode_inference_rerun": false,
+    "scope": "Same two reused recordings, no additional independent accuracy or throughput evidence"
+  },
+  "unsigned_candidate": true,
+  "model_weights_included": false,
+  "public_binary_release_published": false,
+  "remaining_release_conditions": [
+    {
+      "id": "microsoft_redistribution_eligibility",
+      "status": "pending",
+      "detail": "Official runtime provenance is verified. A qualifying distributor grant and associated setup/use still need to be established. The verified free Visual Studio Community 2022 installer is prepared but was not launched from this non-administrator session. Preserve license/setup evidence and rebuild/revalidate if resulting inputs change.",
+      "references": [
+        "https://visualstudio.microsoft.com/license-terms/vs2022-ga-community/",
+        "https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution",
+        "https://learn.microsoft.com/en-us/visualstudio/install/configure-policies-for-enterprise-deployments?view=visualstudio"
+      ]
+    },
+    {
+      "id": "independent_audible_acceptance",
+      "status": "pending",
+      "detail": "Independently check complete sponsor coverage, protected speech, parody and untranscribed gaps, then evaluate a fresh complete episode. Existing word-duration proxies do not certify at most five audible ad seconds per hour or zero audible show loss. The existing two-pass detector and mandatory manual review remain enabled."
+    },
+    {
+      "id": "public_matching_source_delivery",
+      "status": "prepared_locally_not_published",
+      "detail": "After release conditions are resolved, publish and retain these exact matching dependency and application sources with the binaries and checksums. Older vendor binaries remain unchanged historical artifacts."
+    }
+  ]
+}
