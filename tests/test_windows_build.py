@@ -1,5 +1,6 @@
 """Artifact boundaries that do not require Windows, CUDA, or a build toolchain."""
 import importlib.util
+import json
 from pathlib import Path
 import struct
 import sys
@@ -268,3 +269,137 @@ class WindowsArtifactTests(unittest.TestCase):
             notice.unlink()
             with self.assertRaisesRegex(ValueError, 'Missing'):
                 self.build.validate_notice_pins(directory, metadata)
+
+    def test_freezer_path_excludes_unrelated_inherited_app_paths(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            python = directory / 'venv/Scripts/python.exe'
+            stage = directory / 'vendor/vc-runtime'
+            system = directory / 'Windows'
+            with mock.patch.dict(self.build.os.environ, {'PATH': 'unrelated-app-runtime'}):
+                path = self.build.isolated_build_path(python, [stage, stage], system)
+            self.assertNotIn('unrelated-app-runtime', path)
+            self.assertEqual(path.split(self.build.os.pathsep).count(str(stage.resolve())), 1)
+            self.assertIn(str((system / 'System32').resolve()), path)
+
+    def test_collected_compiler_runtime_uses_reviewed_bytes_everywhere(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            source = directory / 'vcruntime140.dll'
+            source.write_bytes(b'reviewed runtime')
+            app = directory / 'app'
+            nested = app / '_internal/native/vcruntime140.dll'
+            nested.parent.mkdir(parents=True)
+            nested.write_bytes(b'incidental search-path runtime')
+            replacements = self.build.normalize_vc_runtime(app, [source])
+            self.assertEqual(set(replacements), {'vcruntime140.dll', 'native/vcruntime140.dll'})
+            self.assertEqual(nested.read_bytes(), source.read_bytes())
+            self.assertEqual((app / '_internal/vcruntime140.dll').read_bytes(), source.read_bytes())
+
+    def pyav_receipt_fixture(self, directory):
+        root = directory / 'source'
+        (root / 'packaging').mkdir(parents=True)
+        (root / 'scripts').mkdir()
+        filename = 'av-16.1.0+castwell1-cp311-abi3-win_amd64.whl'
+        (root / 'packaging/windows-pyav.lock.json').write_text(json.dumps({
+            'version': '16.1.0+castwell1', 'wheel_filename': filename}), encoding='utf-8')
+        files = {'lock_sha256': root / 'packaging/windows-pyav.lock.json',
+                 'recipe_sha256': root / 'scripts/build_windows_pyav.py',
+                 'media_lock_sha256': root / 'packaging/windows-media.lock.json',
+                 'media_recipe_sha256': root / 'scripts/build_windows_media.py'}
+        for key, path in files.items():
+            if key != 'lock_sha256':
+                path.write_bytes(key.encode())
+        output = directory / 'build'
+        output.mkdir()
+        wheel = output / filename
+        with zipfile.ZipFile(wheel, 'w') as archive:
+            archive.writestr('av-16.1.0+castwell1.dist-info/METADATA',
+                             'Name: av\nVersion: 16.1.0+castwell1\n')
+        receipt = output / 'build-manifest.json'
+        data = {'schema_version': 1, 'name': 'av', 'version': '16.1.0+castwell1',
+                **{key: self.build.digest(path) for key, path in files.items()},
+                'wheel': {'filename': filename, 'relative_path': filename,
+                          'sha256': self.build.digest(wheel), 'bytes': wheel.stat().st_size}}
+        receipt.write_text(json.dumps(data), encoding='utf-8')
+        return root, receipt, wheel, data, files
+
+    def test_source_built_pyav_receipt_accepts_only_matching_reviewed_inputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, receipt, wheel, data, files = self.pyav_receipt_fixture(Path(temporary))
+            checked, path = self.build.verify_pyav_build(receipt, root)
+            self.assertEqual(checked, data)
+            self.assertEqual(path, wheel.resolve())
+            for key, source in files.items():
+                original = source.read_bytes()
+                source.write_bytes(original + b'\n')
+                with self.subTest(input=key), self.assertRaisesRegex(ValueError, 'receipt is stale: ' + key):
+                    self.build.verify_pyav_build(receipt, root)
+                source.write_bytes(original)
+
+    def test_source_built_pyav_receipt_rejects_wrong_schema_name_or_version(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, receipt, wheel, data, files = self.pyav_receipt_fixture(Path(temporary))
+            for key, value in (('schema_version', 2), ('name', 'other'), ('version', '16.1.0')):
+                changed = dict(data, **{key: value})
+                receipt.write_text(json.dumps(changed), encoding='utf-8')
+                with self.subTest(field=key), self.assertRaisesRegex(ValueError, 'Unexpected source-built PyAV identity'):
+                    self.build.verify_pyav_build(receipt, root)
+
+    def test_source_built_pyav_wheel_requires_exact_bytes_and_owned_receipt_path(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, receipt, wheel, data, files = self.pyav_receipt_fixture(Path(temporary))
+            original = wheel.read_bytes()
+            wheel.write_bytes(original + b'changed')
+            with self.assertRaisesRegex(ValueError, 'wheel is missing or changed'):
+                self.build.verify_pyav_build(receipt, root)
+            wheel.write_bytes(original)
+            external = receipt.parent.parent / wheel.name
+            external.write_bytes(original)
+            for values in ({'relative_path': '../' + wheel.name}, {'bytes': len(original) + 1},
+                           {'sha256': '0' * 64}, {'filename': 'different.whl'}):
+                changed = dict(data, wheel=dict(data['wheel'], **values))
+                receipt.write_text(json.dumps(changed), encoding='utf-8')
+                with self.subTest(change=values), self.assertRaisesRegex(ValueError, 'wheel is missing or changed'):
+                    self.build.verify_pyav_build(receipt, root)
+            receipt.write_text(json.dumps(data), encoding='utf-8')
+            wheel.unlink()
+            with self.assertRaisesRegex(ValueError, 'wheel is missing or changed'):
+                self.build.verify_pyav_build(receipt, root)
+
+    def test_source_built_pyav_rejects_metadata_mismatch_or_multiple_metadata_records(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, receipt, wheel, data, files = self.pyav_receipt_fixture(Path(temporary))
+            for name, version, duplicate, error in (
+                    ('other', data['version'], False, 'identity differs'),
+                    ('av', '16.1.0', False, 'identity differs'),
+                    ('av', data['version'], True, 'metadata is ambiguous')):
+                with zipfile.ZipFile(wheel, 'w') as archive:
+                    archive.writestr('av.dist-info/METADATA', f'Name: {name}\nVersion: {version}\n')
+                    if duplicate:
+                        archive.writestr('other.dist-info/METADATA', 'Name: other\nVersion: 1\n')
+                changed = dict(data, wheel=dict(data['wheel'], bytes=wheel.stat().st_size,
+                                               sha256=self.build.digest(wheel)))
+                receipt.write_text(json.dumps(changed), encoding='utf-8')
+                with self.subTest(name=name, version=version, duplicate=duplicate), self.assertRaisesRegex(ValueError, error):
+                    self.build.verify_pyav_build(receipt, root)
+            for headers in ('Version: 16.1.0+castwell1\n',
+                            'Name: av\nName: other\nVersion: 16.1.0+castwell1\n',
+                            'Name: av\nVersion: 16.1.0+castwell1\nVersion: 0\n'):
+                with zipfile.ZipFile(wheel, 'w') as archive:
+                    archive.writestr('av.dist-info/METADATA', headers)
+                changed = dict(data, wheel=dict(data['wheel'], bytes=wheel.stat().st_size,
+                                               sha256=self.build.digest(wheel)))
+                receipt.write_text(json.dumps(changed), encoding='utf-8')
+                with self.subTest(headers=headers), self.assertRaisesRegex(ValueError, 'metadata is ambiguous'):
+                    self.build.verify_pyav_build(receipt, root)
+
+    def test_source_built_pyav_must_remain_separate_from_upstream_wheel_lock(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            lock = directory / 'upstream.lock'
+            lock.write_text('av==16.1.0 --hash=sha256:' + '0' * 64 + '\n', encoding='utf-8')
+            with mock.patch.object(self.build, 'LOCK', lock):
+                with self.assertRaisesRegex(ValueError, 'separate from the upstream wheel lock'):
+                    self.build.wheel_notices(directory, directory / 'notices', {
+                        'name': 'av', 'version': '16.1.0+castwell1', 'wheel': {'sha256': '1' * 64}})

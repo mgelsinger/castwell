@@ -29,6 +29,8 @@ PROJECT_LICENSE_FILES = ('LICENSE', 'NOTICE')
 BUNDLED_GUIDES = ('ad-removal-production-plan.md',
                  'third-party-sources.md',
                  'third-party-sources.json',
+                 'evaluations/2026-10-15-controlled-media.json',
+                 'evaluations/2026-10-15-controlled-pyav-pcm.json',
                  'evaluations/2026-10-12-ad-removal-system.md',
                  'evaluations/2026-10-12-ad-removal-system.json',
                  'evaluations/2026-10-13-five-minute-cuda.md',
@@ -38,6 +40,8 @@ BUNDLED_GUIDES = ('ad-removal-production-plan.md',
                  'evaluations/2026-10-14-tolerance-comparison.json')
 RELEASE_INPUTS = ('castwell', 'pyproject.toml', 'README.md', 'LICENSE', 'NOTICE',
                   'packaging', 'scripts/build_windows.py', 'scripts/desktop_entry.py',
+                  'scripts/bundle_dependency_sources.py', 'scripts/build_windows_media.py',
+                  'scripts/build_windows_pyav.py', 'scripts/fetch_windows_dependencies.py',
                   'docs/windows.md', 'docs/production.md',
                   *('docs/' + relative for relative in BUNDLED_GUIDES))
 
@@ -161,13 +165,18 @@ im.save(sys.argv[1],format='ICO',sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),
     run([python, '-c', program, destination])
 
 
-def wheel_notices(wheelhouse: Path, destination: Path) -> list[dict]:
+def wheel_notices(wheelhouse: Path, destination: Path, source_built: dict | None = None) -> list[dict]:
     entries = []
     locked = {}
     for line in LOCK.read_text(encoding='utf-8').splitlines():
         match = re.fullmatch(r'([^= ]+)==([^ ]+) --hash=sha256:([a-f0-9]{64})', line)
         if match:
             locked[match[1].lower().replace('_', '-')] = (match[2], match[3])
+    if source_built:
+        name = source_built['name']
+        if name in locked:
+            raise ValueError('Source-built dependency must be separate from the upstream wheel lock')
+        locked[name] = (source_built['version'], source_built['wheel']['sha256'])
     for wheel in sorted(wheelhouse.glob('*.whl')):
         with zipfile.ZipFile(wheel) as archive:
             metadata_name = next(name for name in archive.namelist() if name.endswith('.dist-info/METADATA'))
@@ -239,6 +248,41 @@ def remove_duplicate_cuda_dlls(app: Path) -> list[str]:
     return removed
 
 
+def isolated_build_path(python: Path, native_directories: list[Path], system_root: Path) -> str:
+    """Keep unrelated app/runtime folders out of PyInstaller's DLL search."""
+    paths = [*native_directories, python.parent, system_root / 'System32', system_root]
+    return os.pathsep.join(dict.fromkeys(str(path.resolve()) for path in paths))
+
+
+def verify_pinned_vc_runtime(directory: Path, metadata: dict) -> list[Path]:
+    pins = metadata.get('vc-runtime', {}).get('binaries', [])
+    if not pins:
+        raise ValueError('Missing pinned Microsoft runtime inventory')
+    files = native_files(directory, {item['name'] for item in pins})
+    by_name = {path.name.casefold(): path for path in files}
+    if len(by_name) != len(files) or set(by_name) != {item['name'].casefold() for item in pins}:
+        raise ValueError('Microsoft runtime stage contains unexpected binaries')
+    for item in pins:
+        if digest(by_name[item['name'].casefold()]) != item['sha256']:
+            raise ValueError('Microsoft runtime checksum differs: ' + item['name'])
+    return files
+
+
+def normalize_vc_runtime(app: Path, paths: list[Path]) -> list[str]:
+    """Use the reviewed compiler runtime in every collected copy of its DLLs."""
+    replacements = []
+    internal = app / '_internal'
+    for source in paths:
+        expected = digest(source)
+        targets = {internal / source.name}
+        targets.update(path for path in internal.rglob('*.dll') if path.name.casefold() == source.name.casefold())
+        for target in sorted(targets):
+            if not target.is_file() or digest(target) != expected:
+                shutil.copy2(source, target)
+                replacements.append(target.relative_to(internal).as_posix())
+    return replacements
+
+
 def bundle_guides(app: Path, root: Path = ROOT, source_ref: str = 'main') -> None:
     """Keep local crosslinks usable without copying source-only guide history."""
     included = {'windows.md', 'production.md', 'ad-removal-production-plan.md',
@@ -306,6 +350,55 @@ def validate_notice_pins(notices: Path, metadata: dict) -> None:
             raise ValueError('Missing or unverified third-party notice: ' + item['filename'])
 
 
+def verify_dependency_sources(archive: Path, app: Path, *, require_complete=False) -> dict:
+    command = [sys.executable, str(ROOT / 'scripts/bundle_dependency_sources.py'),
+               '--verify', '--output', str(archive.resolve()), '--binary-root', str(app.resolve())]
+    if require_complete:
+        command.append('--require-complete')
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+    if result.returncode:
+        raise ValueError('Dependency source verification failed: ' + result.stderr.strip())
+    return json.loads(result.stdout)
+
+
+def verify_pyav_build(receipt: Path, root: Path = ROOT) -> tuple[dict, Path]:
+    """Check a locally executed source build's receipt and wheel before use.
+
+    Receipts describe our trusted source-build workflow, not third-party binary
+    attestations. A release additionally binds the actual wheel and DLL hashes
+    in its reviewed dependency-source inventory.
+    """
+    data = json.loads(receipt.read_text(encoding='utf-8'))
+    source_lock = json.loads((root / 'packaging/windows-pyav.lock.json').read_text(encoding='utf-8'))
+    expected = {'lock_sha256': root / 'packaging/windows-pyav.lock.json',
+                'recipe_sha256': root / 'scripts/build_windows_pyav.py',
+                'media_lock_sha256': root / 'packaging/windows-media.lock.json',
+                'media_recipe_sha256': root / 'scripts/build_windows_media.py'}
+    if data.get('schema_version') != 1 or data.get('name') != 'av' or data.get('version') != source_lock['version']:
+        raise ValueError('Unexpected source-built PyAV identity')
+    for key, path in expected.items():
+        if not path.is_file() or data.get(key) != digest(path):
+            raise ValueError('Source-built PyAV receipt is stale: ' + key)
+    wheel = data['wheel']
+    path = (receipt.parent / wheel['relative_path']).resolve()
+    if (not path.is_relative_to(receipt.parent.resolve()) or not path.is_file()
+            or path.name != wheel['filename'] or path.name != source_lock['wheel_filename']
+            or path.stat().st_size != wheel['bytes'] or digest(path) != wheel['sha256']):
+        raise ValueError('Source-built PyAV wheel is missing or changed')
+    with zipfile.ZipFile(path) as archive:
+        names = [name for name in archive.namelist() if name.endswith('.dist-info/METADATA')]
+        if len(names) != 1:
+            raise ValueError('Source-built PyAV wheel metadata is ambiguous')
+        metadata = BytesParser().parsebytes(archive.read(names[0]))
+        for key in ('Name', 'Version'):
+            values = metadata.get_all(key, [])
+            if len(values) != 1 or not isinstance(values[0], str) or not values[0].strip():
+                raise ValueError('Source-built PyAV wheel metadata is ambiguous')
+        if metadata['Name'].lower() != data['name'] or metadata['Version'] != data['version']:
+            raise ValueError('Source-built PyAV wheel identity differs from its receipt')
+    return data, path
+
+
 def python_identity(python: Path) -> dict:
     result = subprocess.run([str(python), '-c',
         'import json,platform,struct,sys; print(json.dumps({"version":list(sys.version_info[:2]),"bits":struct.calcsize("P")*8,"platform":platform.system()}))'],
@@ -336,12 +429,18 @@ def main() -> int:
     parser.add_argument('--llama-dir', required=True, type=Path)
     parser.add_argument('--cuda-dir', required=True, type=Path)
     parser.add_argument('--notices-dir', required=True, type=Path)
+    parser.add_argument('--vc-runtime-dir', type=Path, help='Hash-pinned Microsoft runtime stage from the dependency fetcher')
+    parser.add_argument('--pyav-build-manifest', type=Path, help='Receipt from the pinned local PyAV source build')
     parser.add_argument('--inno-path', type=Path)
     parser.add_argument('--python', type=Path, default=Path(sys.executable))
     parser.add_argument('--venv', type=Path, default=ROOT / '.local' / 'windows-build-venv')
     parser.add_argument('--wheelhouse', type=Path, default=ROOT / '.local' / 'windows-wheelhouse')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'dist' / 'windows')
     parser.add_argument('--skip-installer', action='store_true', help='Build portable archive only')
+    parser.add_argument('--dependency-source-bundle', type=Path,
+                        help='Separate source archive verified against the locked inventory and frozen binaries')
+    parser.add_argument('--require-dependency-sources', action='store_true',
+                        help='Reject an absent or incomplete corresponding-source review')
     parser.add_argument('--skip-runtime-check', action='store_true',
                         help='CI only: create an explicitly unverified artifact without NVIDIA hardware')
     args = parser.parse_args()
@@ -349,12 +448,24 @@ def main() -> int:
         parser.error('Build with 64-bit CPython 3.12 on Windows')
     project_license_files(ROOT)
     source_revision = clean_source_revision(ROOT)
+    if args.require_dependency_sources and not args.dependency_source_bundle:
+        parser.error('--require-dependency-sources needs --dependency-source-bundle')
     if not args.skip_installer and (not args.inno_path or not args.inno_path.is_file()):
         parser.error('--inno-path must point to ISCC.exe for the installer build')
     if not args.notices_dir.is_dir() or not any(args.notices_dir.iterdir()):
         parser.error('--notices-dir must contain the native runtime licenses and provenance')
     runtime_metadata = json.loads((ROOT / 'packaging' / 'windows-runtime.json').read_text(encoding='utf-8'))
+    pyav_build, pyav_wheel = None, None
+    if runtime_metadata.get('pyav', {}).get('kind') == 'source-build':
+        if not args.pyav_build_manifest:
+            parser.error('--pyav-build-manifest is required for the controlled PyAV build')
+        pyav_build, pyav_wheel = verify_pyav_build(args.pyav_build_manifest)
     validate_notice_pins(args.notices_dir, runtime_metadata)
+    vc_runtime = []
+    if runtime_metadata.get('vc-runtime'):
+        if not args.vc_runtime_dir:
+            parser.error('--vc-runtime-dir is required by the current runtime pins')
+        vc_runtime = verify_pinned_vc_runtime(args.vc_runtime_dir, runtime_metadata)
     stages = [('ffmpeg', args.ffmpeg_dir, {'ffmpeg.exe', 'ffprobe.exe'}),
               ('llama', args.llama_dir, {'llama-server.exe', 'ggml-cuda.dll', 'ggml-cpu-x64.dll'}),
               ('cuda', args.cuda_dir, {'cublas64_12.dll', 'cublasLt64_12.dll', 'cudart64_12.dll',
@@ -369,6 +480,9 @@ def main() -> int:
         paths = native_files(directory, required)
         inputs[label] = [{'name': path.relative_to(directory).as_posix(), 'sha256': digest(path),
                           'bytes': path.stat().st_size} for path in paths]
+    if vc_runtime:
+        inputs['vc-runtime'] = [{'name': path.name, 'sha256': digest(path), 'bytes': path.stat().st_size}
+                                for path in vc_runtime]
     if not (ROOT / 'scripts' / 'desktop_entry.py').is_file():
         parser.error('scripts/desktop_entry.py is missing')
     version = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']['version']
@@ -393,6 +507,11 @@ def main() -> int:
         reinstall = ['--force-reinstall']
     run([python, '-m', 'pip', 'install', '--no-index', '--no-deps', '--find-links', args.wheelhouse,
          '--require-hashes', '--requirement', LOCK, *reinstall])
+    if pyav_wheel:
+        target_wheel = args.wheelhouse / pyav_wheel.name
+        if target_wheel.resolve() != pyav_wheel.resolve():
+            shutil.copy2(pyav_wheel, target_wheel)
+        run([python, '-m', 'pip', 'install', '--no-index', '--no-deps', '--force-reinstall', target_wheel])
     run([python, '-m', 'pip', 'install', '--no-deps', '--no-build-isolation', ROOT])
     dependency_check(python)
     icon = build / 'castwell.ico'
@@ -403,6 +522,10 @@ def main() -> int:
         f"VSVersionInfo(ffi=FixedFileInfo(filevers={number!r}, prodvers={number!r}, mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0, date=(0,0)), kids=[StringFileInfo([StringTable('040904B0', [StringStruct('CompanyName', 'Castwell contributors'), StringStruct('FileDescription', 'Castwell podcast suite'), StringStruct('FileVersion', '{version}'), StringStruct('ProductName', 'Castwell'), StringStruct('ProductVersion', '{version}'), StringStruct('OriginalFilename', 'Castwell.exe')])]), VarFileInfo([VarStruct('Translation', [1033, 1200])])])\n",
         encoding='utf-8')
     env = os.environ.copy()
+    for key in ('PYTHONPATH', 'PYTHONHOME'):
+        env.pop(key, None)
+    native_search = [path for path in (args.vc_runtime_dir, args.cuda_dir, args.llama_dir, args.ffmpeg_dir) if path]
+    env['PATH'] = isolated_build_path(python, native_search, Path(os.environ.get('SystemRoot', r'C:\Windows')))
     env.update(CASTWELL_BUILD_ROOT=str(ROOT), CASTWELL_FFMPEG_DIR=str(args.ffmpeg_dir.resolve()),
                CASTWELL_LLAMA_DIR=str(args.llama_dir.resolve()), CASTWELL_CUDA_DIR=str(args.cuda_dir.resolve()),
                CASTWELL_BUILD_ICON=str(icon), CASTWELL_BUILD_VERSION_FILE=str(version_file),
@@ -424,11 +547,12 @@ def main() -> int:
             raise ValueError('Application source is still changing during freeze; stop edits and rebuild')
         print('Application source changed during freeze. Rebuilding before packaging.', flush=True)
     app = frozen / 'Castwell'
+    normalized_vc_dlls = normalize_vc_runtime(app, vc_runtime)
     deduplicated_dlls = remove_duplicate_cuda_dlls(app)
     shutil.copy2(icon, app / '_internal' / 'castwell.ico')
     notices = app / 'THIRD-PARTY-NOTICES'
     shutil.copytree(args.notices_dir, notices, dirs_exist_ok=True)
-    dependencies = wheel_notices(args.wheelhouse, notices)
+    dependencies = wheel_notices(args.wheelhouse, notices, pyav_build)
     bundle_project_notices(app, ROOT)
     bundle_guides(app, source_ref=source_revision)
     python_license = Path(sys.base_prefix) / 'LICENSE.txt'
@@ -460,6 +584,20 @@ def main() -> int:
     if source_fingerprint() != source_hash:
         raise ValueError('Application source changed after freeze; rebuild before creating release artifacts')
     clean_source_revision(ROOT, expected=source_revision)
+    dependency_sources = None
+    if args.dependency_source_bundle:
+        dependency_sources = verify_dependency_sources(args.dependency_source_bundle, app,
+                                                       require_complete=args.require_dependency_sources)
+        target = args.output_dir / args.dependency_source_bundle.name
+        if target.resolve() != args.dependency_source_bundle.resolve():
+            shutil.copy2(args.dependency_source_bundle, target)
+        shutil.copy2(ROOT / 'packaging/windows-sources.lock.json', notices / 'dependency-sources.lock.json')
+        source_text = ('Dependency sources and notices: ' + target.name + '\n'
+                       'SHA256: ' + dependency_sources['sha256'] + '\n'
+                       'Obtain this separate source archive alongside the matching application downloads.\n'
+                       'Collection review complete: ' + str(dependency_sources['source_requirements_complete']) + '\n'
+                       'See THIRD-PARTY-NOTICES/dependency-sources.lock.json for component licenses and remaining work.\n')
+        (app / 'DEPENDENCY-SOURCES.txt').write_text(source_text, encoding='utf-8')
     manifest = {'schema_version': 1, 'application': 'Castwell', 'version': version,
                 'platform': 'windows-x64', 'python': platform.python_version(),
                 'inference': 'nvidia-cuda-only', 'speech_and_classifier_weights_bundled': False,
@@ -471,13 +609,23 @@ def main() -> int:
                 'frozen_gpu_runtime_verified': runtime_verified,
                 'full_distribution_smoke_required': True,
                 'deduplicated_cuda_dlls': deduplicated_dlls,
+                'normalized_compiler_runtime_dlls': normalized_vc_dlls,
+                'inherited_path_excluded_from_freeze': True,
                 'canonical_cuda_directory': '_internal/cuda',
                 'dependency_metadata_exception': 'faster-whisper declares onnxruntime; onnxruntime-gpu supplies the GPU-only runtime namespace instead',
                 'dependency_lock_sha256': digest(LOCK), 'native_inputs': inputs,
+                'source_built_pyav': ({'name': pyav_build['name'], 'version': pyav_build['version'],
+                                      'wheel': pyav_build['wheel'],
+                                      'lock_sha256': pyav_build['lock_sha256'],
+                                      'recipe_sha256': pyav_build['recipe_sha256'],
+                                      'media_lock_sha256': pyav_build['media_lock_sha256'],
+                                      'media_recipe_sha256': pyav_build['media_recipe_sha256']}
+                                     if pyav_build else None),
                 'source_tree_sha256': source_hash,
                 'application_source_revision': source_revision,
                 'application_source_url': 'https://github.com/mgelsinger/castwell/tree/' + source_revision,
-                'third_party_corresponding_source_bundle_complete': False,
+                'third_party_corresponding_source_bundle_complete': bool(dependency_sources and dependency_sources['source_requirements_complete']),
+                'dependency_source_bundle': dependency_sources,
                 'python_dependencies': dependencies,
                 'files': [{'path': path.relative_to(app).as_posix(), 'sha256': digest(path),
                            'bytes': path.stat().st_size} for path in sorted(app.rglob('*')) if path.is_file()]}
@@ -495,7 +643,8 @@ def main() -> int:
     manifest['artifacts'] = [{'name': path.name, 'sha256': digest(path), 'bytes': path.stat().st_size} for path in artifacts]
     report = args.output_dir / f'Castwell-{version}-Windows-x64-manifest.json'
     report.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
-    sums = ''.join(f'{digest(path)}  {path.name}\n' for path in artifacts + [report])
+    source_artifacts = [args.output_dir / dependency_sources['archive']] if dependency_sources else []
+    sums = ''.join(f'{digest(path)}  {path.name}\n' for path in artifacts + [report] + source_artifacts)
     (args.output_dir / 'SHA256SUMS.txt').write_text(sums, encoding='ascii')
     print(json.dumps({'version': version, 'artifacts': [str(path.resolve()) for path in artifacts],
                       'manifest': str(report.resolve()), 'installer_input': str(app)}, indent=2))

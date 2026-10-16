@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "inference_requests": 0,
+  "exports": [
+    {
+      "format": "mp3",
+      "rendered": true,
+      "decoded_seconds": 20.625,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    },
+    {
+      "format": "m4a",
+      "rendered": true,
+      "decoded_seconds": 20.629333333333335,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    },
+    {
+      "format": "mp4",
+      "rendered": true,
+      "decoded_seconds": 20.629333333333335,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    },
+    {
+      "format": "wav",
+      "rendered": true,
+      "decoded_seconds": 20.625,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": true
+    },
+    {
+      "format": "flac",
+      "rendered": true,
+      "decoded_seconds": 20.625,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    },
+    {
+      "format": "ogg",
+      "rendered": true,
+      "decoded_seconds": 20.625,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    },
+    {
+      "format": "opus",
+      "rendered": true,
+      "decoded_seconds": 20.625,
+      "expected_seconds": 20.625,
+      "waveform_passed": true,
+      "batched_pcm_passed": true,
+      "bounded_gap_decode_passed": true,
+      "exact_pcm_splice": false
+    }
+  ],
+  "input_decodes": [
+    {
+      "format": "mp3",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "m4a",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "mp4",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "wav",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "flac",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "ogg",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 0.0,
+      "bit_identical_pcm": true
+    },
+    {
+      "format": "opus",
+      "sample_count": 384000,
+      "max_absolute_pcm_difference_from_vendor": 2.9802322387695312e-08,
+      "bit_identical_pcm": false
+    },
+    {
+      "format": "aac",
+      "sample_count": 384341,
+      "max_absolute_pcm_difference_from_vendor": 1.1641532182693481e-10,
+      "bit_identical_pcm": false
+    }
+  ],
+  "mp4_video_ignored_successfully": true,
+  "audio_exports_passed": true,
+  "binary_sha256": {
+    "ffmpeg.exe": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2",
+    "ffprobe.exe": "2ec0fafb3571a9ca775b52a1aac40c04918a8b0fff21eb436975611d969ef8aa"
+  }
+}

@@ -13,3 +13,12 @@
 /castwell/recording_evaluation.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /scripts/evaluate_recordings.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /scripts/compare_detectors.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Source and runtime manifests bind exact recipe, lock and upstream notice bytes.
+/packaging/windows-*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/packaging/windows-requirements.lock -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/packaging/notices/* -text -whitespace
+/scripts/build_windows_media.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/scripts/build_windows_pyav.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/scripts/bundle_dependency_sources.py -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/third-party-sources.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

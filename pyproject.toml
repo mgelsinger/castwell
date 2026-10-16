@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "castwell"
-version = "0.5.4"
+version = "0.5.5"
 description = "A local podcast suite with batch workflows and reviewable advertisement removal"
 readme = "README.md"
 license = "AGPL-3.0-only"

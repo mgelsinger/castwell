@@ -8,14 +8,17 @@ The tested configuration uses an **NVIDIA RTX 3090 Ti with 24 GB VRAM** and 128 
 
 ## Choose a distribution
 
-Version **0.5.4 is a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
+Version **0.5.5 is being prepared as a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
 
-**Version 0.5.4 has not been published to GitHub Releases.** The candidate's two local Windows build outputs are named:
+**Version 0.5.5 has not been published to GitHub Releases.** Its planned Windows build outputs are named:
 
-- **Castwell-0.5.4-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
-- **Castwell-0.5.4-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
+- **Castwell-0.5.5-Windows-x64-Setup.exe**, for current-user installation with a Start menu shortcut. The default application directory is `%LOCALAPPDATA%\Programs\Castwell`.
+- **Castwell-0.5.5-Windows-x64-Portable.zip**, for running after extraction. Extract the entire archive to a writable folder and open `Castwell\Castwell.exe`; keep the executable and `_internal` folder together.
+- **Castwell-0.5.5-Dependency-Sources.zip**, a separate source and notice archive for the exact bundled dependencies. It is for inspecting or rebuilding dependencies and is not required to run the app.
 
-The source is licensed under [GNU AGPLv3 only](../LICENSE). Version 0.5.4 builds include `LICENSE`, `NOTICE`, the current review controls and instructions. The older 0.5.3 archives predate those changes. Before public distribution, complete the corresponding-source requirements for bundled dependencies described in the [source inventory](third-party-sources.md); a successful runtime check does not establish redistribution compliance or ad-removal accuracy.
+The source is licensed under [GNU AGPLv3 only](../LICENSE). Version 0.5.5 packaging includes `LICENSE`, `NOTICE`, the current review controls and instructions. The older 0.5.3 archives predate those changes. The 0.5.4 packages passed their own [package checks](evaluations/2026-10-14-windows-tolerance-candidate.json); those results do not validate the rebuilt 0.5.5 artifacts.
+
+Version 0.5.5 replaces the previous media binaries with controlled FFmpeg 8.1.2 audio tools and `PyAV 16.1.0+castwell1` linked to the same source-pinned shared FFmpeg libraries. The build retains the official source archives, recipes, codec sources, toolchain sources, and notices. The dependency-source archive's completion remains pending final packaging verification. Public release is held for Microsoft runtime redistribution setup under a qualifying grant, requiring administrator approval, and independent audible acceptance. The Microsoft setup requirement concerns maintainer redistribution preparation; Castwell's own installer remains current-user. See the [source inventory](third-party-sources.md). Runtime checks do not establish redistribution compliance or ad-removal accuracy.
 
 The historical 0.5.3 benchmark processed a fresh 75:13 episode in **315.16 seconds**, equivalent to **251.40 seconds per audio hour**. Its provisional reference score selected zero protected word-seconds and left 1.31 commercial word-seconds outside the cuts. That met the measured speed goal but did not establish audible accuracy. The [five-minute CUDA evaluation](evaluations/2026-10-13-five-minute-cuda.md) preserves those results.
 
@@ -69,7 +72,7 @@ The desktop package uses the selected local CUDA classifier through the launcher
 
 ## Experimental fast settings
 
-Version 0.5.4 retains **Experimental fast CUDA**. It reads the whole episode's context before checking the exact words at commercial boundaries. Its intended scope removes sponsor/product reads while preserving unpaid parody, editorial speech, and promotions for other free podcasts. This is the current reviewed profile, not an automatic switch to the reduced-reasoning experiment. Measured speed applies to the tested configuration and recordings; it is not a guarantee for every episode or GPU.
+Version 0.5.5 retains **Experimental fast CUDA**. It reads the whole episode's context before checking the exact words at commercial boundaries. Its intended scope removes sponsor/product reads while preserving unpaid parody, editorial speech, and promotions for other free podcasts. This is the current reviewed profile, not an automatic switch to the reduced-reasoning experiment. Measured speed applies to the tested configuration and recordings; it is not a guarantee for every episode or GPU.
 
 With the exact reviewed Qwen3.8 artifact selected in the managed launcher, Settings offers **Scene and endpoint review** and **Experimental fast CUDA**. Fast is the default when no explicit scene/fast preference exists. A saved desktop preference takes precedence over a saved source policy; explicit scene/fast selections remain unchanged. Older libraries that relied on an implicit scene default move to fast with mandatory review. Other local GGUF files keep their existing profile and context. Hosted-provider settings remain stored separately from the desktop's local policy choice.
 
@@ -83,7 +86,7 @@ The [architecture guide](https://github.com/mgelsinger/castwell/blob/main/docs/a
 
 ## Earlier distributions
 
-The published 0.5.1 detector and the 0.5.2 scene candidate are historical baselines. Their [earlier evaluation](evaluations/2026-10-12-ad-removal-system.md) failed the desired speed/accuracy combination. The 0.5.2 packages passed separate [runtime and installation checks](https://github.com/mgelsinger/castwell/blob/main/docs/evaluations/2026-10-13-windows-candidate.json), but predate the clarified policy preserving free podcast promos. Historical package results do not validate a rebuilt 0.5.4 artifact or establish unattended removal.
+The published 0.5.1 detector and the 0.5.2 scene candidate are historical baselines. Their [earlier evaluation](evaluations/2026-10-12-ad-removal-system.md) failed the desired speed/accuracy combination. The 0.5.2 packages passed separate [runtime and installation checks](https://github.com/mgelsinger/castwell/blob/main/docs/evaluations/2026-10-13-windows-candidate.json), but predate the clarified policy preserving free podcast promos. Historical package results do not validate a rebuilt 0.5.5 artifact or establish unattended removal.
 
 ## Open an existing library
 
@@ -123,8 +126,8 @@ Maintainers can exercise both artifacts with the standard-library Windows smoke 
 
 ```powershell
 python scripts/smoke_windows_distribution.py `
-  --portable "dist\windows\candidate-0.5.4\Castwell-0.5.4-Windows-x64-Portable.zip" `
-  --installer "dist\windows\candidate-0.5.4\Castwell-0.5.4-Windows-x64-Setup.exe" `
+  --portable "dist\windows\candidate-0.5.5\Castwell-0.5.5-Windows-x64-Portable.zip" `
+  --installer "dist\windows\candidate-0.5.5\Castwell-0.5.5-Windows-x64-Setup.exe" `
   --speech-model "D:\Models\faster-whisper-small.en" `
   --speech-audio "D:\Test audio\short-speech.wav" `
   --artifacts ".local\windows-distribution-check"
@@ -133,3 +136,53 @@ python scripts/smoke_windows_distribution.py `
 The harness runs the frozen applications with external Python and FFmpeg removed from PATH. It uses a temporary path containing spaces, verifies UI and diagnostics, downloads a local RSS fixture in a batch, renders a known manual cut with real FFmpeg, verifies ZIP contents, and runs cached-model CUDA transcription. It moves a stopped portable installation and checks that its adjacent library, original and cleaned audio, transcript, reviewed cuts, and listening state survive reopening. It also checks current-user installation, shortcut targets, uninstall registration, graceful shutdown, and library preservation. It refuses to replace an existing Castwell installation or Start menu group. It does not download weights or contact classifier APIs, and the supplied speech recording is not copied into public artifacts.
 
 On a CI machine without a supported NVIDIA GPU, use `--expect-no-gpu` and omit both speech arguments. That mode verifies clear CUDA rejection, bundled files, installation, shortcuts, and uninstall preservation. It does not establish GPU inference or full application readiness.
+
+## Build the Windows distributions
+
+This section is for maintainers. A source build requires Windows x64, **CPython 3.12**, and Visual Studio with the **MSVC 14.44.35207 x64 toolset** and Windows SDK. The required Microsoft redistribution setup under a qualifying grant is still pending administrator approval. Downloading the pinned runtime files does not resolve that release requirement. The media builder privately fetches hash-pinned w64devkit, CMake, Ninja, GCC and NASM; it does not install them globally. Building the installer also requires the pinned Inno Setup compiler.
+
+From a clean, committed checkout, prepare the native stages and source-built wheel:
+
+```powershell
+python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda
+if ($LASTEXITCODE -ne 0) { throw 'Dependency preparation failed' }
+$vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
+```
+
+The fetcher runs [the media recipe](../scripts/build_windows_media.py) and [the PyAV recipe](../scripts/build_windows_pyav.py). The media profile builds FFmpeg 8.1.2 from unmodified official sources with LAME, Ogg, Vorbis and Opus, without optional GPL or nonfree codec dependencies. It produces static `ffmpeg.exe`/`ffprobe.exe` tools plus seven shared libraries and their headers/import libraries. PyAV is compiled against those libraries with a version-only `16.1.0+castwell1` patch. Receipts bind the recipes, locks, input files, libraries and resulting wheel. These are source-controlled rebuild recipes; byte-identical reproduction across different build hosts has not been established. Audio preparation and rendering remain conventional FFmpeg operations; neural inference remains NVIDIA CUDA-only.
+
+Downloads, source trees, object files and logs stay under the build directory. Reuse an existing verified build with the fetcher's `--media-build <media-directory>` and `--pyav-build-manifest <receipt.json>` options. Changed recipes, headers, binaries, licenses or wheel bytes reject reuse. The fetcher emits paths for FFmpeg, llama.cpp, CUDA, Microsoft runtime files, notices and the PyAV receipt in `vendor-manifest.json`; it does not activate them in the current shell.
+
+Once the [dependency-source inventory](third-party-sources.md) is finalized, collect its exact pinned source and notice archive:
+
+```powershell
+python scripts/bundle_dependency_sources.py `
+  --lock packaging/windows-sources.lock.json `
+  --cache .local/dependency-source-cache `
+  --output .local/source-release/Castwell-0.5.5-Dependency-Sources.zip `
+  --download --require-complete
+if ($LASTEXITCODE -ne 0) { throw 'Dependency source collection is incomplete' }
+```
+
+That command fails if the reviewed inventory is incomplete. The source archive is separate from the application source checkout and the portable package. Existing frozen binary bindings are specific to the reviewed build. If a fresh build produces different bytes, review and update its source correspondence before claiming that the old archive covers it.
+
+Install the pinned Inno compiler from the fetcher's `inno_installer` path into a chosen local tools directory. Then pass every verified stage to the application builder, substituting that compiler's actual `ISCC.exe` path:
+
+```powershell
+python scripts/build_windows.py `
+  --ffmpeg-dir $vendor.ffmpeg_dir `
+  --llama-dir $vendor.llama_dir `
+  --cuda-dir $vendor.cuda_dir `
+  --vc-runtime-dir $vendor.vc_runtime_dir `
+  --pyav-build-manifest $vendor.pyav_build_manifest `
+  --notices-dir $vendor.notices_dir `
+  --inno-path .local/windows-tools/inno/ISCC.exe `
+  --dependency-source-bundle .local/source-release/Castwell-0.5.5-Dependency-Sources.zip `
+  --require-dependency-sources `
+  --output-dir dist/windows/candidate-0.5.5
+if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
+```
+
+The builder checks the source archive against the frozen application's bound binaries before producing the portable ZIP, installer, manifest and checksums. It copies the matching source archive alongside them. Preserve and distribute those exact matching files together after all release holds are resolved. A complete source-collection flag does not grant Microsoft redistribution rights or establish audible ad-removal acceptance.
+
+For an explicitly incomplete local test candidate, omit `--dependency-source-bundle` and `--require-dependency-sources`; the manifest reports that corresponding-source completion is false. The hosted Windows workflow takes that path and adds `--skip-runtime-check` because its runner has no NVIDIA GPU. Neither omission is a release approval. Validate each finished package with the runtime and installation checks above, followed by independent listening acceptance; earlier package and model results remain historical evidence.
