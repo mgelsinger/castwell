@@ -330,7 +330,8 @@ def bundle_guides(app: Path, root: Path = ROOT, source_ref: str = 'main') -> Non
             filename, separator, anchor = target.partition('#')
             if not filename or ':' in filename or filename.startswith('/'):
                 return match.group(0)
-            if (destination.parent / filename).is_file():
+            local_target = (destination.parent / filename).resolve()
+            if local_target.is_relative_to(app.resolve()) and local_target.is_file():
                 return match.group(0)
             source_target = (docs / source_relative).parent / filename
             source_target = source_target.resolve()
