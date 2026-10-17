@@ -110,23 +110,24 @@ def test_two_commercial_judgments_approve_only_after_review_mode_opt_out():
     assert review[0]['requires_review'] is False
 
 
-def test_free_crosspromo_between_paid_reads_preserves_its_original_audio():
+def test_real_free_podcast_promo_is_selected_and_current_show_follow_is_preserved():
     source = transcript('Our sponsor offers a paid plan.',
                         'Explore our other podcast and follow its free episodes.',
-                        'Subscribe to its premium paid feed for five dollars.')
+                        'Subscribe to its premium paid feed for five dollars.',
+                        'Follow this show for our next episode.')
     original = deepcopy(source)
-    provider = Provider(lambda _, identifier: 'editorial' if identifier == 1 else 'commercial')
+    provider = Provider(lambda _, identifier: 'editorial' if identifier == 3 else 'commercial')
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source, config={'review_only': True})
     assert source == original
-    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 6)]
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 6)]
     assert all(not cut['approved'] for cut in cuts)
     assert [stage for stage, *_ in provider.calls] == ['intent', 'boundaries']
     assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
 
 
-def test_indivisible_free_crosspromo_and_sponsor_requires_review():
-    source = transcript('Follow our other free podcast and buy the sponsor plan')
+def test_indivisible_podcast_promo_and_editorial_speech_requires_review():
+    source = transcript('Follow our other free podcast and now the historian explains the evidence')
     provider = Provider('mixed')
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)

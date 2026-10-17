@@ -129,17 +129,17 @@ def classify(source, **options):
                               model="fixture", **options)
 
 
-def test_word_review_preserves_interior_promo_and_edits_inside_original_parent(monkeypatch):
+def test_word_review_selects_real_promo_but_preserves_editorial_inside_original_parent(monkeypatch):
     source = transcript("Welcome back. Imagine a wallet with legs. Buy the plan. "
                         "Follow Freecast for free. Terms apply. Back to today's story.".split())
     original, audit = deepcopy(source), []
-    commercial = set(range(2, 10)) | {14, 15}
+    commercial = set(range(2, 16))
     provider = Provider(lambda stage, identifier, _: "mixed" if stage == "scenes" else
                         "commercial" if identifier in commercial else "editorial")
     monkeypatch.setattr(fast, "_classifier_request", provider)
     cuts = classify(source, review_only=False, threshold=0, decision_sink=audit.append)
     assert source == original
-    assert [(cut["start"], cut["end"]) for cut in cuts] == [(1, 5), (7, 8)]
+    assert [(cut["start"], cut["end"]) for cut in cuts] == [(1, 8)]
     assert all(cut["approved"] is False and cut["requires_review"] is True for cut in cuts)
     assert set(audit[0]["boundary_audit"]["word_votes"]) == set(range(20))
     assert audit[0]["word_decisions"] == {i: "commercial" if i in commercial else "editorial" for i in range(20)}
@@ -164,6 +164,19 @@ def test_editorial_episode_receives_complete_sweep_without_word_requests(monkeyp
     assert classify(transcript(["One.", "Two.", "Three."]), decision_sink=audit.append) == []
     assert [call[0] for call in provider.calls] == ["scenes"]
     assert audit[0]["sweep_votes"] == {0: ["editorial"], 1: ["editorial"], 2: ["editorial"]}
+    assert audit[0]["boundary_audit"]["word_votes"] == {}
+
+
+def test_fake_rutabaga_podcast_sketch_and_current_show_follow_cannot_be_reopened_by_word_pass(monkeypatch):
+    source = transcript("Imagine Rutabaga Radio. Our fictional podcast sings to turnips. "
+                        "That was an unpaid parody. Follow this show for our next episode.".split())
+    original, audit = deepcopy(source), []
+    provider = Provider(lambda *_: "editorial")
+    monkeypatch.setattr(fast, "_classifier_request", provider)
+    assert classify(source, decision_sink=audit.append) == []
+    assert source == original
+    assert [call[0] for call in provider.calls] == ["scenes"]
+    assert set(audit[0]["word_decisions"].values()) == {"editorial"}
     assert audit[0]["boundary_audit"]["word_votes"] == {}
 
 
@@ -223,12 +236,13 @@ def test_whole_episode_fits_in_one_complete_request():
     assert windows == [{"core_ids": list(range(600)), "units": source}]
 
 
-def test_clear_sponsor_omission_fails_before_boundary_or_audit_publication(monkeypatch):
+@pytest.mark.parametrize('text', ['This episode is brought to you by Example. Buy it today.',
+                                'Follow our other free podcast. New episodes every Tuesday.'])
+def test_clear_sponsor_or_podcast_promo_omission_fails_before_boundary_or_audit_publication(monkeypatch, text):
     provider, audit = Provider(lambda *_: "editorial"), []
     monkeypatch.setattr(fast, "_classifier_request", provider)
     with pytest.raises(ProcessingError, match="Possible missed sponsor reads"):
-        classify(transcript("This episode is brought to you by Example. Buy it today.".split()),
-                 decision_sink=audit.append)
+        classify(transcript(text.split()), decision_sink=audit.append)
     assert audit == []
     assert [call[0] for call in provider.calls] == ["scenes"]
 

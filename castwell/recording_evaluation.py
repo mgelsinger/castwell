@@ -23,7 +23,7 @@ from .evaluation import union_intervals, validate_endpoint
 ROOT = Path(__file__).resolve().parents[1]
 VIEWS = ("candidates", "verified", "approved")
 LIMITATIONS = [
-    "Removal scope is sponsor/product reads only. Undeclared reference scope is unknown, not evidence that historical labels match the current policy.",
+    "Declared references must match the active removal scope. Undeclared reference scope remains unknown, not acceptance evidence; historical sponsor-only results do not establish acceptance for genuine podcast-promo removal.",
     "Listening and payment verification are supplied reference declarations, not independently attested by this evaluator. Missing declarations remain unknown.",
     "Only labeled intervals are scored. Unverified intervals are excluded; unlabeled audio is not assumed editorial.",
     "Unit coverage concerns provisional transcript spans, not exact acoustic cut boundaries or real-world accuracy.",
@@ -166,7 +166,7 @@ def _load_reference(path):
         raise ValueError("Reference must explicitly declare no detector predictions seen")
     scope = reference.get("removal_scope")
     if scope is not None and scope != REMOVAL_SCOPE:
-        raise ValueError("Reference removal scope differs from the current sponsor/product policy")
+        raise ValueError("Reference removal scope differs from the current removal policy")
     transcript_path = Path(reference["transcript"])
     if not transcript_path.is_absolute():
         transcript_path = path.parent / transcript_path
@@ -210,6 +210,7 @@ def _load_reference(path):
         "reference_verification": _reference_verification(reference),
         "reference_removal_scope": scope,
         "reference_scope_status": "undeclared" if scope is None else "matches_current_policy",
+        "reference_scope_matches_current_policy": scope == REMOVAL_SCOPE,
     }
     return path, reference, transcript, provenance
 

@@ -128,10 +128,11 @@ def test_manual_composition_returns_actual_refinement_and_complete_isolated_audi
     assert cuts[0]["verification"][0]["intent"]["label"] == "commercial"
 
 
-def test_actual_composed_stages_preserve_free_crosspromo_between_paid_reads(monkeypatch):
-    source, _ = fixture(count=4)
+def test_actual_composed_stages_select_free_crosspromo_and_preserve_current_show_follow(monkeypatch):
+    source, _ = fixture(count=5)
     texts = ['Buy a sponsor plan.', 'Follow our other free podcast.',
-             'This joke leads into its paid premium feed.', 'Buy that paid subscription.']
+             'This joke leads into its paid premium feed.', 'Buy that paid subscription.',
+             'Follow this show for our next episode.']
     for unit, text in zip(source['segments'], texts):
         unit['text'] = unit['words'][0]['word'] = text
     prompts, summaries = [], []
@@ -145,23 +146,24 @@ def test_actual_composed_stages_preserve_free_crosspromo_between_paid_reads(monk
                     for identifier in request['target_ids']]
             return Response(rows)
         ranges = [{'first_id': identifier, 'last_id': identifier,
-                   'label': 'editorial' if identifier == 1 else 'commercial', 'confidence': .99,
-                   'evidence_id': identifier, 'reason': 'Free preview.' if identifier == 1 else 'Actual paid offer.'}
+                   'label': 'editorial' if identifier == 4 else 'commercial', 'confidence': .99,
+                   'evidence_id': identifier, 'reason': 'Current-show follow.' if identifier == 4 else 'Actual promotion.'}
                   for identifier in request['target_ids']]
         return RangeResponse(ranges)
     monkeypatch.setattr(processing, '_classifier_request', provider)
     cuts = classify(source, approval_sink=summaries.append)
-    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 8)]
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 8)]
     assert all(not cut['approved'] for cut in cuts)
     assert summaries[0]['policy_version'] == pipeline.POLICY_VERSION
-    assert summaries[0]['scene_audit'][1]['intent']['label'] == 'editorial'
-    assert 1 not in summaries[0]['edge_plan']['selected_unit_ids']
+    assert summaries[0]['scene_audit'][1]['intent']['label'] == 'commercial'
+    assert summaries[0]['scene_audit'][4]['intent']['label'] == 'editorial'
+    assert 4 not in summaries[0]['edge_plan']['selected_unit_ids']
     assert len(prompts) == 3 and all(INSTRUCTIONS in prompt for prompt in prompts)
 
 
-def test_indivisible_crosspromo_and_sponsor_blocks_composed_auto_approval(monkeypatch):
+def test_indivisible_crosspromo_and_editorial_speech_blocks_composed_auto_approval(monkeypatch):
     source, audit = fixture(count=1)
-    text = 'Follow our free podcast and buy the sponsor plan'
+    text = 'Follow our other free podcast and now the historian explains the evidence'
     source['segments'][0]['text'] = source['segments'][0]['words'][0]['word'] = text
     for stage in ('intent', 'boundary'):
         audit[0][stage].update(label='mixed', evidence=text)

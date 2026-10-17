@@ -372,7 +372,7 @@ class JobsTests(unittest.TestCase):
 
     def test_all_detector_snapshots_include_canonical_removal_scope(self):
         from castwell.ad_scope import REMOVAL_SCOPE
-        for policy in ('legacy', 'verified', 'scene'):
+        for policy in ('legacy', 'verified', 'scene', 'fast'):
             for detector in ('auto', 'ai', 'heuristic'):
                 with self.subTest(policy=policy, detector=detector):
                     snapshot = Jobs._detection_policy({'ai_policy': policy, 'detector': detector})
@@ -381,6 +381,9 @@ class JobsTests(unittest.TestCase):
                     old_snapshot = {key: value for key, value in snapshot.items() if key != 'removal_scope'}
                     with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
                         Jobs._restore_detection_policy(old_snapshot)
+                    sponsor_only_snapshot = dict(snapshot, removal_scope='sponsor-product-reads-only-v1')
+                    with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
+                        Jobs._restore_detection_policy(sponsor_only_snapshot)
         self.assertEqual(Jobs._detection_policy({'ai_policy': 'legacy', 'detector': 'ai'})['policy_version'],
                          processing.LEGACY_AI_POLICY_VERSION)
 
@@ -418,6 +421,25 @@ class JobsTests(unittest.TestCase):
         self.assertEqual(episode['cuts'], [])
         self.assertIsNone(episode['cleaned'])
         self.assertTrue(Path(episode['audio']).is_file())
+        render.assert_not_called()
+
+    def test_known_sponsor_only_fast_analysis_cannot_be_reused_for_podcast_promo_removal(self):
+        settings = {'ai_policy': 'fast', 'detector': 'ai', 'ai_model': 'fixture',
+                    'ai_base_url': 'http://127.0.0.1:8081/v1', 'review_only': True}
+        old_profile = dict(Jobs._detection_policy(settings), removal_scope='sponsor-product-reads-only-v1')
+        old_cuts = [dict(CUT, source='ai', reason='Saved sponsor-only analysis')]
+        identifier = self.episode(transcript=TRANSCRIPT, cuts=old_cuts, analysis_done=True,
+                                  analysis_profile=old_profile)
+        self.jobs.settings_getter = lambda: dict(settings)
+        with patch('castwell.processing.detect_ads') as detect, patch('castwell.processing.render_audio') as render:
+            self.jobs.submit(identifier, 'process')
+            episode = self.wait()
+        self.assertEqual(episode['status'], 'error')
+        self.assertIn('Find ads again', episode['error'])
+        self.assertEqual(episode['cuts'], old_cuts)
+        self.assertEqual(episode['analysis_profile'], old_profile)
+        self.assertIsNone(episode['cleaned'])
+        detect.assert_not_called()
         render.assert_not_called()
 
     def test_scene_provider_failure_cannot_complete_after_listener_coverage_acknowledgement(self):

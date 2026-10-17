@@ -8,6 +8,8 @@ The tested configuration uses an **NVIDIA RTX 3090 Ti with 24 GB VRAM** and 128 
 
 ## Choose a distribution
 
+**October 17 source update:** the next build removes genuine promos for other podcasts as well as sponsor/product reads, while preserving fake ads, unpaid jokes and show speech. The existing 0.5.5 packages below still use the earlier sponsor/product-only rule. They have not been rebuilt for this policy change; updated listening output and package validation remain pending.
+
 Version **0.5.5 is built and locally validated as a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
 
 **Version 0.5.5 has not been published to GitHub Releases.** Its completed local Windows build outputs are named:

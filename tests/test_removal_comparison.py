@@ -27,6 +27,7 @@ def candidate(identifier="candidate", *, elapsed=True):
             "commercial_missed_seconds": 1, "protected_selected_seconds": 0,
             "unknown_audio_seconds": 0, "unknown_audio_selected_seconds": 0,
             "whole_sponsor_reads_missed": 0, "sponsor_read_inventory_complete": True,
+            "whole_podcast_promos_missed": 0, "podcast_promo_inventory_complete": True,
         } if elapsed else None,
     }
 
@@ -99,7 +100,8 @@ def test_missing_independent_evidence_blocks_otherwise_good_scores(change):
 
 def test_verified_interval_case_and_union_scoring():
     reference = {"regions": [region(0, 10, "commercial"), region(10, 3600, "protected")],
-                 "sponsor_reads": [{"start": 0, "end": 10}], "sponsor_read_inventory_complete": True}
+                 "sponsor_reads": [{"start": 0, "end": 10}], "sponsor_read_inventory_complete": True,
+                 "podcast_promos": [], "podcast_promo_inventory_complete": True}
     value = candidate()
     value["elapsed_audio_metrics"] = comparison.score_elapsed_intervals(
         [{"start": 0, "end": 7}, {"start": 5, "end": 9}], reference, 3600)
@@ -186,7 +188,8 @@ def test_failed_benchmark_remains_visible_without_scores_or_successful_timing():
 
 
 def test_frozen_parody_control_uses_existing_ids_and_never_copies_text():
-    report = {"status": "complete", "reference": {"source_audio_sha256": "a" * 64, "reference_sha256": "b" * 64},
+    report = {"status": "complete", "reference": {"source_audio_sha256": "a" * 64, "reference_sha256": "b" * 64,
+                                                   "removal_scope": comparison.SCOPE},
               "scores": {"rendered": {"errors": {"protected_selected": [
                   {"global_word_index": 5, "start": 10, "end": 11, "selected_seconds": .5, "word": "private source"}]}}}}
     reference = {"source_sha256": "a" * 64, "removal_scope": comparison.SCOPE,
@@ -240,3 +243,84 @@ def test_argparse_errors_do_not_echo_values_or_unknown_options(arguments, capsys
     captured = capsys.readouterr()
     assert "private" not in captured.out + captured.err
     assert json.loads(captured.err)["status"] == "failed"
+
+
+@pytest.mark.parametrize("scope", [None, "undeclared-other-policy", True, {"scope": "private"}])
+def test_candidate_scope_must_be_explicit_supported_identity(scope):
+    value = candidate()
+    value["evidence"]["removal_scope"] = scope
+    with pytest.raises(ValueError, match="explicit removal scope"):
+        comparison.compare_candidates([value])
+
+
+def test_current_and_historical_scopes_cannot_be_compared_as_equal_tests():
+    current, historical = candidate("current"), candidate("historical")
+    historical["evidence"]["removal_scope"] = comparison.HISTORICAL_SCOPE
+    with pytest.raises(ValueError, match="matching.*removal scope"):
+        comparison.compare_candidates([current, historical])
+
+
+def test_historical_scope_retains_scores_and_speed_but_never_current_acceptance():
+    values = [candidate("old-one"), candidate("old-two")]
+    for value in values:
+        value["evidence"]["removal_scope"] = comparison.HISTORICAL_SCOPE
+        value["elapsed_audio_metrics"].pop("whole_podcast_promos_missed")
+        value["elapsed_audio_metrics"].pop("podcast_promo_inventory_complete")
+    frozen = deepcopy(values)
+    result = comparison.compare_candidates(values)
+    assert values == frozen
+    assert result["removal_scope"] == comparison.HISTORICAL_SCOPE
+    assert result["current_removal_scope"] == comparison.SCOPE
+    assert result["scope_matches_current_policy"] is False
+    for row in result["candidates"]:
+        assert row["word_metrics"]["commercial_missed_seconds"] == 1
+        assert row["timing"]["speed_target_met"] is True
+        assert "historical_removal_scope_not_current_acceptance" in row["verification_blockers"]
+        assert all(item["result"] == "not_verified" for item in row["threshold_matrix"])
+
+
+def test_current_scope_requires_separately_declared_podcast_promo_coverage():
+    value = candidate()
+    for key in ("whole_podcast_promos_missed", "podcast_promo_inventory_complete"):
+        value["elapsed_audio_metrics"].pop(key)
+    row = comparison.compare_candidates([value])["candidates"][0]
+    assert "complete_podcast_promo_coverage_unknown" in row["verification_blockers"]
+    assert all(item["result"] == "not_verified" for item in row["threshold_matrix"])
+
+
+def test_whole_genuine_podcast_promo_miss_fails_even_below_remaining_duration_budget():
+    reference = {"regions": [region(0, 4, "commercial"), region(4, 3600, "protected")],
+                 "sponsor_reads": [{"start": 0, "end": 2}], "sponsor_read_inventory_complete": True,
+                 "podcast_promos": [{"start": 2, "end": 4}], "podcast_promo_inventory_complete": True}
+    value = candidate()
+    value["elapsed_audio_metrics"] = comparison.score_elapsed_intervals([{"start": 0, "end": 2}], reference, 3600)
+    row = comparison.compare_candidates([value])["candidates"][0]
+    assert row["elapsed_audio_metrics"]["whole_sponsor_reads_missed"] == 0
+    assert row["elapsed_audio_metrics"]["whole_podcast_promos_missed"] == 1
+    assert all(item["elapsed_audio_checks"]["remaining_ads_within_budget"]
+               and item["no_whole_podcast_promo_missed"] is False
+               and item["result"] == "fails_declared_thresholds" for item in row["threshold_matrix"])
+    value["elapsed_audio_metrics"] = comparison.score_elapsed_intervals([{"start": 0, "end": 4}], reference, 3600)
+    assert all(item["result"] == "verified_pass"
+               for item in comparison.compare_candidates([value])["candidates"][0]["threshold_matrix"])
+
+
+def test_complete_promo_inventory_requires_explicit_units_and_cannot_hide_uncovered_commercial():
+    reference = {"regions": [region(0, 4, "commercial"), region(4, 3600, "protected")],
+                 "sponsor_reads": [{"start": 0, "end": 2}], "sponsor_read_inventory_complete": True,
+                 "podcast_promo_inventory_complete": True}
+    with pytest.raises(ValueError, match="explicit units"):
+        comparison.score_elapsed_intervals([], reference, 3600)
+    reference["podcast_promos"] = [{"start": 2, "end": 3}]
+    with pytest.raises(ValueError, match="every commercial"):
+        comparison.score_elapsed_intervals([], reference, 3600)
+
+
+def test_parody_controls_require_matching_explicit_reference_and_report_scopes():
+    report = {"status": "failed", "reference": {"source_audio_sha256": "a" * 64,
+              "reference_sha256": "b" * 64, "removal_scope": comparison.HISTORICAL_SCOPE}}
+    reference = {"source_sha256": "a" * 64, "removal_scope": comparison.SCOPE, "protected": []}
+    with pytest.raises(ValueError, match="frozen"):
+        comparison.protected_controls_from_reference(report, reference, "b" * 64)
+    reference["removal_scope"] = comparison.HISTORICAL_SCOPE
+    assert comparison.protected_controls_from_reference(report, reference, "b" * 64) == []

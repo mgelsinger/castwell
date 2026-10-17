@@ -156,27 +156,28 @@ def test_mixed_uncertain_and_noncontiguous_editorial_targets_are_retained_for_re
     assert all(cut["requires_review"] and not cut["approved"] for cut in cuts)
 
 
-def test_free_crosspromo_edge_is_trimmed_without_trimming_paid_humorous_setup(monkeypatch):
+def test_real_free_crosspromo_edge_is_kept_in_cut_with_paid_humorous_setup(monkeypatch):
     inputs = fixture(['Follow our other free podcast.', 'A joke sets up the real sponsor offer.',
                       'Buy its paid subscription today.'])
     original, audits = deepcopy(inputs), []
-    provider = Provider(lambda identifier: ('editorial', 'program_cross_promotion', 0) if identifier == 0
+    provider = Provider(lambda identifier: ('commercial', 'program_cross_promotion', 0) if identifier == 0
                         else ('commercial', 'persuasive_setup', 2))
     monkeypatch.setattr(processing, '_classifier_request', provider)
     cuts = refine(inputs, decision_sink=audits.append)
     assert inputs == original
-    assert [(cut['start'], cut['end']) for cut in cuts] == [(2, 4), (4, 6)]
-    assert audits[0][0]['trimmed'] and audits[0][0]['evidence'] == inputs[0]['segments'][0]['text']
-    assert all(not row['trimmed'] for identifier, row in audits[0].items() if identifier != 0)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (2, 4), (4, 6)]
+    assert audits[0][0]['evidence'] == inputs[0]['segments'][0]['text']
+    assert all(not row['trimmed'] for row in audits[0].values())
     payload = provider.calls[0][1]
     assert INSTRUCTIONS in payload['messages'][0]['content']
-    assert 'Inserted promotions for other podcasts, television' not in payload['messages'][0]['content']
+    assert 'program_cross_promotion' in edges.COMMERCIAL_ROLES
+    assert 'program_cross_promotion' not in edges.EDITORIAL_ROLES
     schema = payload['response_format']['json_schema']['schema']
     assert 'program_cross_promotion' in schema['properties']['decisions']['items']['properties']['role']['enum']
 
 
-@pytest.mark.parametrize('label,evidence_id', [('commercial', 0), ('editorial', 1)])
-def test_crosspromo_role_cannot_be_commercial_or_use_another_units_evidence(label, evidence_id):
+@pytest.mark.parametrize('label,evidence_id', [('editorial', 0), ('mixed', 0), ('uncertain', 0)])
+def test_genuine_crosspromo_role_requires_commercial_label(label, evidence_id):
     request = edges.build_edge_plan(*fixture(['Free podcast preview', 'Buy a paid plan']))['requests'][0]
     rows = [{'id': 0, 'label': label, 'role': 'program_cross_promotion', 'evidence_id': evidence_id,
              'reason': 'Free podcast preview.'},
@@ -186,8 +187,8 @@ def test_crosspromo_role_cannot_be_commercial_or_use_another_units_evidence(labe
         edges._parse({'decisions': rows}, request)
 
 
-def test_indivisible_crosspromo_with_sponsor_edge_is_retained_for_review(monkeypatch):
-    inputs = fixture(['Follow the free podcast and buy the sponsor plan'])
+def test_indivisible_crosspromo_with_editorial_edge_is_retained_for_review(monkeypatch):
+    inputs = fixture(['Follow the other free podcast and now back to our history discussion'])
     audits = []
     monkeypatch.setattr(processing, '_classifier_request', Provider(lambda _: ('mixed', 'unresolved', 0)))
     cuts = refine(inputs, decision_sink=audits.append)

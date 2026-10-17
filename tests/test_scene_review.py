@@ -154,25 +154,27 @@ def test_all_commercial_cuts_are_unapproved_even_when_review_disabled(monkeypatc
     assert "ENTIRE established promotional" not in intent["messages"][0]["content"]
 
 
-def test_free_podcast_preview_splits_paid_offer_and_humorous_setup_in_both_stages(monkeypatch):
+def test_real_free_podcast_preview_and_humorous_setup_are_selected_in_both_stages(monkeypatch):
     source = transcript('The sponsor has a paid service.',
                         'Follow our other podcast for free stories.',
                         'My wallet is auditioning for the premium podcast.',
-                        'Buy that paid podcast subscription today.')
-    provider = Provider(lambda _, identifier: 'editorial' if identifier == 1 else 'commercial')
+                        'Buy that paid podcast subscription today.',
+                        'Follow this show for the rest of our discussion.')
+    provider = Provider(lambda _, identifier: 'editorial' if identifier == 4 else 'commercial')
     monkeypatch.setattr(processing, '_classifier_request', provider)
     audits = []
     cuts = classify(source, decision_sink=audits.append)
-    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2), (4, 8)]
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 8)]
     assert all(not cut['approved'] for cut in cuts)
-    assert audits[0][1]['intent']['label'] == audits[0][1]['boundary']['label'] == 'editorial'
+    assert audits[0][1]['intent']['label'] == audits[0][1]['boundary']['label'] == 'commercial'
+    assert audits[0][4]['intent']['label'] == audits[0][4]['boundary']['label'] == 'editorial'
     assert audits[0][2]['intent']['label'] == audits[0][2]['boundary']['label'] == 'commercial'
     assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
 
 
-def test_indivisible_crosspromo_and_sponsor_stays_mixed_review(monkeypatch):
+def test_indivisible_crosspromo_and_editorial_speech_stays_mixed_review(monkeypatch):
     monkeypatch.setattr(processing, '_classifier_request', Provider('mixed'))
-    cuts = classify(transcript('Listen to our free podcast and buy the sponsor plan'), review_only=False)
+    cuts = classify(transcript('Listen to our other free podcast and now back to our history discussion'), review_only=False)
     assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
     assert cuts[0]['label'] == 'mixed' and cuts[0]['requires_review'] and not cuts[0]['approved']
 

@@ -35,12 +35,25 @@ def test_already_commercial_read_and_neighbors_do_not_trigger_omission():
     assert audit["cue_clusters"] == audit["flagged_unit_ids"] == []
 
 
-def test_free_podcast_promo_and_ordinary_product_discussion_are_not_sufficient_cues():
+def test_current_show_follow_and_ordinary_product_discussion_are_not_sufficient_cues():
     units = source(["Join us for a new episode every Tuesday.",
-                    "Download this free podcast wherever you listen.",
+                    "Follow this show and download this episode wherever you listen.",
                     "We use code to study the company's products and save files.",
                     "This episode is not sponsored by the company we are discussing."])
     assert omission_guard(units, dict.fromkeys(range(4), "editorial"))["guard_requires_review"] is False
+
+
+@pytest.mark.parametrize('text', ['Follow our other free podcast.', 'Listen to another podcast.',
+                                'Our unpaid parody says: follow our other free podcast, Rutabaga Radio.'])
+def test_explicit_other_podcast_omission_warns_without_relabeling_even_for_parody(text):
+    units = source([text])
+    labels = {0: 'editorial'}
+    original = deepcopy((units, labels))
+    audit = omission_guard(units, labels)
+    assert audit['guard_requires_review'] and audit['flagged_unit_ids'] == [0]
+    assert audit['cue_clusters'][0]['cue_families'] == ['explicit_podcast_promotion']
+    assert (units, labels) == original
+    assert not omission_guard(units, {0: 'commercial'})['guard_requires_review']
 
 
 def test_explicit_sponsorship_parody_warns_but_preserves_its_editorial_decision():

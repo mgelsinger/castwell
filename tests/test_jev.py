@@ -250,14 +250,16 @@ def test_invalid_local_configuration_fails_before_network(monkeypatch, settings)
 
 
 @pytest.mark.parametrize('provider', ['jev', 'kev'])
-def test_both_typed_providers_apply_free_crosspromo_scope_and_keep_mixed_review(monkeypatch, provider):
-    source = transcript(4)
+def test_both_typed_providers_select_real_promo_preserve_parody_and_keep_mixed_review(monkeypatch, provider):
+    source = transcript(6)
     texts = ['Listen to our other free podcast.', 'Buy its paid premium feed.',
              'A humorous lead-in to the real sponsor offer.',
-             'Follow our free podcast and buy the sponsor plan']
+             'Our imaginary Rutabaga Radio is an unpaid fictional podcast sketch.',
+             'Follow this show for the next episode.',
+             'Follow our other podcast and now back to our ordinary history discussion']
     for segment, text in zip(source['segments'], texts):
         segment['text'] = text
-    labels = ['editorial', 'commercial', 'commercial', 'uncertain']
+    labels = ['commercial', 'commercial', 'commercial', 'editorial', 'editorial', 'uncertain']
     def decisions(answer, payload):
         for identifier, label in enumerate(labels):
             answer['answers'][f'kind_{identifier}'].update(
@@ -282,14 +284,15 @@ def test_both_typed_providers_apply_free_crosspromo_scope_and_keep_mixed_review(
         payload = payloads[0]
         assert result['policy_version'] == jev.POLICY_VERSION
     assert [row['choice'] for row in result['decisions']] == labels
-    assert [(cut['start'], cut['end']) for cut in result['cuts']] == [(5, 15)]
+    assert [(cut['start'], cut['end']) for cut in result['cuts']] == [(0, 15)]
     assert all(not cut['approved'] for cut in result['cuts'])
-    assert result['review'] and result['decisions'][3]['requires_review']
+    assert result['review'] and result['decisions'][5]['requires_review']
     assert INSTRUCTIONS in payload['state']['task']
     for name, question in payload['questions'].items():
         if name.startswith('kind_'):
             assert 'state.task' in question['instructions']
-            assert 'free' in question['criteria']['editorial'] and 'another podcast' in question['criteria']['editorial']
+            assert 'CURRENT-show' in question['criteria']['editorial']
+            assert 'another podcast, including a free one' in question['criteria']['commercial']
             assert 'paid-subscription' in question['criteria']['commercial']
             assert 'inseparably' in question['criteria']['uncertain']
 

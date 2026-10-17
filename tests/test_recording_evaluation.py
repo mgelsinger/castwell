@@ -56,7 +56,7 @@ def recording(tmp_path):
     transcript.write_text(json.dumps({"language": "en", "duration": 10,
         "segments": [{"id": 0, "start": 0, "end": 10, "text": "PRIVATE TRANSCRIPT SENTINEL"}]}))
     reference = tmp_path / "show.first-10m.reference-v3.json"
-    reference.write_text(json.dumps({"detector_predictions_seen": False,
+    reference.write_text(json.dumps({"detector_predictions_seen": False, "removal_scope": evaluation.REMOVAL_SCOPE,
         "transcript": str(transcript), "transcript_sha256": evaluation.sha256(transcript),
         "commercial_units": [{"start": 0, "end": 5, "reason": "PRIVATE ANNOTATION SENTINEL"}],
         "protected_units": [{"start": 5, "end": 10}], "unverified_intervals": []}))
@@ -120,7 +120,8 @@ def test_changed_transcript_is_rejected(recording):
 
 def test_frozen_candidate_hash_mismatch_rejected_before_inference(recording, tmp_path):
     candidate = tmp_path / "candidate.json"
-    candidate.write_text(json.dumps({"source_sha256": {"processing.py": "0" * 64}}))
+    candidate.write_text(json.dumps({"removal_scope": evaluation.REMOVAL_SCOPE,
+                                     "source_sha256": {"processing.py": "0" * 64}}))
     with pytest.raises(ValueError, match="frozen candidate"):
         evaluation.evaluate_recordings(**recording, candidate_config=candidate,
                                       detector=lambda *args, **kwargs: pytest.fail("detector called"))
@@ -144,7 +145,8 @@ def test_reasoning_profile_is_recorded_and_cannot_change_on_resume(recording):
 def test_frozen_reasoning_profile_mismatch_rejected_before_inference(recording, tmp_path):
     from castwell.ad_review import inference_settings
     candidate = tmp_path / "candidate.json"
-    candidate.write_text(json.dumps({"detector_configuration": {"request_profile": inference_settings(True)}}))
+    candidate.write_text(json.dumps({"detector_configuration": {"removal_scope": evaluation.REMOVAL_SCOPE,
+                                     "request_profile": inference_settings(True)}}))
     with pytest.raises(ValueError, match="Inference profile differs"):
         evaluation.evaluate_recordings(**recording, candidate_config=candidate,
                                       detector=lambda *args, **kwargs: pytest.fail("detector called"))
@@ -393,15 +395,19 @@ def test_reference_verification_missing_stays_unknown_and_invalid_declaration_fa
         evaluation.evaluate_recordings(**recording, resume=True)
 
 
-def test_undeclared_reference_scope_remains_unknown_and_current_scope_is_pinned(recording):
+def test_undeclared_reference_scope_remains_unknown_without_current_scope_acceptance(recording):
+    path = recording["references"][0]
+    reference = json.loads(path.read_text())
+    reference.pop("removal_scope")
+    path.write_text(json.dumps(reference))
     result = evaluation.evaluate_recordings(**recording, detector=lambda *args, **kwargs: [])
-    assert result["configuration"]["removal_scope"] == "sponsor-product-reads-only-v1"
-    assert "castwell/ad_scope.py" in result["provenance"]["source_sha256"]
-    assert result["clips"][0]["provenance"]["reference_removal_scope"] is None
+    assert result["configuration"]["removal_scope"] == evaluation.REMOVAL_SCOPE
     assert result["clips"][0]["provenance"]["reference_scope_status"] == "undeclared"
+    assert result["clips"][0]["provenance"]["reference_scope_matches_current_policy"] is False
+    assert any("not acceptance evidence" in value for value in result["limitations"])
 
 
-@pytest.mark.parametrize("scope", ["all-promotions", True, {"scope": "sponsor-product"}])
+@pytest.mark.parametrize("scope", ["all-promotions", "sponsor-product-reads-only-v1", True, {"scope": "sponsor-product"}])
 def test_mismatched_reference_scope_fails_before_classification(recording, scope):
     reference = json.loads(recording["references"][0].read_text())
     reference["removal_scope"] = scope
@@ -415,11 +421,14 @@ def test_mismatched_reference_scope_fails_before_classification(recording, scope
 def test_matching_reference_scope_is_recorded_without_changing_labels(recording):
     path = recording["references"][0]
     reference = json.loads(path.read_text())
-    reference["removal_scope"] = "sponsor-product-reads-only-v1"
+    reference["removal_scope"] = evaluation.REMOVAL_SCOPE
     path.write_text(json.dumps(reference))
     before = path.read_bytes()
     result = evaluation.evaluate_recordings(**recording, detector=lambda *args, **kwargs: [])
+    assert result["configuration"]["removal_scope"] == evaluation.REMOVAL_SCOPE
+    assert "castwell/ad_scope.py" in result["provenance"]["source_sha256"]
     assert result["clips"][0]["provenance"]["reference_scope_status"] == "matches_current_policy"
+    assert result["clips"][0]["provenance"]["reference_scope_matches_current_policy"] is True
     assert path.read_bytes() == before
 
 

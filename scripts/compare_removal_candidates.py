@@ -9,13 +9,16 @@ See from_benchmark() for that schema. Missing evidence remains unknown.
 
 The primary accuracy metric is elapsed annotated audio, not summed ASR word
 duration. Existing word-only reports therefore cannot produce a verified pass.
-score_elapsed_intervals() supports independently supplied regions and complete
-sponsor-read inventories; it does not create labels from transcript gaps.
+score_elapsed_intervals() supports independently supplied regions and separate
+sponsor-read and podcast-promo inventories; it does not label transcript gaps.
 
 Default thresholds: 5 remaining ad seconds per audio hour, 300 processing
 seconds per audio hour, and separate 0/1/3/5 show-loss seconds PER EPISODE.
 Exploratory columns are comparisons only and never change application defaults.
-All candidates must use identical source and reference hashes and duration.
+All candidates must use identical source/reference hashes, duration and explicit
+removal scope. Historical sponsor-only comparisons never establish current-scope
+acceptance. Current acceptance requires complete sponsor and podcast-promo
+inventories; absent podcast-promo metadata remains unknown.
 Outputs contain allowlisted aggregates, identities and reasons, never raw input
 reports, transcript text or filesystem paths. Evidence declarations are trusted
 input claims, not independent attestations by this offline tool.
@@ -32,7 +35,14 @@ import re
 import sys
 
 
-SCOPE = "sponsor-product-reads-only-v1"
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from castwell.ad_scope import REMOVAL_SCOPE
+
+SCOPE = REMOVAL_SCOPE
+HISTORICAL_SCOPE = "sponsor-product-reads-only-v1"
+SUPPORTED_SCOPES = frozenset((SCOPE, HISTORICAL_SCOPE))
 EPSILON = 1e-7
 
 
@@ -68,6 +78,12 @@ def _object(value):
 def _hash(value):
     if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
         raise ValueError("Expected a lowercase SHA256 identity")
+    return value
+
+
+def _scope(value):
+    if not isinstance(value, str) or value not in SUPPORTED_SCOPES:
+        raise ValueError("Candidates must declare a supported explicit removal scope")
     return value
 
 
@@ -114,10 +130,15 @@ def score_elapsed_intervals(cuts, reference, audio_seconds):
     """Score explicit audio regions without treating unlabeled time as show.
 
     reference: {regions: [{start, end, label}], sponsor_reads: [{start, end}],
-                sponsor_read_inventory_complete: bool|null}.
+                sponsor_read_inventory_complete: bool|null,
+                podcast_promos: [{start, end}]|null,
+                podcast_promo_inventory_complete: bool|null}.
     Region labels are commercial, protected or unknown; regions cannot overlap.
     Missing regions count as unknown. A declared complete sponsor-read inventory
-    must exactly cover commercial regions and contain no protected/unknown time.
+    must exactly cover commercial regions outside the separately declared promo
+    ranges. Both inventories contain only commercial audio and cannot overlap.
+    Complete promo coverage requires an explicit list, empty when absent; missing
+    promo metadata stays unknown and cannot establish current-policy acceptance.
     Silence inside a labeled ad region counts as elapsed ad time. It is never
     inferred from word endpoints. No word metadata or text is accepted as truth.
     """
@@ -144,7 +165,22 @@ def score_elapsed_intervals(cuts, reference, audio_seconds):
         if any(abs((b - a) - _intersection_seconds([(a, b)], commercial)) > EPSILON for a, b in reads):
             raise ValueError("Sponsor reads must contain only labeled commercial audio")
         whole_missed = sum(_intersection_seconds([read], selected) <= EPSILON for read in reads)
-    if inventory_complete is True and (reads is None or abs(_seconds(reads) - _seconds(commercial)) > EPSILON):
+    promos = reference.get("podcast_promos")
+    promo_inventory_complete = _flag(reference.get("podcast_promo_inventory_complete"))
+    whole_promos_missed = None
+    if promos is not None:
+        promos = _intervals(promos, duration)
+        if any(a[1] > b[0] for a, b in zip(promos, promos[1:])):
+            raise ValueError("Podcast promos cannot overlap")
+        if any(abs((b - a) - _intersection_seconds([(a, b)], commercial)) > EPSILON for a, b in promos):
+            raise ValueError("Podcast promos must contain only labeled commercial audio")
+        if reads is not None and _intersection_seconds(reads, promos) > EPSILON:
+            raise ValueError("Sponsor and podcast-promo inventories cannot overlap")
+        whole_promos_missed = sum(_intersection_seconds([promo], selected) <= EPSILON for promo in promos)
+    if promo_inventory_complete is True and promos is None:
+        raise ValueError("Complete podcast-promo inventory requires explicit units, including an empty list when absent")
+    expected_sponsor_seconds = _seconds(commercial) - (0. if promos is None else _seconds(promos))
+    if inventory_complete is True and (reads is None or abs(_seconds(reads) - expected_sponsor_seconds) > EPSILON):
         raise ValueError("Complete sponsor-read inventory must cover every commercial region")
     return {
         "commercial_missed_seconds": max(0., _seconds(commercial) - ad_selected),
@@ -153,6 +189,8 @@ def score_elapsed_intervals(cuts, reference, audio_seconds):
         "unknown_audio_selected_seconds": max(0., _seconds(selected) - ad_selected - show_selected),
         "whole_sponsor_reads_missed": whole_missed,
         "sponsor_read_inventory_complete": inventory_complete,
+        "whole_podcast_promos_missed": whole_promos_missed,
+        "podcast_promo_inventory_complete": promo_inventory_complete,
     }
 
 
@@ -233,7 +271,7 @@ def protected_controls_from_reference(report, reference, reference_sha256):
     provenance = _object(report["reference"])
     if (_hash(reference_sha256) != provenance["reference_sha256"]
             or reference.get("source_sha256") != provenance["source_audio_sha256"]
-            or reference.get("removal_scope") != SCOPE):
+            or _scope(reference.get("removal_scope")) != _scope(provenance.get("removal_scope"))):
         raise ValueError("Control reference must match the report's frozen source and reference identity")
     units = reference.get("protected")
     if not isinstance(units, list):
@@ -321,6 +359,11 @@ def _metrics(value, *, elapsed, duration):
             raise ValueError("Whole missed read count must be a nonnegative integer or null")
         result["whole_sponsor_reads_missed"] = count
         result["sponsor_read_inventory_complete"] = _flag(value.get("sponsor_read_inventory_complete"))
+        promos = value.get("whole_podcast_promos_missed")
+        if promos is not None and (type(promos) is not int or promos < 0):
+            raise ValueError("Whole missed promo count must be a nonnegative integer or null")
+        result["whole_podcast_promos_missed"] = promos
+        result["podcast_promo_inventory_complete"] = _flag(value.get("podcast_promo_inventory_complete"))
     else:
         for key in ("zero_duration_commercial_points_missed", "zero_duration_protected_points_selected"):
             count = value.get(key)
@@ -338,8 +381,7 @@ def _candidate(value):
         raise ValueError("Candidate requires explicit complete, failed or incomplete status")
     if value.get("score_scope") not in {"rendered", "proposed", "unknown"}:
         raise ValueError("Candidate requires explicit rendered, proposed or unknown score scope")
-    if evidence.get("removal_scope") != SCOPE:
-        raise ValueError("All candidates must declare the sponsor/product-only removal scope")
+    scope = _scope(evidence.get("removal_scope"))
     result = {
         "id": _identifier(value["id"]), "run_status": value["run_status"], "score_scope": value["score_scope"],
         "render_mode": value.get("render_mode", "unknown"),
@@ -363,7 +405,7 @@ def _candidate(value):
     if (value["run_status"] == "complete" and result["timing"]["complete_pipeline"] is True
             and result["timing"]["wall_seconds"] == 0):
         raise ValueError("A completed audio pipeline requires positive elapsed wall time")
-    result["evidence"]["removal_scope"] = SCOPE
+    result["evidence"]["removal_scope"] = scope
     if value.get("benchmark_report_sha256") is not None:
         result["benchmark_report_sha256"] = _hash(value["benchmark_report_sha256"])
     return result
@@ -388,9 +430,9 @@ def compare_candidates(candidates, *, max_ad_seconds_per_hour=5., max_processing
         raise ValueError("At least one explicit show-loss budget is required")
     budgets = sorted(set(_number(value) for value in show_loss_budgets))
     rows = [_candidate(value) for value in candidates]
-    identities = {(r["source_audio_sha256"], r["reference_sha256"], r["audio_seconds"]) for r in rows}
+    identities = {(r["source_audio_sha256"], r["reference_sha256"], r["audio_seconds"], r["evidence"]["removal_scope"]) for r in rows}
     if len(identities) != 1 or len({r["id"] for r in rows}) != len(rows):
-        raise ValueError("Use unique candidate IDs and matching source/reference hashes and duration")
+        raise ValueError("Use unique candidate IDs and matching source/reference hashes, duration and removal scope")
     for row in rows:
         duration, timing = row["audio_seconds"], row["timing"]
         ad_budget = max_ads * duration / 3600
@@ -412,6 +454,9 @@ def compare_candidates(candidates, *, max_ad_seconds_per_hour=5., max_processing
         if not row["timing"]["eligible_for_speed_gate"]:
             reasons.append("fresh_complete_cold_cuda_timing_not_established")
         evidence = row["evidence"]
+        current_scope = evidence["removal_scope"] == SCOPE
+        if not current_scope:
+            reasons.append("historical_removal_scope_not_current_acceptance")
         if evidence["human_listening_verified"] is not True:
             reasons.append("human_listening_not_verified")
         if evidence["consumed_development"] is not False:
@@ -421,31 +466,41 @@ def compare_candidates(candidates, *, max_ad_seconds_per_hour=5., max_processing
         audio = row["elapsed_audio_metrics"]
         if audio is None:
             reasons += ["elapsed_audio_accuracy_unknown", "complete_sponsor_read_coverage_unknown"]
+            if current_scope:
+                reasons.append("complete_podcast_promo_coverage_unknown")
         else:
             if audio["unknown_audio_seconds"] is None or audio["unknown_audio_seconds"] > EPSILON:
                 reasons.append("audio_reference_coverage_incomplete_or_unknown")
             if audio["sponsor_read_inventory_complete"] is not True or audio["whole_sponsor_reads_missed"] is None:
                 reasons.append("complete_sponsor_read_coverage_unknown")
+            if current_scope and (audio["podcast_promo_inventory_complete"] is not True
+                                  or audio["whole_podcast_promos_missed"] is None):
+                reasons.append("complete_podcast_promo_coverage_unknown")
         row["verification_blockers"] = reasons
         row["threshold_matrix"] = []
         for budget in budgets:
             word = _thresholds(row["word_metrics"], ad_budget, budget)
             elapsed_checks = _thresholds(audio, ad_budget, budget)
             whole_missed = None if audio is None else audio["whole_sponsor_reads_missed"]
+            promos_missed = None if audio is None or not current_scope else audio["whole_podcast_promos_missed"]
             known_failure = (row["run_status"] == "failed" or row["timing"]["speed_target_met"] is False
                 or (elapsed_checks is not None and not all(elapsed_checks.values()))
-                or (whole_missed is not None and whole_missed > 0))
+                or (whole_missed is not None and whole_missed > 0)
+                or (promos_missed is not None and promos_missed > 0))
             verified = not reasons and not known_failure
             row["threshold_matrix"].append({
                 "show_loss_budget_seconds_per_episode": budget, "ad_budget_seconds_per_episode": ad_budget,
                 "word_proxy_checks": word, "elapsed_audio_checks": elapsed_checks,
                 "word_proxy_thresholds_met": None if word is None else all(word.values()),
                 "no_whole_sponsor_read_missed": None if whole_missed is None else whole_missed == 0,
+                "no_whole_podcast_promo_missed": None if promos_missed is None else promos_missed == 0,
                 "result": "run_failed" if row["run_status"] == "failed" else "fails_declared_thresholds" if known_failure else "verified_pass" if verified else "not_verified",
             })
     first = rows[0]
     return {
-        "schema_version": 1, "removal_scope": SCOPE,
+        "schema_version": 1, "removal_scope": first["evidence"]["removal_scope"],
+        "current_removal_scope": SCOPE,
+        "scope_matches_current_policy": first["evidence"]["removal_scope"] == SCOPE,
         "comparison_identity": {key: first[key] for key in ("source_audio_sha256", "reference_sha256", "audio_seconds")},
         "thresholds": {"max_ad_seconds_per_audio_hour": max_ads,
                        "max_processing_seconds_per_audio_hour": max_time,
@@ -457,6 +512,8 @@ def compare_candidates(candidates, *, max_ad_seconds_per_hour=5., max_processing
             "Unknown or unlistened coverage cannot establish a verified pass; consumed references remain development evidence.",
             "A verified pass is conditional on supplied metadata and reviewed reference declarations, not an independent attestation.",
             "A whole missed sponsor read fails regardless of its duration or the remaining-ad budget.",
+            "Current-scope acceptance also requires an explicit complete podcast-promo inventory; a whole missed genuine promo fails regardless of duration.",
+            "Matching historical sponsor-only cohorts remain comparable development evidence, never acceptance for the current removal scope.",
             "Show-loss columns are seconds per episode; ad and processing budgets scale by full source audio duration.",
             "Cached or partial timings cannot pass the fresh complete cold CUDA speed gate.",
             "Incomplete request telemetry or unknown/nonzero asset downloads cannot pass the speed gate; proposal scores do not describe an approved-subset export.",

@@ -1,6 +1,6 @@
 """Deterministic omission warnings, never commercial classifications.
 
-An editorial decision containing direct sponsorship or transactional offer cues
+An editorial decision containing direct sponsorship, transactional offer or other-podcast promotion cues
 needs review. Even fiction can contain those cues, so this guard cannot justify
 a cut, change a model label, or establish that a recording is free of ads.
 """
@@ -11,13 +11,16 @@ import math
 import re
 
 
-VERSION = "sponsor-cue-omissions-v1"
+VERSION = "sponsor-promo-cue-omissions-v2"
 LABELS = {"editorial", "commercial", "mixed", "uncertain"}
 CLUSTER_SECONDS = 45
 _SPONSOR = re.compile(
     r"\b(?:this|today'?s|the|our)\s+(?:episode|show|podcast)\s+(?:is\s+)?"
     r"(?:brought\s+to\s+you|sponsored|supported)\s+by\b", re.I)
 _CODE = re.compile(r"\b(?:promo(?:tional)?|coupon|discount)\s+code\b", re.I)
+_PODCAST_PROMO = re.compile(
+    r"\b(?:listen\s+to|follow|check\s+out|download|subscribe\s+to|discover)\s+"
+    r"(?:(?:our|my|the)\s+)?(?:other|another|sister|spin-?off)\s+(?:free\s+)?podcast\b", re.I)
 _ACTION = re.compile(
     r"\b(?:sign\s+up|shop|buy|order|visit|head\s+to|go\s+to|download|get\s+started|join|"
     r"(?:use|enter|apply)\s+(?:(?:the|our|my)\s+)?code)\b", re.I)
@@ -62,6 +65,8 @@ cause a correctly protected program announcement to be flagged.
             remember([i], "explicit_sponsorship")
         if _CODE.search(unit["text"]):
             remember([i], "offer_code")
+        if _PODCAST_PROMO.search(unit["text"]):
+            remember([i], "explicit_podcast_promotion")
         first = i - 1 if i > 0 and global_decisions[i - 1] == "editorial" else i
         last = i + 1 if i + 1 < len(units) and global_decisions[i + 1] == "editorial" else i
         text, spans = "", []
