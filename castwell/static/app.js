@@ -22,6 +22,7 @@
     sort: 'newest', feeds: [], jobs: [], feedBusy: new Set(), feedRefreshRunning: false,
     waveform: null, waveformKey: '', waveformBusy: false, markStart: null,
     pendingSeek: null, pendingPlay: false, playbackCuts: [], lastPositionSave: 0, lastPosition: null,
+    cutPreview: null,
     transcriptVersion: 'original', cleanedTranscript: null, cleanedKey: '', cleanedBusy: false,
     modelPreparing: false, settingsLoaded: false, settingsBusy: false,
     revisions: [], progressWarning: false,
@@ -551,6 +552,7 @@
       showDialog('episode-dialog'); updateMiniPlayer(); drawWaveform(); return;
     }
     if (state.cutsDirty && !window.confirm('Discard your unsaved cut changes and open another episode?')) return;
+    stopCutPreview();
     await persistPosition(true);
     state.lastFocus = document.activeElement;
     state.detail = state.episodes.find((episode) => episode.id === id) || { id };
@@ -594,7 +596,7 @@
     $('detail-status').replaceChildren(statusBadge(episode));
     $('detail-ad-mode').value = episode.ad_mode || 'remove';
     $('detail-ad-mode').disabled = state.policyBusy || state.actionBusy || !podcastFor(episode);
-    $('detail-policy-note').textContent = episode.ad_mode === 'keep' ? 'Preparation and preferred playback keep original audio.' : 'Review suggested cuts before removing audio.';
+    $('detail-policy-note').textContent = episode.ad_mode === 'keep' ? 'Preparation and preferred playback keep original audio.' : state.settings.ai_policy === 'scene' && !state.settings.review_only ? 'Resolved cuts create a listening copy. Unresolved episodes keep their original audio.' : 'Review suggested cuts before removing audio.';
     $('detail-description').textContent = plainText(episode.description);
     visible('detail-description', Boolean(episode.description));
     if (episode.error) showError('detail-error', new Error(episode.error));
@@ -620,19 +622,20 @@
     visible('download-decisions', episode.has_transcript || (episode.cuts || []).length > 0);
     $('transcript-version').options[1].disabled = !episode.has_cleaned;
     if (!episode.has_cleaned && state.transcriptVersion === 'cleaned') { state.transcriptVersion = 'original'; $('transcript-version').value = 'original'; }
-    $('mark-cut-start').disabled = busy || state.actionBusy || !episode.has_audio;
-    $('mark-cut-end').disabled = busy || state.actionBusy || state.markStart === null || !episode.has_audio;
     const processLabel = episode.status === 'error' ? 'Retry preparation' : episode.has_transcript ? 'Prepare again' : 'Prepare episode';
     $('detail-process').replaceChildren(icon('spark'), document.createTextNode(busy ? 'Preparing…' : processLabel));
     const usesAI = state.settings.ai_configured && !['heuristic', 'Local rules'].includes(state.settings.detector);
     const verifiedAI = usesAI && state.settings.ai_policy !== 'legacy';
-    $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
-    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
+    const sceneAI = usesAI && state.settings.ai_policy === 'scene';
+    const fastAI = usesAI && state.settings.ai_policy === 'fast';
+    $('detail-preparation-note').textContent = episode.ad_mode === 'keep' ? 'Download · Transcribe · Keep original audio' : sceneAI ? 'Transcribe · Check ad context and cut boundaries · Prepare listening copy' : usesAI ? 'Transcribe · Check ad context · Review suggested cuts' : 'Transcribe · Find ad cues · Review suggested cuts';
+    $('processing-method').textContent = `Transcription: Whisper ${state.settings.transcription_model || 'base'} · Ad detection: ${fastAI ? 'experimental fast CUDA; review required' : sceneAI ? 'AI scene and endpoint checks' : verifiedAI ? 'AI with two-pass verification' : usesAI ? 'contextual AI' : 'local rules; review suggestions carefully'}`;
     visible('detail-redetect', episode.has_transcript);
     $('detail-redetect').disabled = busy || state.actionBusy;
     visible('detail-retranscribe', episode.has_transcript && episode.has_audio);
     $('detail-retranscribe').disabled = busy || state.actionBusy;
     $('render-cuts').disabled = !episode.has_audio || busy || state.actionBusy;
+    $('confirm-coverage-review').disabled = !episode.coverage_review_token || busy || state.actionBusy || state.cutsDirty;
     $('save-cuts').disabled = busy || state.actionBusy;
     $('add-cut').disabled = busy;
     $('transcript-file').disabled = busy || state.actionBusy;
@@ -648,6 +651,7 @@
     $('detail-cut-count').textContent = state.cuts.length;
     for (const input of $('cut-list').querySelectorAll('input, button')) input.disabled = busy || state.actionBusy || (input.classList.contains('button') && !episode.has_audio);
     updatePlayer();
+    updateMarkControls();
     renderTranscript();
     renderCutSummary();
     ensureWaveform();
@@ -708,6 +712,7 @@
     $('download-original').href = mediaURL(episode.id, 'original');
     const src = hasAudio ? mediaURL(episode.id, state.audioVersion) : '';
     if (audio.getAttribute('src') !== src) {
+      stopCutPreview();
       if (src) {
         if (state.pendingSeek === null) { state.pendingSeek = position; state.pendingPlay = playing; }
         state.playbackCuts = state.audioVersion === 'cleaned' ? mergedCuts() : [];
@@ -721,6 +726,7 @@
     return state.audioVersion === 'cleaned' ? originalTime(value, state.playbackCuts) : value;
   }
   function switchAudio(version) {
+    stopCutPreview();
     if (state.audioVersion === version || !state.detail) return;
     state.pendingSeek = playhead();
     state.pendingPlay = !$('audio-player').paused;
@@ -730,6 +736,7 @@
     updatePlayer(); renderTranscript(true); updateMiniPlayer();
   }
   function seek(time, original = false) {
+    stopCutPreview();
     const audio = $('audio-player');
     if (!state.detail?.has_audio) return;
     if (original && state.audioVersion !== 'original') {
@@ -741,6 +748,88 @@
       audio.play().catch(() => {});
     }
   }
+  function stopCutPreview(message = 'Preview stopped. Your listening position is unchanged.') {
+    const preview = state.cutPreview;
+    if (!preview) return;
+    state.cutPreview = null;
+    preview.events.abort();
+    window.clearTimeout(preview.timeout);
+    window.clearInterval(preview.timer);
+    preview.audio.pause();
+    preview.audio.removeAttribute('src');
+    preview.audio.load();
+    preview.audio.remove();
+    preview.button.setAttribute('aria-pressed', 'false');
+    if (document.activeElement === preview.stop) preview.button.focus({ preventScroll: true });
+    preview.stop.hidden = true;
+    preview.status.textContent = message;
+    updateMarkControls();
+    updateMiniPlayer();
+  }
+  function previewCutBoundary(cut, index, edge, button, stop, status) {
+    if (state.cutPreview?.button === button) { stopCutPreview(); return; }
+    stopCutPreview();
+    const boundary = Number(cut[edge]);
+    if (!state.detail?.has_audio || cut[edge] === null || !Number.isFinite(boundary) || boundary < 0) {
+      status.textContent = 'Enter a valid boundary before listening.';
+      return;
+    }
+    const audio = el('audio');
+    audio.id = 'cut-preview-audio';
+    audio.preload = 'metadata'; audio.hidden = true;
+    const preview = {
+      audio, boundary, start: Math.max(0, boundary - 3), end: boundary + 3,
+      episodeId: state.detail.id, button, stop, status, edge, index,
+      events: new AbortController(), timeout: null, timer: null, phase: '',
+    };
+    state.cutPreview = preview;
+    updateMarkControls();
+    // Auditions have their own original timeline; never remap the main player
+    // or persist the audition position as the listener's episode progress.
+    state.pendingPlay = false;
+    $('audio-player').pause();
+    audio.volume = $('audio-player').volume;
+    audio.muted = $('audio-player').muted;
+    audio.playbackRate = 1;
+    button.setAttribute('aria-pressed', 'true'); stop.hidden = false;
+    status.textContent = `Loading original audio around cut ${index + 1} ${edge} at ${clock(boundary)}…`;
+    const options = { signal: preview.events.signal };
+    const active = () => state.cutPreview === preview;
+    const fail = () => { if (active()) stopCutPreview('Could not play this preview. Try again or use the original episode player.'); };
+    const progress = () => {
+      if (!active()) return;
+      if (state.detail?.id !== preview.episodeId || !$('episode-dialog').open) { stopCutPreview(); return; }
+      if (audio.currentTime >= preview.end) { stopCutPreview('Preview finished. Your listening position is unchanged.'); return; }
+      if (audio.paused || audio.seeking) return;
+      const phase = audio.currentTime < boundary ? 'Before' : 'After';
+      if (preview.phase !== phase) {
+        preview.phase = phase;
+        status.textContent = `${phase} cut ${index + 1} ${edge} · Original audio ${clock(preview.start)} to ${clock(preview.end)} · Stops automatically.`;
+      }
+    };
+    audio.addEventListener('loadedmetadata', () => {
+      if (!active()) return;
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0 || boundary > audio.duration) { fail(); return; }
+      preview.end = Math.min(audio.duration, preview.end);
+      const play = () => {
+        if (!active()) return;
+        audio.play().catch(fail);
+      };
+      audio.currentTime = preview.start;
+      if (audio.seeking) audio.addEventListener('seeked', play, { ...options, once: true });
+      else play();
+    }, { ...options, once: true });
+    audio.addEventListener('timeupdate', progress, options);
+    audio.addEventListener('playing', progress, options);
+    audio.addEventListener('ended', () => { if (active()) stopCutPreview('Preview finished. Your listening position is unchanged.'); }, options);
+    audio.addEventListener('error', fail, options);
+    // Check between coarse media timeupdate events, and cap stalled requests.
+    preview.timer = window.setInterval(progress, 40);
+    preview.timeout = window.setTimeout(fail, 30000);
+    status.parentElement.append(audio);
+    audio.src = mediaURL(preview.episodeId, 'original');
+    audio.load();
+  }
   function transcriptSegments() {
     const transcript = state.transcriptVersion === 'cleaned' ? state.cleanedTranscript : state.detail?.transcript;
     return Array.isArray(transcript) ? transcript : transcript?.segments || [];
@@ -749,7 +838,8 @@
     const show = Boolean(quality?.requires_review);
     visible('transcript-quality-notice', show);
     if (!show) return;
-    $('transcript-quality-message').textContent = quality.warning || 'Some original audio has no transcript text. Gaps can be silence, music, or missed speech. Listen before choosing cuts.';
+    const coverageCompletion = state.detail.ad_mode === 'remove' ? ' The original stays preferred, and this episode is excluded from the completed removal batch until coverage is resolved.' : ' Your Keep original choice still uses the complete original recording.';
+    $('transcript-quality-message').textContent = `${quality.warning || 'Some original audio has no transcript text. Gaps can be silence, music, or missed speech. Listen before choosing cuts.'}${coverageCompletion}`;
     const gaps = (Array.isArray(quality.gaps) ? quality.gaps : []).filter((gap) => Number.isFinite(gap.start) && Number.isFinite(gap.end) && gap.start >= 0 && gap.end > gap.start);
     const select = $('transcript-gap'), previous = select.value;
     select.replaceChildren(...gaps.map((gap) => new Option(`${clock(gap.start)} - ${clock(gap.end)} (original)`, String(gap.start))));
@@ -798,6 +888,7 @@
     if (state.transcriptVersion === 'cleaned' && state.cleanedBusy) { visible('transcript-empty', false); $('transcript-lines').textContent = 'Loading cleaned transcript…'; }
   }
   function switchTab(tab) {
+    if (tab !== 'cuts') stopCutPreview();
     state.activeTab = tab;
     for (const name of ['transcript', 'cuts']) {
       const active = name === tab;
@@ -809,6 +900,7 @@
   }
   function markCutsDirty() {
     state.cutsDirty = true;
+    $('confirm-coverage-review').disabled = true;
     renderCutSummary(); drawWaveform();
   }
   function setCutApproval(cut, approved) {
@@ -839,6 +931,7 @@
   }
   function adjustCutBoundary(cut, key, value) {
     if (cut[key] === value) return;
+    stopCutPreview('Boundary changed. Hear it again before selecting this cut.');
     if ((cut.source && cut.source !== 'manual') || cut.verification) {
       if (!cut.manual_adjustment) {
         cut.detected_bounds = { start: cut.start, end: cut.end };
@@ -859,6 +952,8 @@
       if (cut.detected_bounds) message += ` Detector evidence applies only to the original ${Number(cut.detected_bounds.start).toFixed(2)} - ${Number(cut.detected_bounds.end).toFixed(2)} seconds.`;
     } else if (cut.requires_review) {
       message = `Review required by detector - ${cut.approved ? 'selected by you' : 'listen before selecting'}.`;
+    } else if (cut.approval_metadata?.eligible && cut.requires_review === false) {
+      message = `Ad context and cut boundaries checked - ${cut.approved ? 'selected for removal' : 'awaiting your approval'}. Model agreement can still be wrong.`;
     } else if (cut.requires_review === false && cut.label === 'commercial' && Array.isArray(cut.verification) && cut.verification.length) {
       message = `Both model checks passed - ${cut.approved ? 'selected for removal' : 'awaiting your approval'}. Model agreement can still be wrong.`;
     } else {
@@ -868,6 +963,7 @@
     node.classList.toggle('needs-review', Boolean(cut.requires_review || cut.manual_adjustment));
   }
   function renderCuts() {
+    stopCutPreview();
     const rows = state.cuts.map((cut, index) => {
       const row = el('div', `cut-row${cut.approved ? '' : ' unapproved'}`);
       const top = el('div', 'cut-top');
@@ -909,23 +1005,39 @@
         setTime.addEventListener('click', () => { changeBoundary(key, Number(playhead().toFixed(2))); input.value = boundaryText(cut[key]); });
         timeLabel.append(input, setTime); times.append(timeLabel);
       }
-      const preview = el('button', 'button subtle');
-      preview.append(icon('play'), document.createTextNode(' Preview'));
-      preview.setAttribute('aria-label', `Preview cut ${index + 1} in original audio`);
-      preview.disabled = !state.detail?.has_audio;
-      preview.addEventListener('click', () => seek(Math.max(0, seconds(cut.start) - 2), true));
-      times.append(preview);
+      const audition = el('div', 'cut-audition');
+      const auditionStatus = el('p', 'cut-audition-status');
+      auditionStatus.id = `cut-preview-status-${index}`;
+      auditionStatus.setAttribute('role', 'status');
+      auditionStatus.setAttribute('aria-atomic', 'true');
+      const stop = el('button', 'button subtle cut-preview-stop', 'Stop preview');
+      stop.type = 'button'; stop.hidden = true;
+      stop.setAttribute('aria-label', `Stop preview for cut ${index + 1}`);
+      stop.addEventListener('click', () => stopCutPreview());
+      for (const edge of ['start', 'end']) {
+        const preview = el('button', 'button subtle cut-preview-button');
+        preview.type = 'button'; preview.dataset.previewEdge = edge; preview.dataset.cutIndex = String(index);
+        preview.append(icon('play'), document.createTextNode(` Hear ${edge}`));
+        preview.setAttribute('aria-label', `Hear cut ${index + 1} ${edge} in original audio`);
+        preview.setAttribute('aria-describedby', `cut-preview-help ${auditionStatus.id}`);
+        preview.setAttribute('aria-pressed', 'false');
+        preview.disabled = !state.detail?.has_audio;
+        preview.addEventListener('click', () => previewCutBoundary(cut, index, edge, preview, stop, auditionStatus));
+        audition.append(preview);
+      }
+      audition.append(stop, auditionStatus);
       const reasonLabel = el('label', 'cut-reason-label', 'Reason');
       const reason = el('input'); reason.type = 'text'; reason.value = cut.reason || ''; reason.maxLength = 2000;
       reason.setAttribute('aria-label', `Reason for cut ${index + 1}`);
       reason.addEventListener('input', () => { cut.reason = reason.value; markCutsDirty(); });
       reasonLabel.append(reason);
       renderCutReview(cut, review);
-      row.append(top, review, times, reasonLabel);
+      row.append(top, review, times, audition, reasonLabel);
       return row;
     });
     $('cut-list').replaceChildren(...rows);
     visible('cuts-empty', !rows.length);
+    updateMarkControls();
     renderCutSummary();
   }
   function validateCuts() {
@@ -953,6 +1065,13 @@
     setActionBusy(true);
     try {
       if (action === 'save') await saveCuts();
+      if (action === 'coverage-review') {
+        if (!state.detail?.coverage_review_token || state.cutsDirty) throw new Error('Save your cut changes before confirming coverage.');
+        const result = await api(episodeURL(state.detail.id, '/coverage-review'), { method: 'POST', body: { reviewed: true, review_token: state.detail.coverage_review_token } });
+        state.detail = result.episode || result;
+        renderDetail();
+        toast('Coverage review recorded. Export cleaned audio when your cuts are ready.');
+      }
       if (action === 'render') {
         await saveCuts(true);
         await api(episodeURL(state.detail.id, '/render'), { method: 'POST', body: {} });
@@ -1076,18 +1195,20 @@
   }
   if ('mediaSession' in navigator) {
     const handlers = {
-      play: () => $('audio-player').play().catch(() => {}), pause: () => $('audio-player').pause(),
+      play: () => { stopCutPreview(); $('audio-player').play().catch(() => {}); }, pause: () => { stopCutPreview(); $('audio-player').pause(); },
       seekbackward: (event) => skipAudio(-(event.seekOffset || 15)), seekforward: (event) => skipAudio(event.seekOffset || 15),
-      seekto: (event) => { if (Number.isFinite(event.seekTime)) { $('audio-player').currentTime = event.seekTime; persistPosition(true); } },
+      seekto: (event) => { if (Number.isFinite(event.seekTime)) { stopCutPreview(); $('audio-player').currentTime = event.seekTime; persistPosition(true); } },
     };
     for (const [action, handler] of Object.entries(handlers)) { try { navigator.mediaSession.setActionHandler(action, handler); } catch (_) {} }
   }
   function togglePlayback() {
+    if (state.cutPreview) { stopCutPreview(); return; }
     const audio = $('audio-player');
     if (!state.detail?.has_audio) return;
     if (audio.paused) audio.play().catch((error) => toast(`Couldn’t play audio. ${error.message}`, true)); else audio.pause();
   }
   function skipAudio(delta) {
+    stopCutPreview();
     const audio = $('audio-player');
     if (!state.detail?.has_audio) return;
     audio.currentTime = Math.max(0, Math.min(Number.isFinite(audio.duration) ? audio.duration : Infinity, audio.currentTime + delta));
@@ -1198,9 +1319,15 @@
     canvas.setAttribute('aria-valuetext', `${clock(time)} of ${clock(total)}`);
   }
   function updateMarkControls() {
-    $('mark-cut-end').disabled = state.markStart === null || !state.detail?.has_audio || ACTIVE.has(state.detail?.status);
+    const previewing = Boolean(state.cutPreview);
+    const unavailable = previewing || state.actionBusy || !state.detail?.has_audio || ACTIVE.has(state.detail?.status);
+    const help = previewing ? 'Stop the preview to use the episode playhead.' : '';
+    for (const button of [$('mark-cut-start'), $('mark-cut-end'), ...$('cut-list').querySelectorAll('.set-playhead')]) {
+      button.disabled = unavailable || (button.id === 'mark-cut-end' && state.markStart === null);
+      button.title = help;
+    }
     $('mark-cut-start').textContent = state.markStart === null ? 'Mark start' : 'Reset start';
-    $('mark-cut-label').textContent = state.markStart === null ? 'Mark an ad while listening.' : `Starts at ${clock(state.markStart)} · mark the end next.`;
+    $('mark-cut-label').textContent = help || (state.markStart === null ? 'Mark an ad while listening.' : `Starts at ${clock(state.markStart)} · mark the end next.`);
     drawWaveform();
   }
   async function loadCutHistory() {
@@ -1341,13 +1468,42 @@
     } catch (error) { showError('opml-error', error); }
     finally { $('opml-submit').disabled = false; $('opml-submit').textContent = 'Import subscriptions'; }
   }
-  const settingFields = { transcription_model: 'setting-model', language: 'setting-language', detector: 'setting-detector', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model', ai_reasoning: 'setting-ai-reasoning' };
+  const settingFields = { transcription_model: 'setting-model', transcription_batch_size: 'setting-batch-size', language: 'setting-language', detector: 'setting-detector', ai_policy: 'setting-ai-policy', auto_approve_threshold: 'setting-threshold', review_only: 'setting-review-only', ai_base_url: 'setting-ai-base', ai_model: 'setting-ai-model', ai_reasoning: 'setting-ai-reasoning' };
+  function updateDetectionPolicyControls() {
+    const policy = $('setting-ai-policy').value, fast = policy === 'fast';
+    $('detection-policy-help').textContent = fast
+      ? 'Experimental fast CUDA reads the whole episode, then checks the words at commercial boundaries. It uses its own reasoning settings. Review and save the result before exporting, even if no ads are suggested. A speech batch size of 8 is a starting point for a 24 GB GPU; speed and accuracy still need validation.'
+      : policy === 'legacy'
+        ? 'Legacy AI detection can miss ads or flag conversation. Review suggestions carefully.'
+        : policy === 'scene'
+          ? 'Local AI checks ad scenes, their exact endpoints, and word alignment. With approval off, resolved cuts are selected automatically. Unresolved episodes retain their original audio and stay out of the completed removal batch. Detection can still make mistakes.'
+          : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
+    const review = $('setting-review-only'), reasoning = $('setting-ai-reasoning');
+    if (fast) {
+      if (review.dataset.beforeFast === undefined) review.dataset.beforeFast = String(review.checked);
+      if (reasoning.dataset.beforeFast === undefined) reasoning.dataset.beforeFast = String(reasoning.checked);
+      review.checked = true;
+      reasoning.checked = false;
+    } else if (review.dataset.beforeFast !== undefined) {
+      review.checked = review.dataset.beforeFast === 'true';
+      reasoning.checked = reasoning.dataset.beforeFast === 'true';
+      delete review.dataset.beforeFast;
+      delete reasoning.dataset.beforeFast;
+    }
+    review.disabled = fast;
+    review.title = fast ? 'Experimental analysis requires saved manual review.' : '';
+    reasoning.disabled = fast || policy === 'scene' || (state.settings.env_overrides || []).includes('ai_reasoning');
+    reasoning.title = fast ? 'Whole-episode review and boundary checks use their own fixed reasoning budgets.'
+      : policy === 'scene' ? 'This detector uses fixed reasoning budgets for each stage.' : '';
+  }
   async function openSettings() {
     showDialog('settings-dialog'); showError('settings-error', null); $('save-settings').disabled = true;
     try {
       const settings = await api('/api/settings');
       state.settings = { ...state.settings, ...settings }; state.settingsLoaded = true;
-      const defaults = { transcription_model: 'base', language: '', detector: 'auto', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '', ai_reasoning: false };
+      const defaults = { transcription_model: 'base', transcription_batch_size: 1, language: '', detector: 'auto', ai_policy: 'verified', auto_approve_threshold: 0.9, review_only: true, ai_base_url: '', ai_model: '', ai_reasoning: false };
+      delete $('setting-review-only').dataset.beforeFast;
+      delete $('setting-ai-reasoning').dataset.beforeFast;
       for (const [key, id] of Object.entries(settingFields)) {
         const input = $(id), value = settings[key] ?? defaults[key];
         if (input.type === 'checkbox') input.checked = Boolean(value);
@@ -1358,11 +1514,12 @@
         input.disabled = (settings.env_overrides || []).includes(key);
         input.title = input.disabled ? 'Set by the server environment' : '';
       }
+      for (const option of $('setting-ai-policy').options) {
+        option.disabled = Array.isArray(settings.ai_policy_options) && !settings.ai_policy_options.includes(option.value);
+      }
       $('ai-key-status').textContent = settings.key_configured ? 'An API key is securely configured on the server.' : 'No server API key configured. Local AI servers may not need one. For a hosted service, set CASTWELL_AI_KEY in the server environment.';
       $('ai-configured-indicator').textContent = settings.ai_base_url && settings.ai_model ? 'Connected settings' : 'Optional';
-      $('detection-policy-help').textContent = settings.ai_policy === 'legacy'
-        ? 'This server uses legacy AI detection. Review suggestions carefully: detection can miss ads or flag conversation.'
-        : 'Contextual AI checks each suggestion in two passes. Disagreements and uncertain boundaries need review. Detection can still miss ads or flag conversation.';
+      updateDetectionPolicyControls();
       $('settings-overrides').textContent = settings.env_overrides?.length ? 'Some settings are managed by the server environment.' : 'Settings are stored locally on this server.';
       $('save-settings').disabled = false;
       await Promise.allSettled([loadDiagnostics(), pollModelStatus()]);
@@ -1377,6 +1534,7 @@
     }
     const result = await api('/api/settings', { method: 'PATCH', body: changes });
     state.settings = { ...state.settings, ...(result.settings || result) };
+    updateDetectionPolicyControls();
     if (showToast) toast('Settings saved. They’ll apply to the next processing job.');
     renderDetail(); return result;
   }
@@ -1484,7 +1642,7 @@
   $('mini-back').addEventListener('click', () => skipAudio(-15));
   $('mini-toggle').addEventListener('click', togglePlayback);
   $('mini-open').addEventListener('click', () => { if (state.detail) openDetail(state.detail.id); });
-  $('mini-dismiss').addEventListener('click', async () => { $('audio-player').pause(); await persistPosition(true); $('audio-player').removeAttribute('src'); $('audio-player').load(); state.detail = null; state.detailRequest++; updateMiniPlayer(); });
+  $('mini-dismiss').addEventListener('click', async () => { stopCutPreview(); $('audio-player').pause(); await persistPosition(true); $('audio-player').removeAttribute('src'); $('audio-player').load(); state.detail = null; state.detailRequest++; updateMiniPlayer(); });
   try { const savedSpeed = localStorage.getItem('castwell.playbackSpeed') ?? localStorage.getItem('podgrab.playbackSpeed'); if ([...$('playback-speed').options].some((option) => option.value === savedSpeed)) $('playback-speed').value = savedSpeed; }
   catch (_) { /* Private browsing can disable storage. */ }
   $('playback-speed').addEventListener('change', () => { $('audio-player').playbackRate = Number($('playback-speed').value); try { localStorage.setItem('castwell.playbackSpeed', $('playback-speed').value); } catch (_) {} });
@@ -1508,6 +1666,7 @@
     if (event.code === 'Space') { event.preventDefault(); togglePlayback(); }
     else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); skipAudio(event.key === 'ArrowLeft' ? -15 : 15); }
   });
+  $('setting-ai-policy').addEventListener('change', updateDetectionPolicyControls);
   $('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault(); $('save-settings').disabled = true; showError('settings-error', null);
     try { await saveSettings(); await loadDiagnostics(); }
@@ -1560,6 +1719,7 @@
   $('close-detail').addEventListener('click', closeDetail);
   $('episode-dialog').addEventListener('cancel', (event) => { event.preventDefault(); closeDetail(); });
   $('episode-dialog').addEventListener('close', () => {
+    stopCutPreview();
     persistPosition(true);
     updateMiniPlayer();
     state.lastFocus?.focus();
@@ -1574,6 +1734,7 @@
   $('detail-retranscribe').addEventListener('click', () => detailAction('retranscribe'));
   $('save-cuts').addEventListener('click', () => detailAction('save'));
   $('render-cuts').addEventListener('click', () => detailAction('render'));
+  $('confirm-coverage-review').addEventListener('click', () => detailAction('coverage-review'));
   $('select-all-cuts').addEventListener('click', () => selectAllCuts(true));
   $('clear-cut-selection').addEventListener('click', () => selectAllCuts(false));
   $('add-cut').addEventListener('click', () => {
@@ -1611,7 +1772,8 @@
     drawWaveform();
   });
   $('audio-player').addEventListener('pause', () => { persistPosition(true); updateMiniPlayer(); });
-  $('audio-player').addEventListener('play', updateMiniPlayer);
+  $('audio-player').addEventListener('play', () => { stopCutPreview(); updateMiniPlayer(); });
+  $('audio-player').addEventListener('seeking', () => stopCutPreview());
   $('audio-player').addEventListener('ended', () => {
     if (state.detail) updateEpisodeState(state.detail.id, { played: true, position: seconds(state.detail.duration) }).catch((error) => toast(error.message, true));
   });
@@ -1619,5 +1781,5 @@
   $('episodes').replaceChildren(...Array.from({ length: 4 }, () => el('div', 'loading-card')));
   refreshLibrary();
   window.setInterval(() => { if (!document.hidden && !state.actionBusy) refreshLibrary(); }, 3500);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshLibrary(); else persistPosition(true); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshLibrary(); else { stopCutPreview(); persistPosition(true); } });
 })();

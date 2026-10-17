@@ -88,6 +88,35 @@ class ProcessingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             detect_ads(transcript("No advertisement."), "unknown")
 
+    def test_checked_cue_only_empty_result_cannot_claim_no_ads(self):
+        for policy in ("verified", "scene"):
+            for detector in ("auto", "heuristic"):
+                with self.subTest(policy=policy, detector=detector), patch("requests.post") as request:
+                    with self.assertRaisesRegex(ProcessingError, "Cue-only detection cannot confirm"):
+                        detect_ads(transcript("A conversation about astronomy."), detector,
+                                   config={"ai_policy": policy, "ai_base_url": "", "ai_model": "", "ai_key": ""})
+                request.assert_not_called()
+
+    def test_checked_cue_only_positive_proposals_remain_manual(self):
+        source = transcript("This episode is sponsored by Acme.", "Use promo code SPACE for a free trial.",
+                            "Now back to our conversation.")
+        for policy in ("verified", "scene"):
+            with self.subTest(policy=policy), patch("requests.post") as request:
+                cuts = detect_ads(source, config={"ai_policy": policy, "ai_base_url": "", "ai_model": "",
+                                                  "ai_key": "", "review_only": False})
+            self.assertTrue(cuts)
+            self.assertTrue(all(not cut["approved"] and cut["requires_review"] for cut in cuts))
+            request.assert_not_called()
+
+    def test_scene_provider_failure_propagates_without_cue_fallback(self):
+        for source in (transcript("A conversation about astronomy."),
+                       transcript("This episode is sponsored by Acme.", "Now back to our conversation.")):
+            with self.subTest(cues=len(source["segments"])), \
+                 patch("castwell.scene_pipeline.classify_scene_pipeline", side_effect=ProcessingError("Scene provider failed")):
+                with self.assertRaisesRegex(ProcessingError, "Scene provider failed"):
+                    detect_ads(source, config={"ai_policy": "scene", "ai_base_url": "http://127.0.0.1:8081/v1",
+                                               "ai_model": "fixture", "ai_key": ""})
+
     def ai_environment(self):
         return patch.dict(os.environ, {"CASTWELL_AI_BASE_URL": "http://localhost:11434/v1", "CASTWELL_AI_MODEL": "local-model"})
 
@@ -102,6 +131,30 @@ class ProcessingTests(unittest.TestCase):
         sent = request.call_args.kwargs["json"]["messages"][1]["content"]
         self.assertIn("ancient oceans", sent)
         self.assertNotIn("Authorization", request.call_args.kwargs["headers"])
+
+    def test_legacy_request_uses_shared_scope_and_selects_real_free_podcast_promo(self):
+        from castwell.ad_scope import INSTRUCTIONS
+        source = transcript("Listen to Science Roads free wherever you follow podcasts.",
+                            "Get the paid premium Science Roads subscription for five dollars a month.",
+                            "This episode is sponsored by Acme groceries. Use promo code SPACE for a free trial.",
+                            "Now back to our conversation.")
+        answer = {"ads": [{"segment_ids": [0, 1, 2], "confidence": .99,
+                           "reason": "Genuine podcast promo, paid subscription and sponsor product offers"}]}
+        with self.ai_environment(), patch("requests.post", return_value=FakeResponse(answer)) as request:
+            cuts = detect_ads(source, "ai", config={"ai_policy": "legacy", "review_only": False})
+        prompt = request.call_args.kwargs["json"]["messages"][0]["content"]
+        self.assertTrue(prompt.startswith(INSTRUCTIONS))
+        self.assertEqual([(cut["start"], cut["end"], cut["approved"]) for cut in cuts], [(0, 30, True)])
+
+    def test_legacy_rejected_podcast_promo_cues_stay_unapproved_manual_fallback(self):
+        source = transcript("This portion is brought to you by the free Science Roads podcast.",
+                            "Visit scienceroads.com and follow the free show wherever you listen.",
+                            "Now back to our conversation.")
+        with self.ai_environment(), patch("requests.post", return_value=FakeResponse({"ads": []})):
+            cuts = detect_ads(source, "ai", config={"ai_policy": "legacy", "review_only": False})
+        self.assertTrue(cuts)
+        self.assertTrue(all(cut["requires_review"] and not cut["approved"] for cut in cuts))
+        self.assertTrue(all(cut["sources"] == ["heuristic"] for cut in cuts))
 
     def test_legacy_ai_only_demotes_cuts_overlapping_recovered_speech(self):
         source = transcript("A recovered promotion.", "Editorial discussion.", "Another promotion.")

@@ -540,6 +540,9 @@ def smoke_app(executable, bundle, workspace, label, audio, artifacts, speech_mod
         if speech_audio:
             assert speech_model, "A supplied speech recording requires cached model weights"
             recorded = upload(base, speech_audio)
+            # The Keep job must agree with its current podcast preference. A
+            # request override does not resolve coverage for a Remove podcast.
+            api(base, f'/api/podcasts/{recorded["podcast_id"]}', {"ad_mode": "keep"}, "PATCH")
             queued = api(base, f'/api/episodes/{recorded["id"]}/process', {"remove_ads": False}, "POST")
             assert queued["queued"]
             transcribed = wait_episode(base, recorded["id"], "ready", timeout=180)

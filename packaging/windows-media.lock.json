@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "profile": "castwell-audio1",
+  "ffmpeg_version": "8.1.2",
+  "toolchain_version": "2.10.1",
+  "source_date_epoch": 1786406400,
+  "source_signature_verification": {
+    "fingerprint": "FCF986EA15E6E293A5644F10B4322F04D67658D8",
+    "verified_at_initial_acquisition": true,
+    "verified_archive_sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c"
+  },
+  "archives": [
+    {
+      "role": "toolchain_binary",
+      "filename": "w64devkit-x64-2.10.1.7z.exe",
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.10.1/w64devkit-x64-2.10.1.7z.exe",
+      "sha256": "add1edf984ce4d473cfeb7c52e0ab38db73a855bba6c7f564d5e16648eb2896a",
+      "bytes": 67263552
+    },
+    {
+      "role": "toolchain_source",
+      "filename": "w64devkit-source-2.10.1.tar",
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.10.1/source.tar",
+      "sha256": "25194ebc451be61915f62bf9170c8925151abf0571c4fbc230e3fe53907efc40",
+      "bytes": 236267520
+    },
+    {
+      "role": "ffmpeg_source",
+      "filename": "ffmpeg-8.1.2.tar.xz",
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+      "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+      "bytes": 11710924
+    },
+    {
+      "role": "source_signature",
+      "filename": "ffmpeg-8.1.2.tar.xz.asc",
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz.asc",
+      "sha256": "0a0963fccd70597838073f3e31b20f4a4d8cc2b5e577472c9a5a1f22624246f8",
+      "bytes": 520
+    },
+    {
+      "role": "source_signing_key",
+      "filename": "ffmpeg-devel.asc",
+      "url": "https://ffmpeg.org/ffmpeg-devel.asc",
+      "sha256": "397b3becedcd5a98769967ff1ff8501ddc89f8368b8f766e4701377d7dbaabe5",
+      "bytes": 1709
+    },
+    {
+      "role": "lame_source",
+      "filename": "lame-3.100.tar.gz",
+      "url": "https://deb.debian.org/debian/pool/main/l/lame/lame_3.100.orig.tar.gz",
+      "sha256": "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e",
+      "bytes": 1524133
+    },
+    {
+      "role": "ogg_source",
+      "filename": "libogg-1.3.6.tar.gz",
+      "url": "https://downloads.xiph.org/releases/ogg/libogg-1.3.6.tar.gz",
+      "sha256": "83e6704730683d004d20e21b8f7f55dcb3383cdf84c0daedf30bde175f774638",
+      "bytes": 604469
+    },
+    {
+      "role": "vorbis_source",
+      "filename": "libvorbis-1.3.7.tar.xz",
+      "url": "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz",
+      "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b",
+      "bytes": 1203792
+    },
+    {
+      "role": "opus_source",
+      "filename": "opus-1.6.tar.gz",
+      "url": "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.tar.gz",
+      "sha256": "b7637334527201fdfd6dd6a02e67aceffb0e5e60155bbd89175647a80301c92c",
+      "bytes": 36317446
+    },
+    {
+      "role": "assembler_binary",
+      "filename": "nasm-2.16.03-win64.zip",
+      "url": "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip",
+      "sha256": "3ee4782247bcb874378d02f7eab4e294a84d3d15f3f6ee2de2f47a46aa7226e6",
+      "bytes": 513543
+    },
+    {
+      "role": "assembler_source",
+      "filename": "nasm-2.16.03.tar.xz",
+      "url": "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz",
+      "sha256": "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148",
+      "bytes": 1032388
+    },
+    {
+      "role": "toolchain_recipe",
+      "filename": "w64devkit-v2.10.1-Dockerfile",
+      "url": "https://raw.githubusercontent.com/skeeto/w64devkit/v2.10.1/Dockerfile",
+      "sha256": "aede4c01b5396412218fbff44b6b85615b11439585843fb07210bbee9e98df66",
+      "bytes": 44674
+    }
+  ],
+  "source_policy": "Unmodified official codec and FFmpeg sources; no GPL, nonfree or PyAV vendor license-classification patch. Toolchain source archive and all source tarballs retained for complete rebuilding. This profile is for local audio editing, with CUDA inference supplied separately by Castwell."
+}

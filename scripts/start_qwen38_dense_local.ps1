@@ -4,12 +4,12 @@ param(
     [string]$ServerBinary = '',
     [ValidateRange(1, 65535)][int]$Port = 8081,
     [ValidateRange(1, 128)][int]$Threads = 8,
-    [ValidateRange(4096, 32768)][int]$Context = 8192,
-    [ValidatePattern('^(auto|all|[0-9]{1,3})$')][string]$GpuLayers = 'all',
-    [ValidateRange(1, 16384)][int]$MaxTokens = 4096,
-    [ValidateRange(0, 8192)][int]$ReasoningBudget = 1024,
+    [ValidateRange(4096, 32768)][int]$Context = 32768,
+    [ValidateSet('all')][string]$GpuLayers = 'all',
+    [ValidateRange(1, 16384)][int]$MaxTokens = 2048,
+    [ValidateRange(0, 8192)][int]$ReasoningBudget = 0,
     [ValidateRange(0, 5)][int]$LogVerbosity = 3,
-    [switch]$NoThinking,
+    [switch]$NoThinking = $true,
     [switch]$Background,
     [switch]$ValidateOnly
 )
@@ -50,8 +50,9 @@ $nativeArgs = @(
     '--jinja', '--reasoning', $thinkingMode, '--reasoning-format', 'deepseek',
     '--reasoning-budget', [string]$effectiveReasoningBudget, '--n-predict', [string]$MaxTokens,
     '--temp', $temperature, '--top-p', $topP, '--top-k', '20',
-    '--min-p', '0', '--presence-penalty', '1.5', '--repeat-penalty', '1.0',
-    '--seed', '42', '--log-verbosity', [string]$LogVerbosity
+    '--min-p', '0', '--presence-penalty', '0', '--repeat-penalty', '1.0',
+    '--seed', '42', '--log-verbosity', [string]$LogVerbosity,
+    '--sleep-idle-seconds', '1'
 )
 
 if ($ValidateOnly) {

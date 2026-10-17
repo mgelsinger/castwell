@@ -149,9 +149,11 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
     app_url = local_url(app_url)
     data_dir = Path(data_dir).expanduser().resolve()
     checks = []
-    result = {"format": "castwell-release-readiness", "version": 1,
+    result = {"format": "castwell-release-readiness", "version": 2,
               "checked_at": datetime.now(timezone.utc).isoformat(),
-              "scope": "local single-user operation with manual ad approval",
+              "scope": "local single-user operational readiness; ad-removal acceptance is separate",
+              "ad_removal_acceptance": {"status": "not_measured", "inference_requests": 0},
+              "production_ready": False,
               "inference_requests": 0, "library_mutations": 0, "checks": checks}
 
     def add(identifier, status, detail, **metrics):
@@ -159,7 +161,10 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
 
     def request(path):
         try:
-            return get_json(app_url + path)
+            response = get_json(app_url + path)
+            if response is None:
+                raise ValueError("Readiness endpoint returned null")
+            return response
         except Exception:
             # Exception text can contain endpoints, premium URLs, or response text.
             add(path, "error", "The local application did not return valid readiness data.")
@@ -198,7 +203,7 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
     elif podcasts is not None:
         add("podcast_suite", "error", "The podcast suite API has an unexpected response.")
     if isinstance(diagnostic, dict) and isinstance(diagnostic.get("checks"), list):
-        required = {"ffmpeg", "ffprobe", "transcription", "model", "storage"}
+        required = {"ffmpeg", "ffprobe", "transcription", "gpu", "model", "storage"}
         reported = {check.get("id") for check in diagnostic["checks"] if isinstance(check, dict)}
         if not required <= reported:
             add("environment_complete", "error", "The server did not report every required processing prerequisite.")
@@ -209,7 +214,7 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
             status = check.get("status", "error")
             if status not in {"ok", "warning", "error"}:
                 status = "error"
-            if check.get("id") == "model" and status != "ok":
+            if check.get("id") in {"model", "gpu"} and status != "ok":
                 status = "error"
             add("environment_" + str(check.get("id", "unknown")), status, str(check.get("detail", "")))
     elif diagnostic is not None:
@@ -220,9 +225,19 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
     elif jobs is not None:
         add("queue_idle", "error", "The processing queue has an unexpected response.")
     if isinstance(settings, dict):
-        approved = settings.get("review_only") is True and settings.get("ai_policy") == "verified"
-        add("cut_approval", "ok" if approved else "error", "Verified detection and manual cut approval are enabled." if approved
-            else "Enable verified detection and require manual approval for every cut.")
+        manual_verified = settings.get("review_only") is True and settings.get("ai_policy") == "verified"
+        manual_fast = settings.get("review_only") is True and settings.get("ai_policy") == "fast"
+        scene_mode = settings.get("ai_policy") == "scene" and isinstance(settings.get("review_only"), bool)
+        threshold = settings.get("auto_approve_threshold", .90)
+        scene_mode = scene_mode and (not isinstance(threshold, bool) and isinstance(threshold, (int, float))
+                                    and math.isfinite(threshold) and .90 <= threshold <= 1)
+        approved = manual_verified or manual_fast or scene_mode
+        detail = ("Scene detection requires complete aligned commercial and endpoint proof; unresolved work remains review."
+                  if scene_mode else "Verified detection and manual cut approval are enabled." if manual_verified
+                  else "Experimental fast detection requires explicit manual review, including empty proposals; accuracy acceptance is separate."
+                  if manual_fast else "Use verified or experimental fast detection with manual approval, or scene detection with a threshold of at least 0.90.")
+        add("cut_approval", "ok" if approved else "error", detail,
+            mode="manual" if settings.get("review_only") is True else "automatic_with_structural_proof")
         ai = bool(settings.get("ai_configured")) and settings.get("detector") != "heuristic"
         if ai:
             try:
@@ -231,14 +246,21 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
                 add("local_classifier", "error" if require_local_ai else "warning",
                     "A hosted classifier is configured. It was not contacted; this check cannot verify its readiness or cost.")
             else:
-                try:
-                    models = get_json(address + "/models")
-                    names = {model["id"] for model in models["data"] if isinstance(model, dict) and isinstance(model.get("id"), str)}
-                    available = settings.get("ai_model") in names
-                except Exception:
-                    available = False
-                add("local_classifier", "ok" if available else "error", "The configured model is listed by the local classifier. No inference was requested." if available
-                    else "The local classifier does not list the configured model. Start its pinned server profile.")
+                probe_safe = (isinstance(jobs, dict) and isinstance(jobs.get("jobs"), list) and not jobs["jobs"]
+                              and isinstance(preparation, dict) and preparation.get("status") in {"idle", "ready", "complete", "error"})
+                if not probe_safe:
+                    # /models can wake a sleeping native server. Do not reload
+                    # its weights while CUDA speech recognition owns memory.
+                    add("local_classifier", "error", "Wait for episode processing and speech-model preparation before checking the classifier.")
+                else:
+                    try:
+                        models = get_json(address + "/models")
+                        names = {model["id"] for model in models["data"] if isinstance(model, dict) and isinstance(model.get("id"), str)}
+                        available = settings.get("ai_model") in names
+                    except Exception:
+                        available = False
+                    add("local_classifier", "ok" if available else "error", "The configured model is listed by the local classifier. No inference was requested." if available
+                        else "The local classifier does not list the configured model. Start its pinned server profile.")
                 classifier = urlsplit(address)
                 classifier_port = classifier.port or (443 if classifier.scheme == "https" else 80)
                 model_addresses = listener_addresses(classifier_port)
@@ -265,8 +287,11 @@ def check_release(app_url, data_dir, *, minimum_free_gb=20, require_local_ai=Fal
     except Exception:
         # Keep stored titles, paths, premium URLs and malformed JSON out of logs.
         add("library_integrity", "error", "Library integrity or media checks failed. Check the selected data directory and restore a verified backup if necessary.")
-    add("accuracy_acceptance", "warning", "A full-podcast listening acceptance test is still required. Readiness checks do not measure ad detection accuracy.")
-    result["ready"] = not any(check["status"] == "error" for check in checks)
+    add("accuracy_acceptance", "warning", "This report verifies operation only. Independent full-recording acceptance is required to establish ad-removal accuracy.")
+    result["operational_ready"] = not any(check["status"] == "error" for check in checks)
+    # Retain the existing CLI return-code contract. The scope and separate
+    # fields prevent an operational pass from claiming removal acceptance.
+    result["ready"] = result["operational_ready"]
     return result
 
 

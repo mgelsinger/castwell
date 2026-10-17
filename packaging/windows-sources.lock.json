@@ -1,0 +1,786 @@
+{
+  "schema_version": 1,
+  "release": "0.5.5",
+  "review_date": "2026-10-15",
+  "scope": "Reviewed bundled dependency source and notice obligations for the controlled Windows CUDA candidate. Source collection completion is separate from distributor license eligibility, public delivery and ad-removal acceptance.",
+  "release_inputs": {
+    "packaging/windows-runtime.json": "6bc87bbd1557882a0bfa4fe500add428ac3bae098b6b204201b468adc860b2b9",
+    "packaging/windows-requirements.lock": "e1a054f5f0d4e89403a4224de7a4361c5054223717872ccf99ca84175006823f"
+  },
+  "artifacts": [
+    {
+      "id": "toolchain_source",
+      "path": "media/w64devkit-source-2.10.1.tar",
+      "url": "https://github.com/skeeto/w64devkit/releases/download/v2.10.1/source.tar",
+      "sha256": "25194ebc451be61915f62bf9170c8925151abf0571c4fbc230e3fe53907efc40",
+      "bytes": 236267520
+    },
+    {
+      "id": "ffmpeg_source",
+      "path": "media/ffmpeg-8.1.2.tar.xz",
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+      "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
+      "bytes": 11710924
+    },
+    {
+      "id": "source_signature",
+      "path": "media/ffmpeg-8.1.2.tar.xz.asc",
+      "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz.asc",
+      "sha256": "0a0963fccd70597838073f3e31b20f4a4d8cc2b5e577472c9a5a1f22624246f8",
+      "bytes": 520
+    },
+    {
+      "id": "source_signing_key",
+      "path": "media/ffmpeg-devel.asc",
+      "url": "https://ffmpeg.org/ffmpeg-devel.asc",
+      "sha256": "397b3becedcd5a98769967ff1ff8501ddc89f8368b8f766e4701377d7dbaabe5",
+      "bytes": 1709
+    },
+    {
+      "id": "lame_source",
+      "path": "media/lame-3.100.tar.gz",
+      "url": "https://deb.debian.org/debian/pool/main/l/lame/lame_3.100.orig.tar.gz",
+      "sha256": "ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e",
+      "bytes": 1524133
+    },
+    {
+      "id": "ogg_source",
+      "path": "media/libogg-1.3.6.tar.gz",
+      "url": "https://downloads.xiph.org/releases/ogg/libogg-1.3.6.tar.gz",
+      "sha256": "83e6704730683d004d20e21b8f7f55dcb3383cdf84c0daedf30bde175f774638",
+      "bytes": 604469
+    },
+    {
+      "id": "vorbis_source",
+      "path": "media/libvorbis-1.3.7.tar.xz",
+      "url": "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.xz",
+      "sha256": "b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b",
+      "bytes": 1203792
+    },
+    {
+      "id": "opus_source",
+      "path": "media/opus-1.6.tar.gz",
+      "url": "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.6.tar.gz",
+      "sha256": "b7637334527201fdfd6dd6a02e67aceffb0e5e60155bbd89175647a80301c92c",
+      "bytes": 36317446
+    },
+    {
+      "id": "assembler_source",
+      "path": "media/nasm-2.16.03.tar.xz",
+      "url": "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz",
+      "sha256": "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148",
+      "bytes": 1032388
+    },
+    {
+      "id": "toolchain_recipe",
+      "path": "media/w64devkit-v2.10.1-Dockerfile",
+      "url": "https://raw.githubusercontent.com/skeeto/w64devkit/v2.10.1/Dockerfile",
+      "sha256": "aede4c01b5396412218fbff44b6b85615b11439585843fb07210bbee9e98df66",
+      "bytes": 44674
+    },
+    {
+      "id": "pyav-source",
+      "path": "pyav/av-16.1.0.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/78/cd/3a83ffbc3cc25b39721d174487fb0d51a76582f4a1703f98e46170ce83d4/av-16.1.0.tar.gz",
+      "sha256": "a094b4fd87a3721dacf02794d3d2c82b8d712c85b9534437e82a8a978c175ffd",
+      "bytes": 4285203
+    },
+    {
+      "id": "certifi-source",
+      "path": "other/certifi-2026.7.22.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47a87a50d39908bfdb72ceeefe0041586e704e5376b3a/certifi-2026.7.22.tar.gz",
+      "sha256": "741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55",
+      "bytes": 138112
+    },
+    {
+      "id": "eigen-source",
+      "path": "other/eigen-1d8b82b0740839c0de7f1242a3585e3390ff5f33.zip",
+      "url": "https://github.com/eigen-mirror/eigen/archive/1d8b82b0740839c0de7f1242a3585e3390ff5f33/eigen-1d8b82b0740839c0de7f1242a3585e3390ff5f33.zip",
+      "sha256": "6a60d76351f97132669daeeb721d6bf14b008101883ad2d687a3201c5c461eb0",
+      "bytes": 4075744
+    },
+    {
+      "id": "llama-source",
+      "path": "other/llama-b11146-source.tar.gz",
+      "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+      "sha256": "25eb89e300a0600bfdfadaac2acc7ec3a93cd23b992b7eff3c0eeae7987e4474",
+      "bytes": 37561762
+    },
+    {
+      "id": "ctranslate2-supplemental-source",
+      "path": "other/CTranslate2-v4.8.2-source.tar.gz",
+      "url": "https://codeload.github.com/OpenNMT/CTranslate2/tar.gz/refs/tags/v4.8.2",
+      "sha256": "a15fdd27842ac80e73c4a0e2ae8ee32c990db88563b6b012db009128872ab730",
+      "bytes": 3433424
+    },
+    {
+      "id": "repo:scripts/build_windows_media.py",
+      "path": "scripts/build_windows_media.py",
+      "kind": "repository",
+      "sha256": "cb7b081c63089ca58562c0059be88bfb48fd736ff87db2b350c50bea0e704877",
+      "bytes": 16373
+    },
+    {
+      "id": "repo:scripts/build_windows_pyav.py",
+      "path": "scripts/build_windows_pyav.py",
+      "kind": "repository",
+      "sha256": "6a9df7d97c8cde091e4ba205a10e15eceb54d3ec17291db772b3f1b357f35f29",
+      "bytes": 21675
+    },
+    {
+      "id": "repo:scripts/bundle_dependency_sources.py",
+      "path": "scripts/bundle_dependency_sources.py",
+      "kind": "repository",
+      "sha256": "fe0e20e20f86590e1900c385e01d28de1a18bc570c5ec01221047224119033d5",
+      "bytes": 13818
+    },
+    {
+      "id": "repo:packaging/windows-media.lock.json",
+      "path": "packaging/windows-media.lock.json",
+      "kind": "repository",
+      "sha256": "ac512dda7bd56770e4de733f510dfe8ba122faabc67907ab1b31a27f419e3006",
+      "bytes": 4143
+    },
+    {
+      "id": "repo:packaging/windows-pyav.lock.json",
+      "path": "packaging/windows-pyav.lock.json",
+      "kind": "repository",
+      "sha256": "1fb52b5468a480e66e66c091b50e13267c30f672efb928d32c93df7edad0eece",
+      "bytes": 6160
+    },
+    {
+      "id": "repo:packaging/windows-runtime.json",
+      "path": "packaging/windows-runtime.json",
+      "kind": "repository",
+      "sha256": "6bc87bbd1557882a0bfa4fe500add428ac3bae098b6b204201b468adc860b2b9",
+      "bytes": 18919
+    },
+    {
+      "id": "repo:packaging/windows-requirements.lock",
+      "path": "packaging/windows-requirements.lock",
+      "kind": "repository",
+      "sha256": "e1a054f5f0d4e89403a4224de7a4361c5054223717872ccf99ca84175006823f",
+      "bytes": 5420
+    },
+    {
+      "id": "repo:docs/third-party-sources.md",
+      "path": "docs/third-party-sources.md",
+      "kind": "repository",
+      "sha256": "ef475c0384a6e77c43f6017eff2ba3cdfde9c127ea4ef844f1463b5ab185e540",
+      "bytes": 6978
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+      "path": "packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd",
+      "bytes": 12876
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+      "path": "packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+      "kind": "repository",
+      "sha256": "6fc6ad419e4d26571a14c7c4d26b65345865c20dd8686ddcf5e8673f54d3d233",
+      "bytes": 1547
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-fmt-LICENSE.txt",
+      "path": "packaging/notices/CTranslate2-fmt-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "2a342daf2271890c957fbff5f0803476cb50dad0d2771ae9c85f749112476037",
+      "bytes": 1465
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+      "path": "packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "a7241a379cb98d37788f82c2fc2e484c3ae85dae881fd3406f0637644850926f",
+      "bytes": 1348
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+      "path": "packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+      "kind": "repository",
+      "sha256": "2e15eba2e130f3e80d9e91724c7dce3781ce99316324681ff54b00c1fc9759b3",
+      "bytes": 1578
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+      "path": "packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+      "kind": "repository",
+      "sha256": "f2905be651fc32d33ad754a74e318e0a19eae7a134a23b1b1a4eb7496bfc1d93",
+      "bytes": 28080
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-thrust-LICENSE.txt",
+      "path": "packaging/notices/CTranslate2-thrust-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "01b767dcd7d36f42efb608076741cf83f154a995e198028cb698aadc3a43b63b",
+      "bytes": 33838
+    },
+    {
+      "id": "repo:packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+      "path": "packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "9e42656b2b02223cee05e2344fee5673d9d5b731ac686ad1e3e543ace6ea6b95",
+      "bytes": 13968
+    },
+    {
+      "id": "repo:packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+      "path": "packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "7721633d0ddff43fae25ebfd405f8166a0ce730cbcec44f2f3ad9d5eb8ac9a6f",
+      "bytes": 4105
+    },
+    {
+      "id": "repo:packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+      "path": "packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+      "kind": "repository",
+      "sha256": "febfb69a5b058f55892dc7f341108a9ca29d50e9fe85723a57eebbb826436958",
+      "bytes": 25224
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "4b45cbe16d7b71b89ae6127e26e0d90a029198ca5e958ad8e3d0b8bbed364d8b",
+      "bytes": 1075
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "b81d0022ca6367918c67b57e9647d3513ee58809fd4b0ef0b3492f1356bced25",
+      "bytes": 41
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "6ffedbc0f7878612d2b23589f1ff2ab15633e1df7963a5d9fc750ec5500c7e7a",
+      "bytes": 1389
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "3a0fd41237bf8341d1e4cdd89a52ff4a96228c4fad26e272840ed0ee03efcaf7",
+      "bytes": 2604
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+      "path": "packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+      "kind": "repository",
+      "sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603",
+      "bytes": 1076
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-stb-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-stb-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "7587efcca32db8f95bf5860dea6dfa4be410ee723e1964db3689c8ddf2a2e4a9",
+      "bytes": 2674
+    },
+    {
+      "id": "repo:packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+      "path": "packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "1c7b71e03e1be684d51dfeb56d6358cc728097d844cfd72484f28835ff4c091b",
+      "bytes": 1276
+    },
+    {
+      "id": "repo:packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+      "path": "packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+      "kind": "repository",
+      "sha256": "2dd434a15fb5f9d28c33211a5af471eb719acba5db65e5103e0db95e7869a2fb",
+      "bytes": 6624
+    },
+    {
+      "id": "repo:packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+      "path": "packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "dd12452e1ae11e3282271aa5895d8175296b83e936a027209f9399d26a407d0f",
+      "bytes": 11521
+    },
+    {
+      "id": "repo:packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+      "path": "packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+      "kind": "repository",
+      "sha256": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e",
+      "bytes": 29825
+    },
+    {
+      "id": "repo:packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+      "path": "packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+      "kind": "repository",
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "bytes": 10175
+    },
+    {
+      "id": "repo:packaging/notices/provenance.json",
+      "path": "packaging/notices/provenance.json",
+      "kind": "repository",
+      "sha256": "839e3cca5836656d94750f3182667f35598d11b1538999f5464e23d4511ab368",
+      "bytes": 23043
+    },
+    {
+      "id": "repo:packaging/notices/Tcl-8.6.15-license.terms",
+      "path": "packaging/notices/Tcl-8.6.15-license.terms",
+      "kind": "repository",
+      "sha256": "c0a69a2bfd757361ec7e6143973b103c90409316b49e9c88db26ad6388e79f16",
+      "bytes": 2255
+    }
+  ],
+  "components": [
+    {
+      "id": "ffmpeg-and-audio-codecs",
+      "status": "source-collected",
+      "basis": "FFmpeg8.1.2 and LAME3.100 LGPL-2.1-or-later sources; Ogg1.3.6, Vorbis1.3.7 and Opus1.6 permissive sources. Unmodified upstream code, pinned static/shared build recipe, no optional GPL/nonfree codecs. No external compiler DLLs in controlled media. Sources and recipe permit rebuilding/relinking; cross-host byte identity is not asserted.",
+      "artifacts": [
+        "ffmpeg_source",
+        "lame_source",
+        "ogg_source",
+        "vorbis_source",
+        "opus_source",
+        "repo:scripts/build_windows_media.py",
+        "repo:packaging/windows-media.lock.json"
+      ]
+    },
+    {
+      "id": "media-toolchain",
+      "status": "source-collected",
+      "basis": "Supplemental w64devkit2.10.1 complete upstream toolchain source archive and recipe plus NASM2.16.03 source. Compiler and assembler executables are not distributed in this source ZIP or app; pinned download instructions are in the media recipe.",
+      "artifacts": [
+        "toolchain_source",
+        "toolchain_recipe",
+        "assembler_source",
+        "repo:packaging/windows-media.lock.json"
+      ]
+    },
+    {
+      "id": "pyav",
+      "status": "source-collected",
+      "basis": "BSD-3-Clause PyAV16.1.0 source with only the captured version-metadata patch to16.1.0+castwell1. Compiled with pinned MSVC tools14.44.35207 against controlled shared FFmpeg; delvewheel1.11.2 import rewrites recorded by the recipe. Build-tool versions, URLs and hashes are retained. General-purpose build tools are acquired separately. Cython-generated output carries no additional restrictions under its COPYING exception.",
+      "artifacts": [
+        "pyav-source",
+        "repo:scripts/build_windows_pyav.py",
+        "repo:packaging/windows-pyav.lock.json"
+      ]
+    },
+    {
+      "id": "certifi",
+      "status": "source-collected",
+      "basis": "MPL-2.0 exact certifi2026.7.22 source. Source certificate data matches the packaged cacert.pem byte for byte.",
+      "artifacts": [
+        "certifi-source"
+      ]
+    },
+    {
+      "id": "eigen",
+      "status": "source-collected",
+      "basis": "MPL-2.0 Eigen sources at the exact commit pinned by ONNX Runtime1.23.2. Upstream declared SHA1 and locally recorded SHA256 verified; upstream eigen.cmake has no patch step. ONNX wheel retains its third-party notices.",
+      "artifacts": [
+        "eigen-source",
+        "repo:packaging/windows-requirements.lock"
+      ]
+    },
+    {
+      "id": "llama-and-ctranslate2",
+      "status": "notice-retained",
+      "basis": "MIT notices and bundled dependency notices retained. Optional llama.cpp source snapshot and CTranslate2 upstream snapshot provided. The latter omits Git submodules and is explicitly supplemental, not a complete standalone build tree. Source delivery is not required by MIT itself.",
+      "artifacts": [
+        "llama-source",
+        "ctranslate2-supplemental-source",
+        "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+        "repo:packaging/notices/CTranslate2-fmt-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+        "repo:packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+        "repo:packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+        "repo:packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+        "repo:packaging/notices/llama-b11146-stb-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+        "repo:packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+        "repo:packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+        "repo:packaging/notices/provenance.json",
+        "repo:packaging/notices/Tcl-8.6.15-license.terms"
+      ]
+    },
+    {
+      "id": "python-wheels-and-runtime",
+      "status": "notice-retained",
+      "basis": "Pinned Python wheel licenses and METADATA are copied verbatim into THIRD-PARTY-NOTICES/python by the Windows builder; CPython, Tcl/Tk, OpenSSL and libffi notices are retained. Existing NumPy/ONNX/LLVM notices remain included. Supplemental notices close the audited Tcl/OpenSSL/Intel omissions. MPL source-bearing components are listed separately.",
+      "artifacts": [
+        "repo:packaging/windows-requirements.lock",
+        "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+        "repo:packaging/notices/CTranslate2-fmt-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+        "repo:packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+        "repo:packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+        "repo:packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+        "repo:packaging/notices/llama-b11146-stb-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+        "repo:packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+        "repo:packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+        "repo:packaging/notices/provenance.json",
+        "repo:packaging/notices/Tcl-8.6.15-license.terms"
+      ]
+    },
+    {
+      "id": "pyinstaller-and-numpy-runtime-exceptions",
+      "status": "exception-reviewed",
+      "basis": "PyInstaller bootloader exception permits combined distributions; its runtime hooks use Apache2.0. NumPy OpenBLAS notice includes GCC Runtime Library Exception3.1. No separate libquadmath DLL was found. Neither finding is treated as an obligation to publish proprietary NVIDIA or Microsoft sources.",
+      "artifacts": [
+        "repo:packaging/windows-requirements.lock"
+      ]
+    },
+    {
+      "id": "proprietary-redistributables",
+      "status": "notice-retained",
+      "basis": "NVIDIA CUDA/cuDNN and Intel runtime notices retained, with selected DLLs pinned. Microsoft runtime14.44.35211 comes from the hash-verified official VSIX and its matching license notice is retained. These proprietary components are not described as open-source obligations. Microsoft distributor grant remains a separate unresolved release condition.",
+      "artifacts": [
+        "repo:packaging/windows-runtime.json",
+        "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+        "repo:packaging/notices/CTranslate2-fmt-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+        "repo:packaging/notices/CTranslate2-thrust-LICENSE.txt",
+        "repo:packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+        "repo:packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+        "repo:packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+        "repo:packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+        "repo:packaging/notices/llama-b11146-stb-LICENSE.txt",
+        "repo:packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+        "repo:packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+        "repo:packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+        "repo:packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+        "repo:packaging/notices/provenance.json",
+        "repo:packaging/notices/Tcl-8.6.15-license.terms"
+      ]
+    }
+  ],
+  "binary_bindings": [
+    {
+      "path": "_internal/av.libs/avcodec-62-e61ebb4d44f088d41854bba48c7c6326.dll",
+      "sha256": "e1ab3e2bb8851c7a52f832708958550aae30696f0a9c42e966b9862bbaf8648d"
+    },
+    {
+      "path": "_internal/av.libs/avdevice-62-2054c22006de1398c295443f0435a586.dll",
+      "sha256": "4aa8a859b25d1c9f1bffa33696dae4666783d5935d74ad1516c6d553006bbe76"
+    },
+    {
+      "path": "_internal/av.libs/avfilter-11-872b8934b555d988ef21cd8d60509474.dll",
+      "sha256": "b9be6eb45dfd99f863601b2e839c17228120369fed30fed4d6cb72359ff8f415"
+    },
+    {
+      "path": "_internal/av.libs/avformat-62-533f66a2337d3049a98fa1978537826a.dll",
+      "sha256": "6a85934d90766fa7e1b6ff16cb4f45a4c00a9e3038f10fb554fc63e27b938532"
+    },
+    {
+      "path": "_internal/av.libs/avutil-60-59d5388fb77d0ef060bec26d15e7b969.dll",
+      "sha256": "59d5388fb77d0ef060bec26d15e7b969d86f6f00687fa0ebc85ccd4345a0af56"
+    },
+    {
+      "path": "_internal/av.libs/swresample-6-cae89792aa4907e848346ebcd3220c00.dll",
+      "sha256": "a57c36c65993db14733290a48419b7707f30741ef0c4783f273cfa13dd7765ea"
+    },
+    {
+      "path": "_internal/av.libs/swscale-9-fc8e90f943800eeb5d8fe4a4b3867c66.dll",
+      "sha256": "e16c17b69ac9cb055f03613fa1b1bb6022bdbb9929da628a6031549323b54b3f"
+    },
+    {
+      "path": "_internal/av/_core.pyd",
+      "sha256": "cedcd3f662f264595fad668f6d8915f29da79f725847d38e1960fa1322d50123"
+    },
+    {
+      "path": "_internal/av/audio/codeccontext.pyd",
+      "sha256": "4445704ba0fd7a683de641563691c83a40e68cef2586f73740c3102e53daf224"
+    },
+    {
+      "path": "_internal/av/audio/fifo.pyd",
+      "sha256": "c5d48b2412e67208a947be34feafa190c6337e2f0405f2ef8fc94ae8267b6091"
+    },
+    {
+      "path": "_internal/av/audio/format.pyd",
+      "sha256": "e378ec2181c4262932c311a8b2b62b92434c1ae754c8f48329e250428934e260"
+    },
+    {
+      "path": "_internal/av/audio/frame.pyd",
+      "sha256": "81847a65f0d40d3ac7692ba1c1ab00aa00f9db7dcfbdf4d132d5c6a81c340e33"
+    },
+    {
+      "path": "_internal/av/audio/layout.pyd",
+      "sha256": "1b06b2e266aa96adc7881f4567813e086d43d5a02cf8694e0369bcbb0902c14e"
+    },
+    {
+      "path": "_internal/av/audio/plane.pyd",
+      "sha256": "e79d9f99109360b9fa0fbc5b68816ad21daedefdc6c08e2f24b87cdc1ca1c0b7"
+    },
+    {
+      "path": "_internal/av/audio/resampler.pyd",
+      "sha256": "dd9323c61869e45d684493012126f5a1ec5e9b7839d7c1ab7be7806884aa0029"
+    },
+    {
+      "path": "_internal/av/audio/stream.pyd",
+      "sha256": "1d2b96126a878c60dd4f556a16dd65b2c3306ce315f66f5acbdbd72fa31a9ad3"
+    },
+    {
+      "path": "_internal/av/bitstream.pyd",
+      "sha256": "5c35c0a823ac68c9fa1b9ae91184c789340eceea8104dec1834a582ed9b364dc"
+    },
+    {
+      "path": "_internal/av/buffer.pyd",
+      "sha256": "bc0b93dbf9f7fdf8a54ec756dd36c7549324a3f9d4784d5c4487470950f5a6bd"
+    },
+    {
+      "path": "_internal/av/bytesource.pyd",
+      "sha256": "aebfcafe4125f86b084ad0fe3f2f4afb2bd0952a4e744a096282faa1c3f4697d"
+    },
+    {
+      "path": "_internal/av/codec/codec.pyd",
+      "sha256": "a220ea6fcf5a32d71a23ac4ad59adf85837fd759cd8fea1e36387f45350e03c1"
+    },
+    {
+      "path": "_internal/av/codec/context.pyd",
+      "sha256": "980893c0509d58127c1cbe021a01b255a736cfc803b60b3494149473443cb185"
+    },
+    {
+      "path": "_internal/av/codec/hwaccel.pyd",
+      "sha256": "a718246a1daea22a5af9b233d37cd61732450f7ee72a40ca16f24ef96fd65a9e"
+    },
+    {
+      "path": "_internal/av/container/core.pyd",
+      "sha256": "5be19b9ba7585512eac9bf1fcfca7d4c80822c53fb7239442e3dc8ba4f88d6d6"
+    },
+    {
+      "path": "_internal/av/container/input.pyd",
+      "sha256": "a96de6f4835256eedfe89efd49839ef3a18a0443108d1f258b1c2562ba2db1b6"
+    },
+    {
+      "path": "_internal/av/container/output.pyd",
+      "sha256": "956208667b6ffdcd58ef2d6cdbb40a6724676dbcc8e579b07e909f8ab81223ed"
+    },
+    {
+      "path": "_internal/av/container/pyio.pyd",
+      "sha256": "e5cb2cfd8de2f95d94c07aa8826c6b685394a3f8e564388968810f8e8923981b"
+    },
+    {
+      "path": "_internal/av/container/streams.pyd",
+      "sha256": "474b0d38aa0d0c29fc476235baa7b1194989728d8744cd62ca11aabd1d68a756"
+    },
+    {
+      "path": "_internal/av/descriptor.pyd",
+      "sha256": "49f951a25376dc852074de2d14345939ccc1a718c43ca21afb764c28a95292cd"
+    },
+    {
+      "path": "_internal/av/dictionary.pyd",
+      "sha256": "59df8ef7999a49022dbd8dc6c96d90ff886c79e33d6715dbb6e1da70c900d9e3"
+    },
+    {
+      "path": "_internal/av/error.pyd",
+      "sha256": "12b68eb9c31516d28850e04a7ed423ef4148f272f5c1e1c208c40f1b1bd4caa3"
+    },
+    {
+      "path": "_internal/av/filter/context.pyd",
+      "sha256": "c9d48d86a047a78748e0f1488114af8d3b55112887e07e9deabdebfc790b3d40"
+    },
+    {
+      "path": "_internal/av/filter/filter.pyd",
+      "sha256": "fe637d676514f6d77335b8dcc3abb0afb699bbb90754d6fcc0ea39d3865db7f7"
+    },
+    {
+      "path": "_internal/av/filter/graph.pyd",
+      "sha256": "4d7692132399892c8ccc2d4275efcb4a6fb90752fd6e3f2f75a311928241a3f0"
+    },
+    {
+      "path": "_internal/av/filter/link.pyd",
+      "sha256": "13fa1eb7c4dfdbcf5985fb33b3321f92cb0cd6f99db7bcad09c770a9b926f90e"
+    },
+    {
+      "path": "_internal/av/filter/loudnorm.pyd",
+      "sha256": "92007553c5971b9da4463eb0d710c2ec77009d3c1d5ed3d36ca95aa76a24e3cd"
+    },
+    {
+      "path": "_internal/av/format.pyd",
+      "sha256": "5bd9fcca0eeeedbe3d62891b8125d7e764047ecdbe25d02f9d518f26dbbf7a96"
+    },
+    {
+      "path": "_internal/av/frame.pyd",
+      "sha256": "72569d81361a933415210ae63a31214b985385397c0137b8cea25e69a1d27780"
+    },
+    {
+      "path": "_internal/av/logging.pyd",
+      "sha256": "139218ee9801ebba78031fb9ae9c405edeb61de07e87238257605056ebf46b8c"
+    },
+    {
+      "path": "_internal/av/opaque.pyd",
+      "sha256": "29acbeac10cfae7e5932790b03b8df797053a9a24f333de403d728ea2a9f613b"
+    },
+    {
+      "path": "_internal/av/option.pyd",
+      "sha256": "9fe9a9ef98f0ca66ecc58f9dac0cf72fadecc041d4d443bcdb49048014554020"
+    },
+    {
+      "path": "_internal/av/packet.pyd",
+      "sha256": "10f84884896838f3fb6ae4b9713fc31af46f10c22c9a411177c081c02ef9e9c4"
+    },
+    {
+      "path": "_internal/av/plane.pyd",
+      "sha256": "12170dc8185f7ed97ae04ecd855e59355ad0ed89681f480c0581bc438f57fe15"
+    },
+    {
+      "path": "_internal/av/sidedata/encparams.pyd",
+      "sha256": "8f11e688438be237f9ecd45b9d0964f1af70dab048027e111dca41ae052b44e5"
+    },
+    {
+      "path": "_internal/av/sidedata/motionvectors.pyd",
+      "sha256": "113bb2af11f0555f33825890b5d49b1c9fd824f0a01c2c3388f1fa88416f574c"
+    },
+    {
+      "path": "_internal/av/sidedata/sidedata.pyd",
+      "sha256": "f34602df31f3134267563db07c6364e265d84d60bd4df3edac670b87a780453d"
+    },
+    {
+      "path": "_internal/av/stream.pyd",
+      "sha256": "7204644f8e713360b593c8ca498bea44aef09f7d559474292c4f30ca599a6b1e"
+    },
+    {
+      "path": "_internal/av/subtitles/codeccontext.pyd",
+      "sha256": "cfdb518cb4ad1e4a5037bc779db4548caf10b6565953d09751f3e6b7496e69c2"
+    },
+    {
+      "path": "_internal/av/subtitles/stream.pyd",
+      "sha256": "42b9bae380b0a6540193fe32de2c2642ef2df3fb22214d0278773fe33196a12c"
+    },
+    {
+      "path": "_internal/av/subtitles/subtitle.pyd",
+      "sha256": "555a78c4c68e372297b9382626396759d64aa1d3f8575347c5b0ed97d09e4a74"
+    },
+    {
+      "path": "_internal/av/utils.pyd",
+      "sha256": "6fa8940c2fed10d49fae4aea6b5254a3d7014b52304120ee07cdc8797c0592b6"
+    },
+    {
+      "path": "_internal/av/video/codeccontext.pyd",
+      "sha256": "47ed1ae9d0ca7fd40c5e9bd5f0e2bd593d2f0c34d4d05ff45534e2327f8b8c6f"
+    },
+    {
+      "path": "_internal/av/video/format.pyd",
+      "sha256": "65032b5fcde5eec970bf05421cc05cb30295e58cf2f34033ec00cd842efed0dc"
+    },
+    {
+      "path": "_internal/av/video/frame.pyd",
+      "sha256": "53633def3e5b316d7b6f494f9e55f7cc67f182905e003b615e3fe62fdf53861e"
+    },
+    {
+      "path": "_internal/av/video/plane.pyd",
+      "sha256": "7c603d80ec2494db2adcd13808976eaa8a3ab3bf958343870bac8437a04a88b6"
+    },
+    {
+      "path": "_internal/av/video/reformatter.pyd",
+      "sha256": "edf86ef3d57eb21f9610b9172fb7a93eaffaea06166a6e008f8702c4c7b42c0e"
+    },
+    {
+      "path": "_internal/av/video/stream.pyd",
+      "sha256": "eb2af310a73fd71962e2f7be0f6fc55c473efd9f0561d2168e4acd972b7bcc3b"
+    },
+    {
+      "path": "_internal/bin/ffmpeg.exe",
+      "sha256": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2"
+    },
+    {
+      "path": "_internal/bin/ffprobe.exe",
+      "sha256": "2ec0fafb3571a9ca775b52a1aac40c04918a8b0fff21eb436975611d969ef8aa"
+    },
+    {
+      "path": "_internal/certifi/cacert.pem",
+      "sha256": "9cc2a774b5198dcff14d9be1e66091f538975d867ce029a96bce15a55dfd730f"
+    },
+    {
+      "path": "_internal/ctranslate2/ctranslate2.dll",
+      "sha256": "34ff1eeefef2330f8abe777ae12b2238718e04503ad6e3bc9b6c9cb5be9fd274"
+    },
+    {
+      "path": "_internal/ctranslate2/libiomp5md.dll",
+      "sha256": "982233366b0afcda1e0f55a0b134097e35b779613f54ddb69e685e6cd06b755f"
+    },
+    {
+      "path": "_internal/libcrypto-3.dll",
+      "sha256": "ccfffddcd3defb8d899026298af9af43bc186130f8483d77e97c93233d5f27d7"
+    },
+    {
+      "path": "_internal/libssl-3.dll",
+      "sha256": "007142039f04d04e0ed607bda53de095e5bc6a8a10d26ecedde94ea7d2d7eefe"
+    },
+    {
+      "path": "_internal/llama/llama-common.dll",
+      "sha256": "5a07bd8dfb7626476a47b4931e278c82518991b4faf85ce42cde82eb0ce6bb50"
+    },
+    {
+      "path": "_internal/llama/llama-server-impl.dll",
+      "sha256": "fae1ca8959986062a24c7b0a92e12a782f2770fc5448c7cc631f0d4bb6cac4a0"
+    },
+    {
+      "path": "_internal/msvcp140.dll",
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9"
+    },
+    {
+      "path": "_internal/msvcp140_1.dll",
+      "sha256": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d"
+    },
+    {
+      "path": "_internal/onnxruntime/capi/onnxruntime_pybind11_state.pyd",
+      "sha256": "70949b9e61ca2c7e184f156bc2747a30c93a965c9f8d7eb8e2c78045a4f82b6b"
+    },
+    {
+      "path": "_internal/tcl86t.dll",
+      "sha256": "b894e0c9a7d2b56f9f202de5044221cfc0938cbd9ffaca6b6793bba486e28081"
+    },
+    {
+      "path": "_internal/vcruntime140.dll",
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
+      "path": "_internal/vcruntime140_1.dll",
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+    }
+  ],
+  "remaining": [],
+  "exclusive_native_directories": [
+    "_internal/av.libs",
+    "_internal/av"
+  ],
+  "distribution_conditions": [
+    "Complete a qualifying Microsoft Visual Studio product setup/use and retain redistribution-grant evidence before publishing the binary packages. The no-cost Community2022 route requires Windows administrator approval unavailable in this session. Runtime provenance and an end-user EULA alone do not establish distributor authority.",
+    "Publish the dependency source ZIP and exact matching Castwell source ZIP alongside the matching binary downloads, after package verification and independent audible ad-removal acceptance. This local source collection does not establish public source access or production acceptance."
+  ],
+  "upstream_license_policy": "Every dependency retains its upstream license. Castwell remains AGPL-3.0-only. Models and private podcast recordings are excluded."
+}

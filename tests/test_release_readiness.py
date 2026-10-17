@@ -37,7 +37,8 @@ def installation(tmp_path, monkeypatch):
                                         {"id": "model", "status": "ok", "detail": "Cached model"},
                                         {"id": "ffprobe", "status": "ok", "detail": "Available"},
                                         {"id": "transcription", "status": "ok", "detail": "Installed"},
-                                        {"id": "storage", "status": "ok", "detail": "Writable"}]},
+                                        {"id": "storage", "status": "ok", "detail": "Writable"},
+                                        {"id": "gpu", "status": "ok", "detail": "CUDA available"}]},
         "/api/jobs": {"jobs": []},
         "/api/feeds/refresh/status": {"status": "idle"},
         "/api/models/status": {"status": "idle"},
@@ -70,6 +71,8 @@ def test_ready_uses_only_local_readiness_and_preserves_library(installation):
     before = installation.library.get("release-fixture")
     report = run(installation)
     assert report["ready"] is True
+    assert report["operational_ready"] is True and report["production_ready"] is False
+    assert report["ad_removal_acceptance"]["status"] == "not_measured"
     assert report["inference_requests"] == report["library_mutations"] == 0
     assert installation.library.get("release-fixture") == before
     assert len(installation.calls) == 9
@@ -103,6 +106,28 @@ def test_cut_safety_settings_block_release(installation, field, value):
     assert report["ready"] is False and status(report, "cut_approval") == "error"
 
 
+def test_scene_automatic_profile_is_operational_without_claiming_accuracy_acceptance(installation):
+    installation.responses["/api/settings"].update(ai_policy="scene", review_only=False, auto_approve_threshold=.90)
+    report = run(installation)
+    assert report["operational_ready"] and status(report, "cut_approval") == "ok"
+    assert not report["production_ready"] and report["ad_removal_acceptance"]["status"] == "not_measured"
+    assert report["inference_requests"] == 0
+    installation.responses["/api/settings"]["auto_approve_threshold"] = .5
+    assert status(run(installation), "cut_approval") == "error"
+
+
+@pytest.mark.parametrize("review_only", [True, False, None, 1])
+def test_fast_profile_requires_manual_review_and_never_claims_accuracy_acceptance(installation, review_only):
+    installation.responses["/api/settings"].update(ai_policy="fast", review_only=review_only)
+    report = run(installation)
+    assert report["operational_ready"] is (review_only is True)
+    assert status(report, "cut_approval") == ("ok" if review_only is True else "error")
+    assert report["production_ready"] is False
+    assert report["ad_removal_acceptance"]["status"] == "not_measured"
+    assert report["inference_requests"] == report["library_mutations"] == 0
+    assert status(report, "accuracy_acceptance") == "warning"
+
+
 @pytest.mark.parametrize("addresses", [["0.0.0.0"], ["127.0.0.1", "::"], None])
 def test_nonlocal_or_unverified_listeners_block_release(installation, monkeypatch, addresses):
     monkeypatch.setattr(release, "listener_addresses", lambda port: addresses)
@@ -120,6 +145,36 @@ def test_incomplete_diagnostics_do_not_pass_release(installation):
     installation.responses["/api/diagnostics"] = {"checks": []}
     report = run(installation)
     assert report["ready"] is False and status(report, "environment_complete") == "error"
+
+
+@pytest.mark.parametrize("endpoint", ["/api/settings", "/api/health", "/api/diagnostics", "/api/jobs",
+                                     "/api/feeds/refresh/status", "/api/models/status", "/api/episodes",
+                                     "/api/podcasts"])
+def test_null_readiness_response_cannot_silently_pass(installation, endpoint):
+    installation.responses[endpoint] = None
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, endpoint) == "error"
+    assert report["production_ready"] is False
+
+
+def test_missing_gpu_diagnostic_blocks_cuda_readiness(installation):
+    checks = installation.responses["/api/diagnostics"]["checks"]
+    checks[:] = [check for check in checks if check["id"] != "gpu"]
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, "environment_complete") == "error"
+    assert report["production_ready"] is False
+
+
+@pytest.mark.parametrize("gpu_status", ["warning", "error"])
+def test_unverified_gpu_diagnostic_blocks_cuda_readiness(installation, gpu_status):
+    gpu = next(check for check in installation.responses["/api/diagnostics"]["checks"] if check["id"] == "gpu")
+    gpu["status"] = gpu_status
+    report = run(installation)
+    assert report["operational_ready"] is False
+    assert status(report, "environment_gpu") == "error"
+    assert report["production_ready"] is False
 
 
 def test_missing_original_blocks_release_without_leaking_stored_path(installation):
@@ -160,6 +215,7 @@ def test_wrong_library_and_active_queue_block_release(installation):
     report = run(installation)
     assert report["ready"] is False
     assert status(report, "library_identity") == status(report, "queue_idle") == "error"
+    assert "http://127.0.0.1:8081/v1/models" not in installation.calls
 
 
 @pytest.mark.parametrize("path,identifier", [("/api/feeds/refresh/status", "feed_refresh_idle"),
@@ -170,6 +226,8 @@ def test_background_operations_block_release_when_episode_queue_is_idle(installa
     assert report["ready"] is False
     assert status(report, "queue_idle") == "ok"
     assert status(report, identifier) == "error"
+    if path == "/api/models/status":
+        assert "http://127.0.0.1:8081/v1/models" not in installation.calls
 
 
 def test_low_storage_blocks_batch_release(installation, monkeypatch):

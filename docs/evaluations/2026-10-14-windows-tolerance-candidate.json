@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "version": "0.5.4",
+  "platform": "windows-x64",
+  "application_source_revision": "9679023372d0c2752bfde3818fbe1066271167c3",
+  "application_source_url": "https://github.com/mgelsinger/castwell/tree/9679023372d0c2752bfde3818fbe1066271167c3",
+  "source_tree_sha256": "28a30ed149c56f0547ddc3c82759e50d40b89bdf01622b6a75462454f356ebe5",
+  "build_manifest_sha256": "71d4b18633767f333469993ee286f148d1043ce4825d15aeff1a86019d2f811c",
+  "build_passed": true,
+  "frozen_cuda_runtime_check_passed": true,
+  "final_distribution_smoke_passed": true,
+  "scope": "Actual local Windows portable and installed package operation, CUDA model lifecycle and synthetic format smoke; not a new podcast ad-removal accuracy evaluation.",
+  "source_tests_and_podcast_benchmark_repeated": false,
+  "request_accounting": {
+    "scope": "Packaging probes only; excludes the separate seven-request podcast comparison.",
+    "actual_local_classifier_requests_total": 4,
+    "earlier_completed_portable_requests": 2,
+    "new_installed_requests_in_resumed_run": 2,
+    "new_portable_requests_in_resumed_run": 0,
+    "paid_api_calls": 0,
+    "model_weight_downloads": 0
+  },
+  "harness_history": {
+    "first_harness_passed": false,
+    "first_harness_report_sha256": "64f193cd62d2957138feb11922206a16943ae7e3c32af61cda7ac89f5a14a19f",
+    "first_failure": "The portable classifier helper saved an explicit temporary library preference beside its extracted executable; the following fresh-default GUI fixture opened that saved preference.",
+    "classification": "Test fixture contamination; saved-preference behavior was retained.",
+    "repair": "Fresh standard portable extraction with hash-validated reuse of the completed portable classifier phase; installed helper preferences remain in a separate profile.",
+    "application_binaries_changed_for_retry": false,
+    "failed_evidence_retained": true,
+    "resumed_harness_report_sha256": "c13c7686fbf503fa0d8525f93883c2fd578980a3888a1984c48c5ec99049a763",
+    "original_portable_classifier_report_sha256": "3c587920b357274c8a2c4e7da8c5d1ebef04b32d9c8aaee54a948195c90b2639"
+  },
+  "packages": {
+    "portable": {
+      "passed": true,
+      "actual_classifier_requests_in_phase": 2,
+      "new_classifier_requests_in_resumed_run": 0,
+      "classifier_evidence_reused": true,
+      "classifier_report_sha256": "6a246ee912a9d2ea3de38bedb788e4b4f8a9993d366e6086334cbc08666d13f0",
+      "native_classifier_log_sha256": "d76903586bcf3508b186c3a10c8d7f37cbdd7206c4757ed5218828263eb8242e",
+      "native_context_tokens": 32768,
+      "model_layers_on_cuda": 66,
+      "model_layers_total": 66,
+      "effective_desktop_defaults": {
+        "ai_policy": "fast",
+        "ai_policy_options": [
+          "scene",
+          "fast"
+        ],
+        "review_only": true,
+        "detector": "ai",
+        "ai_reasoning": false,
+        "transcription_batch_size": 8
+      },
+      "classifier_model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+      "speech_fixture_sha256": "1d452c65c55443b76e3ec8a872af368ad87d1446a77e7e11d8a660c23b8564a8",
+      "native_classifier_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "executable_sha256": "446eae6c2fe13770831ec94732b9eb679480c56009fcb84e0b7184d39eb761bf",
+      "cached_speech_preparation_released": true,
+      "owned_keep_asr_original_unchanged": true,
+      "classifier_asleep_during_speech_and_woke_after": true,
+      "owned_launcher_and_children_stopped": true,
+      "cuda_asr_with_cached_model": true,
+      "cuda_vad_cpu_fallback_disabled": true,
+      "masked_gpu_rejection_passed": true,
+      "visible_native_launcher_and_owned_shutdown": true,
+      "rendered_fixture_seconds": 8.0,
+      "batch_feed_episodes": 2,
+      "archive_files": 3,
+      "package_source_identity": {
+        "passed": true,
+        "application_source_revision": "9679023372d0c2752bfde3818fbe1066271167c3",
+        "build_manifest_sha256": "ac9daf64426d21349a4a34d06a98d3ea983b8384d7da95a09def9ecab8b268ee",
+        "manifest_files_verified": 2045,
+        "current_review_ui_assets_match_source": true,
+        "source_static_assets_matched": 3,
+        "license_notice_match_source": true,
+        "inventory_and_media_binary_hashes_match": true,
+        "bundled_guides_local_links_resolve": true,
+        "all_current_json_evidence_matches_source": true,
+        "third_party_source_closure_complete": false
+      }
+    },
+    "installed": {
+      "passed": true,
+      "actual_classifier_requests_in_phase": 2,
+      "new_classifier_requests_in_resumed_run": 2,
+      "classifier_evidence_reused": false,
+      "classifier_report_sha256": "7329bf212fa1b9091382edc5a0c4cfe01f28a24567587d3bc108f957cee48f3d",
+      "native_classifier_log_sha256": "88dd42e758a640cafb3beddb8a7c8dd003f07ddd055e0e176bbebb0d11a960ef",
+      "native_context_tokens": 32768,
+      "model_layers_on_cuda": 66,
+      "model_layers_total": 66,
+      "effective_desktop_defaults": {
+        "ai_policy": "fast",
+        "ai_policy_options": [
+          "scene",
+          "fast"
+        ],
+        "review_only": true,
+        "detector": "ai",
+        "ai_reasoning": false,
+        "transcription_batch_size": 8
+      },
+      "classifier_model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+      "speech_fixture_sha256": "1d452c65c55443b76e3ec8a872af368ad87d1446a77e7e11d8a660c23b8564a8",
+      "native_classifier_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "executable_sha256": "446eae6c2fe13770831ec94732b9eb679480c56009fcb84e0b7184d39eb761bf",
+      "cached_speech_preparation_released": true,
+      "owned_keep_asr_original_unchanged": true,
+      "classifier_asleep_during_speech_and_woke_after": true,
+      "owned_launcher_and_children_stopped": true,
+      "cuda_asr_with_cached_model": true,
+      "cuda_vad_cpu_fallback_disabled": true,
+      "masked_gpu_rejection_passed": true,
+      "visible_native_launcher_and_owned_shutdown": true,
+      "rendered_fixture_seconds": 8.0,
+      "batch_feed_episodes": 2,
+      "archive_files": 3,
+      "package_source_identity": {
+        "passed": true,
+        "application_source_revision": "9679023372d0c2752bfde3818fbe1066271167c3",
+        "build_manifest_sha256": "ac9daf64426d21349a4a34d06a98d3ea983b8384d7da95a09def9ecab8b268ee",
+        "manifest_files_verified": 2045,
+        "current_review_ui_assets_match_source": true,
+        "source_static_assets_matched": 3,
+        "license_notice_match_source": true,
+        "inventory_and_media_binary_hashes_match": true,
+        "bundled_guides_local_links_resolve": true,
+        "all_current_json_evidence_matches_source": true,
+        "third_party_source_closure_complete": false
+      }
+    }
+  },
+  "portable_relocation_passed": true,
+  "current_user_install_shortcut_registry_uninstall_passed": true,
+  "uninstall_preserved_owned_default_external_and_rejection_test_libraries": true,
+  "library_preservation_scope": "Owned temporary test libraries; no existing user installation was replaced.",
+  "no_current_user_uninstall_entry_or_start_menu_group_remains": true,
+  "no_castwell_llama_or_ffmpeg_processes_remain": true,
+  "source_archive": {
+    "name": "Castwell-0.5.4-Source.zip",
+    "bytes": 6157000,
+    "sha256": "c960a7d1eef17431a394b131576d42974270aed890eddb2e50e3426d1d87dec6",
+    "application_source_revision": "9679023372d0c2752bfde3818fbe1066271167c3",
+    "git_archive_comment_matches": true,
+    "archive_crc_verified": true,
+    "required_source_assets_verified": true,
+    "source_file_count": 190,
+    "private_library_and_external_weights_absent": true,
+    "build_manifest_unchanged": true,
+    "project_terms": [
+      {
+        "name": "LICENSE",
+        "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "matches_committed_text_with_normalized_newlines": true
+      },
+      {
+        "name": "NOTICE",
+        "sha256": "d65d9b2e8a7472ddf9bf35d7d49f111ca084c47fc14fcd9cec5b652a5ad3b298",
+        "matches_committed_text_with_normalized_newlines": true
+      }
+    ],
+    "third_party_corresponding_sources_complete": false,
+    "archive_entry_count": 203
+  },
+  "artifacts": [
+    {
+      "name": "Castwell-0.5.4-Windows-x64-Portable.zip",
+      "sha256": "414cbf0542f1ed6ea7d52d5672b2ccc6da7ec63d6ac44f8fd11eac3cb73294e8",
+      "bytes": 2060122013
+    },
+    {
+      "name": "Castwell-0.5.4-Windows-x64-Setup.exe",
+      "sha256": "c0c9d5a42dafe4235836deeb0f933d28064a4cb5b20f98dd6adaa0e245311aba",
+      "bytes": 1301351504
+    },
+    {
+      "name": "Castwell-0.5.4-Windows-x64-manifest.json",
+      "bytes": 400874,
+      "sha256": "71d4b18633767f333469993ee286f148d1043ce4825d15aeff1a86019d2f811c"
+    },
+    {
+      "name": "Castwell-0.5.4-Source.zip",
+      "bytes": 6157000,
+      "sha256": "c960a7d1eef17431a394b131576d42974270aed890eddb2e50e3426d1d87dec6"
+    }
+  ],
+  "build_manifest_preserved_unchanged": true,
+  "third_party_corresponding_source_bundle_complete": false,
+  "distribution_legal_clearance_claimed": false,
+  "production_go_live_confirmed": false,
+  "limitations": [
+    "Classifier probes used two tiny synthetic texts per package; full detector policy and podcast accuracy were not reevaluated by this smoke.",
+    "Mandatory review remains the default. Earlier partial-reference podcast results do not guarantee zero missed ads or zero excess cuts.",
+    "Complete third-party corresponding-source closure remains unverified as documented in the bundled source inventory."
+  ],
+  "validation_report_created_after_packaged_source_freeze": true,
+  "helper_sha256": {
+    "run_frozen_classifier_054.py": "1da7d5f333c690b29d8ecd0b23751af7812b95307138f0ce4546a212082040fc",
+    "run_distribution_with_classifier_054.py": "b083ba9ad756b6570a1badfa1ff9a4eacb982f501b39c2b39853317904fd8aa2",
+    "run_distribution_with_classifier_resume_054.py": "84b171ba84201eac8febac6bf3860695afe90f813eaee2410e8aae8c3e724de5"
+  }
+}

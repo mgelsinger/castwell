@@ -1,4 +1,4 @@
-# Windows x64, CPython 3.12 build inputs. The generated lock pins every wheel.
+# Windows x64, CPython 3.12 upstream wheels. PyAV is built separately from its source lock.
 feedparser==6.0.14
 requests==2.34.2
 tqdm==4.70.1
@@ -6,7 +6,7 @@ fastapi==0.142.2
 uvicorn==0.54.0
 python-multipart==0.0.32
 faster-whisper==1.2.1
-av==16.1.0
+# av==16.1.0+castwell1 is supplied by scripts/build_windows_pyav.py, not PyPI.
 PyInstaller==6.22.3
 setuptools==80.9.0
 wheel==0.45.1

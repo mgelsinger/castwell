@@ -200,6 +200,138 @@ def test_launcher_parses_without_executing_it():
 
 
 @pytest.mark.skipif(not POWERSHELL, reason="PowerShell is unavailable")
+def test_suite_launchers_parse_without_execution():
+    scripts = [ROOT / "scripts" / name for name in ("start_castwell.ps1", "start_suite.ps1", "start_qwen38_dense_local.ps1")]
+    paths = ",".join("'" + str(path).replace("'", "''") + "'" for path in scripts)
+    result = powershell(f"foreach($p in @({paths})) {{$e=$null; $t=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($p,[ref]$t,[ref]$e); if($e.Count){{$e | Out-String | Write-Error; exit 1}}}}")
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(not POWERSHELL, reason="PowerShell is unavailable")
+@pytest.mark.parametrize('extra,context', [('', '32768'), ('-Context 8192', '8192')])
+def test_qwen38_defaults_match_measured_native_profile_without_loading_model(tmp_path, extra, context):
+    model = tmp_path / "model with spaces.gguf"
+    binary = tmp_path / "server with spaces.exe"
+    model.write_bytes(b"mock model")
+    binary.write_bytes(b"mock runtime")
+    quoted = lambda value: "'" + str(value).replace("'", "''") + "'"
+    launcher = ROOT / "scripts/start_qwen38_dense_local.ps1"
+    result = powershell(f"""
+$ErrorActionPreference='Stop'
+function Get-Item {{ param($LiteralPath) [pscustomobject]@{{Length=17106775008}} }}
+function Get-FileHash {{ param($LiteralPath,$Algorithm)
+    $hash=if($LiteralPath -eq {quoted(model)}){{'7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169'}}else{{'7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352'}}
+    [pscustomobject]@{{Hash=$hash}}
+}}
+function Start-Process {{ throw 'The validation check must not launch anything' }}
+& {quoted(launcher)} -Model {quoted(model)} -ServerBinary {quoted(binary)} -ValidateOnly {extra} | ConvertTo-Json -Depth 5 -Compress
+""")
+    assert result.returncode == 0, result.stderr
+    data = json.loads(result.stdout)
+    arguments = data["Arguments"]
+    assert data["StartsServer"] is False
+    expected = {"--n-gpu-layers": "all", "--fit": "off", "--reasoning": "off", "--reasoning-budget": "0",
+                "--n-predict": "2048", "--temp": "0.7", "--top-p": "0.8", "--presence-penalty": "0",
+                "--sleep-idle-seconds": "1", "--host": "127.0.0.1", "--ctx-size": context}
+    assert all(arguments[arguments.index(name) + 1] == value for name, value in expected.items())
+
+
+@pytest.mark.skipif(sys.platform != "win32" or not POWERSHELL, reason="Windows source launcher requires Windows and PowerShell")
+@pytest.mark.parametrize('profile', ['ReviewedProfile', 'FastProfile'])
+def test_source_profile_launch_preserves_speech_choices_and_applies_explicit_approval_batch_policy(tmp_path, profile):
+    from castwell.library import Library
+    import socket
+    launcher = ROOT / "scripts/start_castwell.ps1"
+    quoted = lambda value: "'" + str(value).replace("'", "''") + "'"
+    for preference in (None, True, False):
+        data = tmp_path / str(preference)
+        library = Library(data)
+        library.update_settings({"ai_reasoning": True, "detector": "heuristic", "transcription_batch_size": 3})
+        if preference is not None:
+            library.update_settings({"review_only": preference})
+            library.update_settings({"transcription_model": "small.en"})
+        explicit = " -SpeechModel large-v2" if preference is False else ""
+        with socket.socket() as listener:
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+        result = powershell(f"""
+$ErrorActionPreference='Stop'
+function Get-Command {{ param($Name) [pscustomobject]@{{Name=$Name}} }}
+function New-Item {{ }}
+function Set-Content {{ }}
+function Start-Process {{
+    param($FilePath,$ArgumentList,$WindowStyle,$WorkingDirectory,$RedirectStandardOutput,$RedirectStandardError,[switch]$PassThru)
+    $global:capturedProfile=@{{policy=$env:CASTWELL_AI_POLICY; sleep=$env:CASTWELL_CLASSIFIER_SLEEP_ADDRESS; key=$env:CASTWELL_AI_KEY; speech=$ArgumentList[[Array]::IndexOf($ArgumentList,'--model')+1]}}
+    [pscustomobject]@{{Id=123}}
+}}
+& {quoted(launcher)} -Port {port} -ClassifierPort 18081 -DataDirectory {quoted(data)} -{profile}{explicit} -Background | Out-Null
+$global:capturedProfile | ConvertTo-Json -Compress
+""")
+        assert result.returncode == 0, result.stderr
+        captured = json.loads(result.stdout.splitlines()[-1])
+        assert captured["policy"] == ("fast" if profile == "FastProfile" else "scene")
+        assert captured["sleep"] == "http://127.0.0.1:18081/v1"
+        assert not captured["key"]
+        saved = library.get_settings()
+        assert saved["review_only"] is (True if profile == "FastProfile" else preference if preference is not None else True)
+        assert saved["transcription_batch_size"] == (8 if profile == "FastProfile" else 3)
+        assert saved["transcription_model"] == ("large-v3" if preference is None else "small.en")
+        assert captured["speech"] == ("large-v3" if preference is None else "large-v2" if preference is False else "small.en")
+        assert saved["ai_reasoning"] is False and saved["detector"] == "ai"
+
+
+def test_suite_and_app_default_resolution_preserves_saved_models_without_loading_weights(tmp_path):
+    from castwell.library import Library
+    import re
+    for name in ("start_suite.ps1", "start_castwell.ps1"):
+        text = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        program = re.search(r"\$resolveModel = @'\n(.*?)\n'@", text, re.S).group(1)
+        library = Library(tmp_path / name)
+        def resolve(default):
+            result = subprocess.run([sys.executable, "-", str(library.root), default], input=program,
+                                    text=True, capture_output=True, check=True)
+            return result.stdout.strip()
+        assert resolve("small.en") == "small.en"
+        assert resolve("large-v3") == "large-v3"
+        library.update_settings({"transcription_model": "base"})
+        assert resolve("large-v3") == "base"
+        assert resolve("small.en") == "base"
+
+
+@pytest.mark.skipif(not POWERSHELL, reason="PowerShell is unavailable")
+def test_fast_suite_reuse_requires_the_native_context_without_launching_models():
+    import re
+    source = (ROOT / "scripts/start_suite.ps1").read_text(encoding="utf-8")
+    helpers = "\n".join(re.search(r"function " + name + r"[\s\S]*?^}", source, re.M).group()
+                        for name in ('Test-Argument', 'Get-ProjectListener'))
+    result = powershell(helpers + r'''
+$ErrorActionPreference='Stop'
+$binaryPath='C:\fixture\llama-server.exe'
+$modelPath='C:\fixture\model.gguf'
+function Get-NetTCPConnection {
+    param($State,$LocalPort,$ErrorAction)
+    [pscustomobject]@{LocalAddress='127.0.0.1';OwningProcess=123}
+}
+function Get-CimInstance {
+    param($ClassName,$Filter)
+    [pscustomobject]@{ExecutablePath=$binaryPath;CommandLine=$global:fixtureCommand;ProcessId=123}
+}
+$baseCommand='llama-server.exe --host 127.0.0.1 --port 18081 --model C:\fixture\model.gguf --alias castwell-local --n-gpu-layers all --fit off --reasoning off --reasoning-budget 0 --n-predict 2048 --temp 0.7 --top-p 0.8 --presence-penalty 0 --sleep-idle-seconds 1'
+$FastProfile=$true
+$global:fixtureCommand=$baseCommand+' --ctx-size 32768'
+$fastAccepted=[bool](Get-ProjectListener 'classifier' 18081)
+$global:fixtureCommand=$baseCommand+' --ctx-size 8192'
+$shortRejected=$false
+try { [void](Get-ProjectListener 'classifier' 18081) } catch { $shortRejected=$true }
+$FastProfile=$false
+$legacyAccepted=[bool](Get-ProjectListener 'classifier' 18081)
+@{fast=$fastAccepted;short_rejected=$shortRejected;legacy=$legacyAccepted} | ConvertTo-Json -Compress
+''')
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {'fast': True, 'short_rejected': True, 'legacy': True}
+
+
+@pytest.mark.skipif(not POWERSHELL, reason="PowerShell is unavailable")
 @pytest.mark.parametrize("extra,mode,budget", [("", "on", "1024"), ("-NoThinking -ReasoningBudget 7000", "off", "0")])
 def test_launcher_validation_resolves_dense_profile_without_starting_process(tmp_path, extra, mode, budget):
     model = tmp_path / "model with spaces.gguf"

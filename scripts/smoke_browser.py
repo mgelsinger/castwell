@@ -279,10 +279,15 @@ def run_suite_browser(page, feed, workspace, screenshot):
                 favorite = not episode(page, record["id"])["favorite"]
                 changed = page.request.patch(f'/api/episodes/{record["id"]}/state', data={"favorite": favorite})
                 assert changed.ok, changed.text()
-                with page.expect_response(lambda response: response.url.endswith("/api/episodes")
-                                          and response.request.resource_type == "fetch" and response.status == 200):
-                    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
-                expect(page.locator(f'#episodes .card-favorite[data-episode-id="{record["id"]}"]')).to_have_attribute("aria-pressed", str(favorite).lower())
+                # An older refresh can still be draining when the first event
+                # arrives. Keep requesting visibility refreshes until this real
+                # mutation is rendered, while the saved response remains held.
+                wait_js(page, """({id, favorite}) => {
+                    const button = document.querySelector(`#episodes .card-favorite[data-episode-id="${id}"]`);
+                    if (button?.getAttribute('aria-pressed') === String(favorite)) return true;
+                    document.dispatchEvent(new Event('visibilitychange'));
+                    return false;
+                }""", {"id": record["id"], "favorite": favorite}, label="changed list rendered during held save")
                 expect(page.locator("#batch-render")).to_be_disabled()
                 expect(page.locator("#podcast-ad-mode")).to_be_disabled()
                 with page.expect_response(lambda response: response.url.endswith(f'/{record["id"]}/cuts')
@@ -498,6 +503,195 @@ def run_catalogue_browser(page, feed, screenshot, auto_accept=None):
     screenshot("mobile-catalogue-paging")
 
 
+def run_coverage_browser(page, base, audio):
+    """Exercise explicit acknowledgement on isolated tone fixtures, not real listening."""
+    from playwright.sync_api import expect
+
+    note("Browser: explicit coverage acknowledgement stays separate from audio export")
+    unique_audio = audio.with_name("coverage-acknowledgement-fixture.wav")
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio), "-metadata",
+                    "comment=coverage acknowledgement UI fixture", str(unique_audio)], check=True)
+    uploaded = page.request.post("/api/audio", multipart={"file": {
+        "name": "Coverage acknowledgement fixture.wav", "mimeType": "audio/wav",
+        "buffer": unique_audio.read_bytes(),
+    }})
+    assert uploaded.status == 201, uploaded.text()
+    identifier = uploaded.json()["id"]
+    imported = page.request.post(f"/api/episodes/{identifier}/transcript", data={
+        "duration": 24, "language": "en", "segments": [
+            {"id": 0, "start": 0, "end": 8, "text": "First synthetic transcript passage."},
+            {"id": 1, "start": 12, "end": 24, "text": "Second synthetic transcript passage."},
+        ],
+    })
+    assert imported.ok, imported.text()
+    saved = page.request.post(f"/api/episodes/{identifier}/cuts", data={"cuts": [
+        {"start": 2, "end": 3, "approved": True, "source": "manual", "reason": "Coverage UI fixture"},
+    ]})
+    assert saved.ok, saved.text()
+    original = episode(page, identifier)
+    assert original["title"] == "Coverage acknowledgement fixture"
+    assert original["transcript"]["quality"]["requires_review"] is True
+    assert original["export_ready"] is False and original["preferred_version"] == "original"
+    token = original["coverage_review_token"]
+    assert isinstance(token, str) and len(token) == 64
+
+    page.set_viewport_size({"width": 1440, "height": 1000})
+    page.goto(base, wait_until="networkidle")
+    page.locator("#podcast-filter").select_option("")
+    page.locator('[data-filter="all"]').click()
+    page.locator("#library-search").fill("Coverage acknowledgement fixture")
+    page.locator("#episodes").get_by_role("button", name="Open Coverage acknowledgement fixture", exact=True).click()
+    expect(page.locator("#transcript-quality-notice")).to_be_visible()
+    confirmation = page.locator("#confirm-coverage-review")
+    expect(confirmation).to_be_enabled()
+    page.locator("#tab-cuts").click()
+    page.get_by_label("Cut 1 start in seconds", exact=True).fill("2.1")
+    expect(confirmation).to_be_disabled()
+    with page.expect_response(lambda response: response.url.endswith(f"/{identifier}/cuts")
+                              and response.request.method == "POST") as updated:
+        page.locator("#save-cuts").click()
+    assert updated.value.ok, updated.value.text()
+    expect(confirmation).to_be_enabled()
+    with page.expect_response(lambda response: response.url.endswith(f"/{identifier}/coverage-review")
+                              and response.request.method == "POST") as acknowledged:
+        confirmation.click()
+    assert acknowledged.value.ok, acknowledged.value.text()
+    assert acknowledged.value.request.post_data_json == {"reviewed": True, "review_token": token}
+    expect(page.locator("#transcript-quality-notice")).to_be_hidden()
+    reviewed = episode(page, identifier)
+    quality = reviewed["transcript"]["quality"]
+    assert quality["requires_review"] is False
+    assert quality["gaps"] == original["transcript"]["quality"]["gaps"]
+    assert quality["user_review"]["listener_reported_listening"] is True
+    assert quality["user_review"]["human_listening_verified"] is False
+    assert quality["user_review"]["model_verified"] is False
+    assert reviewed["has_cleaned"] is False and reviewed["export_ready"] is False
+    assert reviewed["preferred_version"] == "original" and reviewed["status"] == "review"
+    assert reviewed["cuts"][0]["start"] == 2.1
+    page.locator("#close-detail").click()
+
+
+def run_boundary_preview_browser(page, base, episode_id, artifacts):
+    """Real browser audio checks; no detector calls or saved cut changes."""
+    from playwright.sync_api import expect
+
+    note("Browser: hear both cut edges without changing cleaned playback or approvals")
+    saved_cuts = episode(page, episode_id)["cuts"]
+    cut_writes = []
+
+    def record_write(request):
+        if request.method == "POST" and urlsplit(request.url).path == f"/api/episodes/{episode_id}/cuts":
+            cut_writes.append(request.url)
+
+    page.on("request", record_write)
+    page.set_viewport_size({"width": 1440, "height": 1100})
+    page.goto(base, wait_until="networkidle")
+    page.locator("#episodes").get_by_role("button", name="Open Playback position regression", exact=True).click()
+    page.locator("#tab-cuts").click()
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return a.readyState >= 2 && new URL(a.currentSrc).pathname.endsWith('/cleaned'); }", label="cleaned preview fixture")
+    player = page.locator("#audio-player")
+    player.evaluate("a => { a.pause(); a.currentTime = 9; }")
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return !a.seeking && Math.abs(a.currentTime-9)<.05; }", label="preserved main playhead")
+    main_source = player.evaluate("a => a.currentSrc")
+    main_rate = player.evaluate("a => a.playbackRate")
+    start = page.locator('[data-preview-edge="start"][data-cut-index="0"]')
+    end = page.locator('[data-preview-edge="end"][data-cut-index="0"]')
+
+    def playing_from(low, high):
+        wait_js(page, """({low, high}) => {
+            const a = document.querySelector('#cut-preview-audio');
+            return a && !a.paused && a.readyState >= 2 && !a.error
+                && new URL(a.currentSrc).pathname.endsWith('/original')
+                && a.currentTime >= low && a.currentTime < high;
+        }""", {"low": low, "high": high}, label="original boundary audio")
+
+    def stopped():
+        wait_js(page, "() => !document.querySelector('#cut-preview-audio')", label="boundary preview stopped")
+
+    start.click()
+    playing_from(3, 4)
+    assert player.evaluate("a => a.paused && Math.abs(a.currentTime-9)<.05")
+    assert player.evaluate("a => a.currentSrc") == main_source
+    assert player.evaluate("a => a.playbackRate") == main_rate
+    expect(page.locator('#cut-list input[type=checkbox]').first).to_be_checked()
+    expect(page.locator('#mark-cut-start')).to_be_disabled()
+    expect(page.locator('#mark-cut-end')).to_be_disabled()
+    for control in page.locator('#cut-list .set-playhead').all():
+        expect(control).to_be_disabled()
+        expect(control).to_have_attribute('title', 'Stop the preview to use the episode playhead.')
+    expect(page.get_by_label('Cut 1 start in seconds', exact=True)).to_be_enabled()
+    page.locator('#cut-preview-audio').evaluate("""a => {
+        window.boundaryPreviewTimes = [a.currentTime];
+        a.addEventListener('timeupdate', () => window.boundaryPreviewTimes.push(a.currentTime));
+    }""")
+    stopped()
+    observed = page.evaluate('Math.max(...window.boundaryPreviewTimes)')
+    assert 8.4 <= observed <= 9.5, observed
+    assert player.evaluate("a => a.paused && Math.abs(a.currentTime-9)<.05")
+    expect(page.locator('#mark-cut-start')).to_be_enabled()
+    expect(page.locator('#mark-cut-end')).to_be_disabled()
+    for control in page.locator('#cut-list .set-playhead').all():
+        expect(control).to_be_enabled()
+
+    end.click()
+    playing_from(11, 12)
+    expect(page.locator('#cut-preview-status-0')).to_contain_text('Original')
+    if artifacts:
+        page.locator('#cut-list').scroll_into_view_if_needed()
+        page.screenshot(path=str(artifacts / 'desktop-cut-boundary-preview.png'), full_page=False)
+    player.evaluate('a => { a.currentTime = 5; }')
+    stopped()
+    end.click()
+    playing_from(11, 12)
+    page.locator('#play-original').click()
+    stopped()
+    page.locator('#play-cleaned').click()
+    wait_js(page, "() => { const a=document.querySelector('#audio-player'); return a.readyState >= 2 && !a.seeking && new URL(a.currentSrc).pathname.endsWith('/cleaned'); }", label="main cleaned source restored")
+
+    start.click()
+    end.click()
+    playing_from(11, 12)
+    page.locator('.cut-preview-stop').first.click()
+    stopped()
+    end.click()
+    playing_from(11, 12)
+    player.evaluate('a => a.play()')
+    stopped()
+    wait_js(page, "() => !document.querySelector('#audio-player').paused", label="normal playback resumed")
+    player.evaluate('a => a.pause()')
+
+    # Use unsaved edits and original duration, not the shorter cleaned duration.
+    page.get_by_label('Cut 1 start in seconds', exact=True).fill('0')
+    start.click()
+    playing_from(0, 1)
+    page.get_by_label('Cut 1 end in seconds', exact=True).fill('24')
+    stopped()
+    end.click()
+    playing_from(21, 22)
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.locator('#cut-preview-status-0').evaluate("node => node.scrollIntoView({block: 'nearest'})")
+    wait_js(page, "() => { const d=document.querySelector('#episode-dialog'); return document.documentElement.scrollWidth<=innerWidth+1 && d.scrollWidth<=d.clientWidth+1; }", label="mobile boundary controls fit")
+    wait_js(page, """() => {
+        const dialog = document.querySelector('#episode-dialog').getBoundingClientRect();
+        const footer = document.querySelector('.cut-footer').getBoundingClientRect();
+        return [...document.querySelectorAll('#cut-list .cut-audition button:not([hidden]), #cut-preview-status-0')].every(node => {
+            const r = node.getBoundingClientRect();
+            return r.top >= dialog.top && r.bottom <= footer.top - 8;
+        });
+    }""", label="mobile preview controls clear sticky export footer")
+    if artifacts:
+        page.screenshot(path=str(artifacts / 'mobile-cut-boundary-preview.png'), full_page=False)
+    stopped()
+    start.click()
+    playing_from(0, 1)
+    page.locator('#close-detail').click()
+    stopped()
+    expect(page.locator('#episode-dialog')).not_to_be_visible()
+    assert not cut_writes, cut_writes
+    assert episode(page, episode_id)['cuts'] == saved_cuts
+    page.remove_listener('request', record_write)
+
+
 def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifacts):
     from playwright.sync_api import sync_playwright, expect
 
@@ -554,6 +748,38 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             expect(page.locator("#save-settings")).to_be_enabled()
             expect(page.locator("#setting-review-only")).to_be_checked()
             expect(page.locator("#setting-ai-reasoning")).not_to_be_checked()
+            expect(page.locator("#setting-batch-size")).to_have_value("1")
+            page.locator("#setting-ai-policy").select_option("fast")
+            expect(page.locator("#setting-review-only")).to_be_disabled()
+            expect(page.locator("#setting-review-only")).to_be_checked()
+            expect(page.locator("#setting-ai-reasoning")).to_be_disabled()
+            expect(page.locator("#detection-policy-help")).to_contain_text("reads the whole episode")
+            expect(page.locator("#detection-policy-help")).to_contain_text("even if no ads are suggested")
+            expect(page.locator("#setting-ai-reasoning")).to_have_attribute("title", "Whole-episode review and boundary checks use their own fixed reasoning budgets.")
+            expect(page.locator("#setting-batch-size")).to_have_value("1")
+            page.locator("#setting-batch-size").fill("8")
+            with page.expect_response(lambda response: response.url.endswith("/api/settings") and response.request.method == "PATCH") as saved_fast:
+                page.locator("#save-settings").click()
+            assert saved_fast.value.ok, saved_fast.value.text()
+            saved_fast_settings = page.request.get("/api/settings").json()
+            assert saved_fast_settings["ai_policy"] == "fast"
+            assert saved_fast_settings["transcription_batch_size"] == 8
+            assert saved_fast_settings["review_only"] is True
+            assert saved_fast_settings["ai_reasoning"] is False
+            page.locator('[data-close="settings-dialog"]').click()
+            page.locator("#sidebar-settings").click()
+            expect(page.locator("#save-settings")).to_be_enabled()
+            expect(page.locator("#setting-ai-policy")).to_have_value("fast")
+            expect(page.locator("#setting-review-only")).to_be_checked()
+            expect(page.locator("#setting-review-only")).to_be_disabled()
+            expect(page.locator("#setting-ai-reasoning")).to_be_disabled()
+            expect(page.locator("#setting-batch-size")).to_have_value("8")
+            screenshot("desktop-fast-settings")
+            page.locator("#setting-ai-policy").select_option("verified")
+            expect(page.locator("#setting-review-only")).to_be_enabled()
+            expect(page.locator("#setting-ai-reasoning")).to_be_enabled()
+            expect(page.locator("#setting-batch-size")).to_have_value("8")
+            page.locator("#setting-batch-size").fill("1")
             page.locator(".settings-advanced summary").click()
             page.locator("#setting-ai-reasoning").check()
             page.locator("#setting-detector").select_option("heuristic")
@@ -643,11 +869,19 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             page.locator("#close-detail").click()
             expect(page.locator("#mini-player")).to_be_visible()
             expect(page.locator("#mini-toggle")).to_have_attribute("aria-label", "Play")
+            # Pause/close updates the player immediately while its state PATCH
+            # is still in flight. Read the durable original timeline only after
+            # that save has reached the episode API.
+            wait_js(page, "async id => { const record = await (await fetch(`/api/episodes/${id}`)).json(); return record.position >= 7.8 && record.position < 10; }",
+                    episode_id, label="durable original playback position after pause")
             saved_position = episode(page, episode_id)["position"]
             assert 7.8 <= saved_position < 10, saved_position
             page.locator("#mini-toggle").click()
             wait_js(page, "() => !document.querySelector('#audio-player').paused", label="mini-player playback")
             page.locator("#mini-toggle").click()
+            paused_position = page.locator("#audio-player").evaluate("audio => audio.currentTime")
+            wait_js(page, "async ({id, position}) => { const record = await (await fetch(`/api/episodes/${id}`)).json(); return Math.abs(record.position - position) < .1; }",
+                    {"id": episode_id, "position": paused_position}, label="durable mini-player position before reload")
             page.reload(wait_until="networkidle")
             page.locator('[data-filter="favorites"]').click()
             expect(page.locator("#episodes .episode-card")).to_have_count(1)
@@ -724,6 +958,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
             rendered = page.request.post(f"/api/episodes/{playback_id}/render", data={})
             assert rendered.status == 202, rendered.text()
             wait_episode(page, playback_id, "ready", cleaned=True)
+            run_boundary_preview_browser(page, base, playback_id, artifacts)
             quality_url = f"**/api/episodes/{playback_id}"
 
             def intercept_quality(route):
@@ -929,6 +1164,7 @@ def run_browser(base, feed, audio, transcript_file, workspace, chromium, artifac
                 page.screenshot(path=str(artifacts / "mobile-bulk-review.png"), full_page=False)
             run_suite_browser(page, feed, workspace, screenshot)
             run_catalogue_browser(page, feed, screenshot, auto_accept)
+            run_coverage_browser(page, base, playback_audio)
             assert not errors, "Browser errors:\n" + "\n".join(errors)
             note("PASS: gallery upload, review, real audio exports/playback, revision recovery, downloads, subscriptions, show preferences, mixed batches, ZIP archives, and desktop/mobile layouts")
         except Exception:

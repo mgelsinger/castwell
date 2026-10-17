@@ -7,6 +7,7 @@ import pytest
 import requests
 
 from castwell import processing, scene_review as scene
+from castwell.ad_scope import INSTRUCTIONS
 
 
 def transcript(*texts):
@@ -139,7 +140,7 @@ def test_all_commercial_cuts_are_unapproved_even_when_review_disabled(monkeypatc
     assert len(cuts) == 1
     assert cuts[0]["start"] == 0 and cuts[0]["end"] == 4
     assert cuts[0]["approved"] is False and cuts[0]["requires_review"] is True
-    assert cuts[0]["policy_version"] == "scene-boundary-v4"
+    assert cuts[0]["policy_version"] == scene.POLICY_VERSION
     assert cuts[0]["inference_profile"] == "scene-compact-intent-boundary-reasoning256-2048"
     assert all(row["boundary_audited"] for row in cuts[0]["verification"])
     intent, boundary = (call[2] for call in provider.calls)
@@ -151,6 +152,31 @@ def test_all_commercial_cuts_are_unapproved_even_when_review_disabled(monkeypatc
     assert intent["max_tokens"] == boundary["max_tokens"] == 2048
     assert "ENTIRE established promotional" in boundary["messages"][0]["content"]
     assert "ENTIRE established promotional" not in intent["messages"][0]["content"]
+
+
+def test_real_free_podcast_preview_and_humorous_setup_are_selected_in_both_stages(monkeypatch):
+    source = transcript('The sponsor has a paid service.',
+                        'Follow our other podcast for free stories.',
+                        'My wallet is auditioning for the premium podcast.',
+                        'Buy that paid podcast subscription today.',
+                        'Follow this show for the rest of our discussion.')
+    provider = Provider(lambda _, identifier: 'editorial' if identifier == 4 else 'commercial')
+    monkeypatch.setattr(processing, '_classifier_request', provider)
+    audits = []
+    cuts = classify(source, decision_sink=audits.append)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 8)]
+    assert all(not cut['approved'] for cut in cuts)
+    assert audits[0][1]['intent']['label'] == audits[0][1]['boundary']['label'] == 'commercial'
+    assert audits[0][4]['intent']['label'] == audits[0][4]['boundary']['label'] == 'editorial'
+    assert audits[0][2]['intent']['label'] == audits[0][2]['boundary']['label'] == 'commercial'
+    assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
+
+
+def test_indivisible_crosspromo_and_editorial_speech_stays_mixed_review(monkeypatch):
+    monkeypatch.setattr(processing, '_classifier_request', Provider('mixed'))
+    cuts = classify(transcript('Listen to our other free podcast and now back to our history discussion'), review_only=False)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
+    assert cuts[0]['label'] == 'mixed' and cuts[0]['requires_review'] and not cuts[0]['approved']
 
 
 def test_editorial_boundary_veto_preserves_navigation_and_full_disagreement_audit(monkeypatch):
