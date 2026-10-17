@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "scope": "Installed free Community tools and exercised the existing controlled PyAV build recipe; this isolated verification output is not substituted into the frozen release.",
+  "visual_studio": {
+    "product": "Microsoft.VisualStudio.Product.Community",
+    "version": "17.14.37806.7",
+    "display_version": "17.14.42",
+    "complete": true,
+    "restart_required": false
+  },
+  "compiler": {
+    "tools_version": "14.44.35207",
+    "compiler_sha256": "fe251ef50a1545b1b0835ee17b1e785459712b38d79e45b5c1d3d28970a36619",
+    "compiler_banner": "Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35229 for x64",
+    "selected_community_explicitly": true,
+    "fallback_to_other_product": false,
+    "same_compiler_bytes_as_frozen_build": false
+  },
+  "verification_build": {
+    "passed": true,
+    "offline": true,
+    "receipt_sha256": "8b89f1157fe0d9ca18beb960ede68b90376290c9186c0a398ec3df628a7d6393",
+    "recipe_sha256": "6a9df7d97c8cde091e4ba205a10e15eceb54d3ec17291db772b3f1b357f35f29",
+    "source_lock_sha256": "1fb52b5468a480e66e66c091b50e13267c30f672efb928d32c93df7edad0eece",
+    "wheel_sha256": "48f8b7c0a3426f722dee4cef657ccabca2d16d31d96146d9dbb5a2a2cc1a7cf6",
+    "isolated_import_passed": true,
+    "wheel_native_comparison": {
+      "same_member_names": true,
+      "old_native_file_count": 56,
+      "new_native_file_count": 56,
+      "same_named_byte_identical_native_files": 7,
+      "all_native_files_byte_identical": false
+    }
+  },
+  "frozen_release_changed": false,
+  "neural_model_calls": 0,
+  "paid_api_calls": 0,
+  "audio_accuracy_or_speed_retested": false,
+  "legal_certification": false,
+  "installation": {
+    "exit_code": 0,
+    "started_at_utc": "2026-10-17T22:28:16.0546021Z",
+    "finished_at_utc": "2026-10-17T22:29:32.4868038Z",
+    "components": [
+      "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
+      "Microsoft.VisualStudio.Component.Windows11SDK.26100"
+    ],
+    "bootstrapper_sha256": "e38048c45811bed66da5315aa921573a0b01cadaeb5f82b3aa183b8ad497e58b",
+    "signature_verified": true,
+    "setup_receipt_sha256": "5c5db95c324320cd73ffc6b5be48d39f0bab485dc97ffb658eda081fead5c833",
+    "administrator_elevation_succeeded": true,
+    "restart_performed": false,
+    "purchase_made": false
+  },
+  "evidence": {
+    "verification_record_sha256": "aa8d448cfecff403a8017e572acb60fd8658f5e29eb0ef2566195eb984a16074",
+    "verification_runner_sha256": "92e39b37edcac2f033bee3424b7dfbae066bded6e7b12019b7a76816fd042f07",
+    "installation_runner_sha256": "cafb81eeb847e3e389296de32ee6e72d885d0940c3ccf4ac059f6f65b1e23494",
+    "community_license_sha256": "41a207b10c8ab91d0d2f10a854715f73dca54509581692d2fe179aa3ffcb8540",
+    "community_license_url": "https://visualstudio.microsoft.com/license-terms/vs2022-ga-community/",
+    "redistribution_list_url": "https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution"
+  },
+  "frozen_artifacts_reverified": {
+    "portable": {
+      "name": "Castwell-0.5.5-Windows-x64-Portable.zip",
+      "sha256": "d33c9a563c299023805d3bb222819221c058fb4c6a8426e00b005f565cb61611",
+      "bytes": 1963018688
+    },
+    "installer": {
+      "name": "Castwell-0.5.5-Windows-x64-Setup.exe",
+      "sha256": "1cfa9b8fa2aff9bdef1bbc8f02bf7d4cc637d7789bc723d65f859df52ff81a4a",
+      "bytes": 1230122037
+    },
+    "build_manifest": {
+      "name": "Castwell-0.5.5-Windows-x64-manifest.json",
+      "sha256": "4c15573260db4ebbc100264dce2aa14d8bf3cbf58d8f59f8948f21bf9f47f5b2",
+      "bytes": 396270
+    },
+    "application_source": {
+      "name": "Castwell-0.5.5-Source.zip",
+      "sha256": "4f1f75289c68ea7c8719b51102d7c1bc1fcce95bc284dccfd1b33c9b6344687f",
+      "bytes": 6299805
+    },
+    "dependency_sources": {
+      "name": "Castwell-0.5.5-Dependency-Sources.zip",
+      "sha256": "30686a5561da949630d1301e6546443d82a2262401dee3696a5417bfbf902a14",
+      "bytes": 336175180
+    }
+  },
+  "application_source_revision": "3d72dcac3929d9f77f220db1ac43565334660848",
+  "developer_setup_and_tool_use_completed": true,
+  "supersedes_setup_pending_statements_dated": "2026-10-15",
+  "ad_removal_accuracy_verified": false,
+  "production_go_live_confirmed": false,
+  "public_binary_release_published": false,
+  "remaining_release_conditions": [
+    "independent_audible_acceptance",
+    "public_matching_source_delivery"
+  ]
+}
