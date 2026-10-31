@@ -10,6 +10,8 @@ During listening on October 17, the owner expanded removal to include genuine pr
 
 The [October 31 listening record](evaluations/2026-10-31-listening-corrections.md) records accepted small remnants and three podcast-promo findings, including a network catalogue invitation. Current policy distinguishes those invitations from neutral credits and incidental show references. The owner accepted both corrected transition excerpts. The record separates those excerpt judgments from software tests, cached-transcript diagnostics and complete-recording acceptance.
 
+The owner subsequently clarified that brief topical recommendations woven into the hosts' conversation should stay, even when they invite listeners to check a related episode. Standalone podcast promos, network catalogue invitations and genuine sponsor or paid offers remain removal targets. This contextual distinction invalidates prior AI analyses through updated classifier policy versions; it does not automatically approve cuts or establish complete-recording accuracy.
+
 The earlier 0.5.2 scene candidate and released 0.5.1 detector remain historical baselines. Their slower runs and failed accuracy gates are retained in the [ad-removal plan](ad-removal-production-plan.md). Choose the explicit fast profile below to exercise the new implementation; existing launch modes and saved choices are not silently replaced.
 
 ## Start the suite on Windows

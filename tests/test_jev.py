@@ -251,15 +251,18 @@ def test_invalid_local_configuration_fails_before_network(monkeypatch, settings)
 
 @pytest.mark.parametrize('provider', ['jev', 'kev'])
 def test_both_typed_providers_select_real_promo_preserve_parody_and_keep_mixed_review(monkeypatch, provider):
-    source = transcript(6)
+    source = transcript(8)
     texts = ['Listen to our other free podcast.', 'Buy its paid premium feed.',
              'Find more podcasts on our network app or website.',
              'Our imaginary Rutabaga Radio is an unpaid fictional podcast sketch.',
              'Follow this show for the next episode.',
-             'Follow our other podcast and now back to our ordinary history discussion']
+             'Follow our other podcast and now back to our ordinary history discussion',
+             "Check out our sister show's related episode for this point in our discussion.",
+             'Yes, that conversation explains the detail we are considering.']
     for segment, text in zip(source['segments'], texts):
         segment['text'] = text
-    labels = ['commercial', 'commercial', 'commercial', 'editorial', 'editorial', 'uncertain']
+    labels = ['commercial', 'commercial', 'commercial', 'editorial', 'editorial', 'uncertain',
+              'editorial', 'editorial']
     def decisions(answer, payload):
         for identifier, label in enumerate(labels):
             answer['answers'][f'kind_{identifier}'].update(
@@ -292,6 +295,8 @@ def test_both_typed_providers_select_real_promo_preserve_parody_and_keep_mixed_r
         if name.startswith('kind_'):
             assert 'state.task' in question['instructions']
             assert 'CURRENT-show' in question['criteria']['editorial']
+            assert 'short contextual podcast recommendations' in question['criteria']['editorial']
+            assert 'surrounding replies' in question['criteria']['editorial']
             assert 'another podcast, including a free one' in question['criteria']['commercial']
             assert 'Generic network catalogue invitations' in question['criteria']['commercial']
             assert 'paid-subscription' in question['criteria']['commercial']

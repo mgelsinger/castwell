@@ -3,7 +3,7 @@
 REMOVAL_SCOPE = "sponsor-product-and-podcast-promos-v2"
 
 INSTRUCTIONS = """
-Removal scope: sponsor/product reads AND genuine promos or trailers for OTHER podcasts,
+Removal scope: sponsor/product reads AND distinct genuine promos or trailers for OTHER podcasts,
 including free podcasts. Label those genuine podcast promotions commercial even when
 no payment, purchase, or sponsorship is established. Include their persuasive setup,
 story premises, cast descriptions, schedules, and invitations to listen or follow.
@@ -15,10 +15,17 @@ Neutral production attribution alone, such as "a production of Example Network",
 stays editorial. Split that credit from an adjacent catalogue invitation; a shared
 publisher name does not make the invitation a neutral credit. An ordinary direction
 to follow or listen to ONLY the CURRENT show stays editorial, including its app location.
-An incidental reference to earlier episodes or related shows' past coverage is
-editorial unless it genuinely pitches listening to or discovering that other show.
+Keep short contextual podcast recommendations woven into the current conversation,
+including a topical invitation to "check out" or "listen to" another show's related
+episode. A direct listening invitation alone does not make that conversational aside
+a distinct promotional passage. Preserve its connection to the surrounding topic and
+the speakers' responses, as well as incidental references to earlier coverage.
+Distinct promotional passages, trailers and network catalogue invitations remain
+commercial: their purpose is promoting discovery of a show rather than continuing
+the current discussion. Judge the passage in context, not by a listening verb alone.
 Actual sponsor, product, affiliate, paid-service and paid-subscription offers remain
 commercial, including the host's own paid offer, persuasive setup, jokes and terms.
+Embedding an actual paid, affiliate or sponsor offer in conversation does not protect it.
 An unsolicited sample or listener gift, tasting, praise, thanks, or unsponsored shoutout
 alone is independent product discussion, not a sponsor relationship or sales pitch.
 Look for an actual offer, persuasive sales conversion, or paid/affiliate/obligated

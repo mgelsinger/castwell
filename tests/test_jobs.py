@@ -407,6 +407,14 @@ class JobsTests(unittest.TestCase):
         detect.assert_not_called()
         render.assert_not_called()
 
+    def test_queued_fast_v9_policy_cannot_resume_after_contextual_recommendation_change(self):
+        snapshot = Jobs._detection_policy({'ai_policy': 'fast', 'detector': 'ai', 'review_only': True})
+        previous = dict(snapshot, policy_version='whole-episode-boundaries-v9',
+                        inference_profile='global-thinking6144-product-promo-boundaries1024-v9')
+        with self.assertRaisesRegex(processing.ProcessingError, 'profile changed'):
+            Jobs._restore_detection_policy(previous)
+        self.assertEqual(Jobs._restore_detection_policy(snapshot), snapshot)
+
     def test_empty_scene_cue_fallback_cannot_complete_even_with_clear_coverage(self):
         identifier = self.episode(transcript=TRANSCRIPT)
         self.jobs.settings_getter = lambda: {'ai_policy': 'scene', 'ai_base_url': '', 'ai_model': '',

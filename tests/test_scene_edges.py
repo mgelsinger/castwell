@@ -177,6 +177,25 @@ def test_real_free_crosspromo_edge_is_kept_in_cut_with_paid_humorous_setup(monke
     assert 'program_cross_promotion' in schema['properties']['decisions']['items']['properties']['role']['enum']
 
 
+def test_contextual_recommendation_edge_uses_editorial_role_without_exempting_paid_offer(monkeypatch):
+    inputs = fixture(["Check out our sister show's related episode for this point.",
+                      'That discussion explains the detail we are considering.',
+                      'Our sponsor offers this paid plan.'])
+    original, audits = deepcopy(inputs), []
+    provider = Provider(lambda identifier: ('editorial', 'other_editorial', identifier)
+                        if identifier < 2 else ('commercial', 'offer_terms', 2))
+    monkeypatch.setattr(processing, '_classifier_request', provider)
+    cuts = refine(inputs, decision_sink=audits.append)
+    assert inputs == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(4, 6)]
+    assert audits[0][0]['trimmed'] and audits[0][1]['trimmed']
+    assert not audits[0][2]['trimmed']
+    assert all(not cut['approved'] and cut['requires_review'] for cut in cuts)
+    prompt = provider.calls[0][1]['messages'][0]['content']
+    assert INSTRUCTIONS in prompt
+    assert 'Use other_editorial for short contextual recommendations' in prompt
+
+
 @pytest.mark.parametrize('label,evidence_id', [('editorial', 0), ('mixed', 0), ('uncertain', 0)])
 def test_genuine_crosspromo_role_requires_commercial_label(label, evidence_id):
     request = edges.build_edge_plan(*fixture(['Free podcast preview', 'Buy a paid plan']))['requests'][0]

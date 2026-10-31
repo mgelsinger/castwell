@@ -18,7 +18,7 @@ from .ad_review import _review_units
 from .ad_scope import INSTRUCTIONS
 from .processing import ProcessingError, validate_cuts, validate_transcript
 
-POLICY_VERSION = "scene-edges-v7"
+POLICY_VERSION = "scene-edges-v8"
 INFERENCE_PROFILE = "scene-endpoints-reasoning256-output1024"
 MAX_TARGETS = 8
 MAX_OUTPUT_TOKENS = 1024
@@ -51,7 +51,7 @@ Do not relabel the other scene units. Read the complete supplied scene and surro
 For each target, decide whether removing the ENTIRE unit removes commercial speech or editorial speech.
 commercial: the unit belongs to a real promotional scene, including its persuasive problem setup,
 rhetorical question, personal anecdote, joking actor dialogue, advertiser disclosure, offer or terms.
-Genuine trailers and listen/follow invitations for another podcast are commercial, including
+Distinct genuine trailers and promotional listen/follow invitations for another podcast are commercial, including
 free ones. Use program_cross_promotion for their complete promotional setup, previews, cast,
 schedule or invitations. Actual sponsor, product, paid-service and paid-subscription offers
 are also commercial. Combining those target promotion types does not make a unit mixed.
@@ -62,6 +62,8 @@ following actual offer. Humor, a speaker change, or no brand in one line does no
 editorial: an entirely separate navigation unit for the CURRENT podcast, publisher/network/station identification,
 ordinary free follow request, production credit, return to unrelated discussion, ordinary conversation,
 editorial quotation being discussed, or fictional unpaid performance including a fake podcast promo.
+Use other_editorial for short contextual recommendations of related podcast episodes
+within the current conversation, even with a listening invitation. Preserve their replies.
 Distinguish who publishes the program from who advertises a product. An adjacent advertiser disclosure
 does not turn a neutral publisher identification into that advertiser's persuasive setup.
 An identification that itself endorses an actual offer, identifies its advertiser, or sells a paid product

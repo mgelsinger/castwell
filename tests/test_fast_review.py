@@ -208,6 +208,29 @@ def test_word_pass_preserves_short_bridge_into_editorial_return_without_padding(
     assert all(not cut['approved'] and cut['requires_review'] for cut in cuts)
 
 
+def test_contextual_recommendation_decisions_survive_adjacent_promo_and_sponsor_review(monkeypatch):
+    source = transcript("Check out our sister show's related episode. "
+                        "It explains this point in our discussion. "
+                        "Find more podcasts on our app. Buy our sponsor's paid plan. "
+                        "Back to our topic.".split())
+    original, audit = deepcopy(source), []
+    provider = Provider(lambda stage, identifier, _: 'commercial'
+                        if stage == 'words' or identifier in {2, 3} else 'editorial')
+    monkeypatch.setattr(fast, '_classifier_request', provider)
+    cuts = classify(source, decision_sink=audit.append)
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(7, 12.5)]
+    assert audit[0]['word_decisions'] == {
+        i: 'commercial' if 14 <= i < 25 else 'editorial' for i in range(29)}
+    assert all(not cut['approved'] and cut['requires_review'] for cut in cuts)
+    assert [call[0] for call in provider.calls] == ['scenes', 'words']
+    for call in provider.calls:
+        prompt = call[4]['messages'][0]['content']
+        assert INSTRUCTIONS in prompt
+        assert 'Keep short contextual podcast recommendations' in prompt
+        assert 'Embedding an actual paid, affiliate or sponsor offer' in prompt
+
+
 def test_context_vote_nominates_scene_even_when_core_owner_calls_it_editorial(monkeypatch):
     def overlapping(source, **options):
         return [{"core_ids": [0], "units": source[:2]},

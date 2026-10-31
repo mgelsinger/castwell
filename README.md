@@ -4,7 +4,7 @@
 
 Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional reads, preserve unpaid jokes and program speech, and export copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast. Originals stay available, and every cut can be reviewed or restored. Reliable unattended ad removal remains the release goal; the current candidate requires review.
 
-**Removal scope for the next build:** remove real sponsor/product reads and promos for other podcasts, including free ones. Keep fake ads, unpaid parody and jokes that are part of the show, ordinary editorial speech and current-show navigation. Humor inside a real promotion does not make it a fake ad. This October 17 change supersedes the earlier sponsor/product-only policy; the frozen 0.5.5 packages and earlier measurements retain that older scope.
+**Removal scope for the next build:** remove real sponsor/product reads and standalone promos for other podcasts, including free ones. Keep fake ads, unpaid parody and jokes that are part of the show, ordinary editorial speech and current-show navigation. Brief topical recommendations woven into the conversation stay, including invitations to check a related episode. Humor inside a real promotion does not make it a fake ad. This supersedes the earlier sponsor/product-only policy; the frozen 0.5.5 packages and earlier measurements retain that older scope.
 
 **License:** [GNU AGPLv3 only](LICENSE). Everyone, including companies, may use Castwell under its terms. Covered distributed derivatives must retain the license, and users of modified network versions must be offered the corresponding source. See [licensing](#licensing) for the scope.
 
