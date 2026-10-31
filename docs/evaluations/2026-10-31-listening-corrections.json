@@ -154,7 +154,10 @@
         "updated_seconds": 34.92,
         "before_sha256": "cf382db511befdca535673e49968cdb00ed7e1da0d83f0181d951b054ea7250d",
         "updated_sha256": "2b317983b088cb76cb042d2ba59af5cc4e27df296f039a571662c9ca460a00d2",
-        "human_listening_status": "pending"
+        "human_listening_status": "owner_acceptable",
+        "recorded_at_utc": "2026-10-31T16:46:51.336668+00:00",
+        "before_presented_inline": false,
+        "residual_duration_measured": false
       },
       {
         "id": "recheck-02",
@@ -162,9 +165,14 @@
         "updated_seconds": 25.83326530612245,
         "before_sha256": "864fbe2a1b05170d1172b7e6818a636892457e0ce0b4576843025670437daf8e",
         "updated_sha256": "56764d9e7092f93bb0fb94f03e8933f6bddd400c79f89ff2ad0b09596ca89206",
-        "human_listening_status": "pending"
+        "human_listening_status": "owner_acceptable",
+        "recorded_at_utc": "2026-10-31T18:01:40.184447+00:00",
+        "before_presented_inline": false,
+        "residual_duration_measured": false
       }
-    ]
+    ],
+    "scope": "Owner accepted both updated excerpts; no whole-recording or independent acoustic acceptance inferred.",
+    "private_observation_ledger_sha256": "92ec91c7d845bd91ee298b3329677a9cda7e29edac54d046c8ecc22c5637fc84"
   },
   "software_validation": {
     "tests_passed": 502,
@@ -177,16 +185,18 @@
   "transcript_reused": true,
   "independent_acceptance": false,
   "speed_acceptance_eligible": false,
-  "new_acoustic_listening_complete": false,
+  "new_acoustic_listening_complete": true,
   "application_library_modified": false,
   "application_cuts_approved": false,
   "packages_rebuilt": false,
   "frozen_055_artifacts_modified": false,
   "limits": [
     "Previously consumed development audio and cached ASR; not a fresh holdout or full speed run.",
-    "Word decisions and boundaries remain provisional until listening.",
+    "Both updated excerpts were accepted by the owner; the complete recording and numerical residual-ad total remain unverified.",
     "The actual fake-rutabaga sketch is a separate control; this July run preserves the callback but does not replace that test.",
     "Tiny accepted remnants were not timed as a complete residual-ad total.",
     "First failed candidate remains reported rather than dropped from results."
-  ]
+  ],
+  "new_acoustic_listening_scope": "The two updated excerpts only",
+  "whole_episode_listening_acceptance": false
 }
