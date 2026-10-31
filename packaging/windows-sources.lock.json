@@ -166,8 +166,8 @@
       "id": "repo:docs/third-party-sources.md",
       "path": "docs/third-party-sources.md",
       "kind": "repository",
-      "sha256": "ef475c0384a6e77c43f6017eff2ba3cdfde9c127ea4ef844f1463b5ab185e540",
-      "bytes": 6978
+      "sha256": "3bbb361f275ba7bd3a676a9bd0f755e6856ccfde8efffb1cd3d76f0ec1b06cac",
+      "bytes": 7449
     },
     {
       "id": "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
@@ -458,7 +458,7 @@
     {
       "id": "proprietary-redistributables",
       "status": "notice-retained",
-      "basis": "NVIDIA CUDA/cuDNN and Intel runtime notices retained, with selected DLLs pinned. Microsoft runtime14.44.35211 comes from the hash-verified official VSIX and its matching license notice is retained. These proprietary components are not described as open-source obligations. Microsoft distributor grant remains a separate unresolved release condition.",
+      "basis": "NVIDIA CUDA/cuDNN and Intel runtime notices retained, with selected DLLs pinned. Microsoft runtime 14.44.35211 comes from the hash-verified official VSIX and its matching license notice is retained. These proprietary components are not described as open-source obligations. Visual Studio Community 2022 setup and explicit use in an isolated dependency verification build completed on 2026-10-17; see docs/evaluations/2026-10-17-microsoft-setup.md. Applicable product and redistribution terms remain in force.",
       "artifacts": [
         "repo:packaging/windows-runtime.json",
         "repo:packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
@@ -779,8 +779,8 @@
     "_internal/av"
   ],
   "distribution_conditions": [
-    "Complete a qualifying Microsoft Visual Studio product setup/use and retain redistribution-grant evidence before publishing the binary packages. The no-cost Community2022 route requires Windows administrator approval unavailable in this session. Runtime provenance and an end-user EULA alone do not establish distributor authority.",
-    "Publish the dependency source ZIP and exact matching Castwell source ZIP alongside the matching binary downloads, after package verification and independent audible ad-removal acceptance. This local source collection does not establish public source access or production acceptance."
+    "Visual Studio Community 2022 setup and an isolated dependency build using that installation completed on 2026-10-17. Retain the setup/use evidence and applicable license terms. The current release reuses the earlier controlled PyAV wheel and exact binary bindings; the serviced-compiler verification wheel was not promoted. Runtime provenance or installation records alone are not blanket legal certification.",
+    "Publish the dependency source ZIP and exact matching Castwell source ZIP alongside the matching binary downloads after package verification, with the manual-review requirement and listening limits stated. Independent full-episode audible acceptance remains required before claiming unattended ad removal. Local source collection does not establish public source access or production acceptance."
   ],
   "upstream_license_policy": "Every dependency retains its upstream license. Castwell remains AGPL-3.0-only. Models and private podcast recordings are excluded."
 }

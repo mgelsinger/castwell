@@ -96,7 +96,7 @@ Before using cleaned audio as your normal listening copy, test a complete episod
 5. Listen around every splice and check the cleaned audio beginning and ending. Compare the removed duration with your selections and confirm the original is still playable.
 6. Restart Castwell while idle. Confirm show choices, favorites, played state, playback positions, transcripts, cut revisions, and prepared recordings remain available. Repeat the installation checker.
 
-For unattended removal, the current evidence is insufficient. The [matched model comparison](standardized-model-comparison-2026-10-08.md) and [policy pilot](policy-pilot-2026-10-09.md) include missed commercial speech and incorrectly selected editorial/parody speech. The v9 experiment was withheld because it introduced a commercial boundary regression. The 0.5.2 candidate selects Qwen3.8 with compact scenes and endpoint review, subject to manual approval; the earlier v8 setup remains historical evidence. Speech gaps, music, blended promotions, jokes, and inaccurate timestamps all need listening judgment.
+For unattended removal, the current evidence is insufficient. The [matched model comparison](standardized-model-comparison-2026-10-08.md) and [policy pilot](policy-pilot-2026-10-09.md) include missed commercial speech and incorrectly selected editorial/parody speech. The October 9 v9 classifier experiment was withheld because it introduced a commercial boundary regression. The 0.5.2 candidate selects Qwen3.8 with compact scenes and endpoint review, subject to manual approval; the earlier v8 setup remains historical evidence. Speech gaps, music, blended promotions, jokes, and inaccurate timestamps all need listening judgment.
 
 ## Backup and recovery
 

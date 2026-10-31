@@ -38,6 +38,8 @@ BUNDLED_GUIDES = ('ad-removal-production-plan.md',
                  'evaluations/2026-10-13-saved-cut-validation.json',
                  'evaluations/2026-10-14-tolerance-comparison.md',
                  'evaluations/2026-10-14-tolerance-comparison.json',
+                 'evaluations/2026-10-17-microsoft-setup.md',
+                 'evaluations/2026-10-17-microsoft-setup.json',
                  'evaluations/2026-10-31-listening-corrections.md',
                  'evaluations/2026-10-31-listening-corrections.json')
 RELEASE_INPUTS = ('castwell', 'pyproject.toml', 'README.md', 'LICENSE', 'NOTICE',
