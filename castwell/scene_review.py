@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 from .ad_review import LABELS, _BOUNDARY, _INTENT, _review_units
 from .processing import ProcessingError
 
-POLICY_VERSION = "scene-boundary-v8"
+POLICY_VERSION = "scene-boundary-v10"
 INFERENCE_PROFILE = "scene-compact-intent-boundary-reasoning256-2048"
 MAX_TARGETS = 64
 MAX_CORE_CHARS = 9000

@@ -126,13 +126,52 @@ def test_real_free_podcast_promo_is_selected_and_current_show_follow_is_preserve
     assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
 
 
-def test_indivisible_podcast_promo_and_editorial_speech_requires_review():
-    source = transcript('Follow our other free podcast and now the historian explains the evidence')
+@pytest.mark.parametrize('text', [
+    'Follow our other free podcast and now the historian explains the evidence',
+    'A production of Example Network and find more podcasts on our app',
+])
+def test_indivisible_podcast_promo_and_editorial_speech_requires_review(text):
+    source = transcript(text)
     provider = Provider('mixed')
     with patch('castwell.processing._classifier_request', side_effect=provider):
         cuts = classify(source)
     assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 2)]
     assert cuts[0]['label'] == 'mixed' and cuts[0]['requires_review'] and not cuts[0]['approved']
+
+
+def test_generic_catalogue_invitation_is_selected_separately_from_credit_follow_and_fiction():
+    source = transcript('A production of Example Network.',
+                        'Find more podcasts on the Example app or wherever you get your podcasts.',
+                        'Follow this show in your podcast app.',
+                        'Our imaginary Rutabaga Network was an unpaid joke.',
+                        'We are discussing the wording of a quoted podcast advertisement.')
+    original = deepcopy(source)
+    provider = Provider(lambda _, identifier: 'commercial' if identifier == 1 else 'editorial')
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source, config={'review_only': True})
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(2, 4)]
+    assert all(not cut['approved'] for cut in cuts)
+    for _, _, payload, *_ in provider.calls:
+        assert INSTRUCTIONS in payload['messages'][0]['content']
+        assert 'Generic network CATALOGUE invitations' in payload['messages'][0]['content']
+
+
+def test_past_coverage_and_unsolicited_gift_discussion_stay_outside_actual_sales_and_promo_cuts():
+    source = transcript('We covered coral reefs on a related show years ago.',
+                        'A listener sent homemade jam as an unsolicited gift; this tasting is not an ad.',
+                        'The jam tastes wonderful; thank you for the gift.',
+                        'We are not sponsored but here is our product offer at half price.',
+                        'Find more podcasts on our network app.',
+                        'And', 'Now back to our science discussion.')
+    original = deepcopy(source)
+    provider = Provider(lambda _, identifier: 'commercial' if identifier in {3, 4} else 'editorial')
+    with patch('castwell.processing._classifier_request', side_effect=provider):
+        cuts = classify(source, config={'review_only': True})
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(6, 10)]
+    assert all(not cut['approved'] for cut in cuts)
+    assert all(INSTRUCTIONS in payload['messages'][0]['content'] for _, _, payload, *_ in provider.calls)
 
 
 def test_evidence_source_id_attaches_exact_context_text_without_model_quote():

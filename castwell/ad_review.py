@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 from .ad_scope import INSTRUCTIONS
 from .processing import ProcessingError
 
-POLICY_VERSION = "intent-boundary-v11"
+POLICY_VERSION = "intent-boundary-v13"
 LABELS = ("commercial", "editorial", "mixed", "uncertain")
 
 

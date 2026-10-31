@@ -89,6 +89,7 @@ def test_neutral_publication_bumper_overrides_adjacent_offer_inference_transpare
     "Buy a Sample Network podcast, guaranteed human.",
     "A Sample Network podcast about guaranteed human savings.",
     "This is a Sample Network podcast. Try our offer now.",
+    "This is a Sample Network podcast, guaranteed human. Find more podcasts on our app.",
 ])
 def test_publication_rule_cannot_protect_a_pitch_or_partial_identification(text):
     assert not edges._neutral_publication_bumper(text)
@@ -185,6 +186,18 @@ def test_genuine_crosspromo_role_requires_commercial_label(label, evidence_id):
              'reason': 'Actual paid subscription.'}]
     with pytest.raises(ValueError):
         edges._parse({'decisions': rows}, request)
+
+
+def test_catalogue_invitation_uses_crosspromo_role_but_neutral_attribution_is_trimmed(monkeypatch):
+    inputs = fixture(['A production of Sample Network.', 'Find more podcasts on our app.'])
+    provider = Provider(lambda identifier: ('editorial', 'production_credit', 0) if identifier == 0
+                        else ('commercial', 'program_cross_promotion', 1))
+    monkeypatch.setattr(processing, '_classifier_request', provider)
+    audits = []
+    cuts = refine(inputs, decision_sink=audits.append)
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(2, 4)]
+    assert audits[0][0]['trimmed'] and not audits[0][1]['trimmed']
+    assert all(not cut['approved'] for cut in cuts)
 
 
 def test_indivisible_crosspromo_with_editorial_edge_is_retained_for_review(monkeypatch):

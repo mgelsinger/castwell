@@ -8,6 +8,8 @@ Version 0.5.5 replaces the media dependencies with controlled source builds, add
 
 During listening on October 17, the owner expanded removal to include genuine promos for other podcasts, while preserving fake ads, unpaid jokes and show speech. Current source uses the new scope; existing 0.5.5 packages and historical results still use sponsor/product-only removal. Updated output and packages require their own checks. Old AI analyses and queued policies must be redetected under the changed scope; this does not overwrite original recordings or explicitly saved manual decisions.
 
+The [October 31 listening record](evaluations/2026-10-31-listening-corrections.md) records accepted small remnants and three podcast-promo findings, including a network catalogue invitation. Current policy distinguishes those invitations from neutral credits and incidental show references. The record separates software tests, actual cached-transcript model diagnostics and pending acoustic acceptance.
+
 The earlier 0.5.2 scene candidate and released 0.5.1 detector remain historical baselines. Their slower runs and failed accuracy gates are retained in the [ad-removal plan](ad-removal-production-plan.md). Choose the explicit fast profile below to exercise the new implementation; existing launch modes and saved choices are not silently replaced.
 
 ## Start the suite on Windows

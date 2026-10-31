@@ -18,7 +18,7 @@ from .ad_review import _review_units
 from .ad_scope import INSTRUCTIONS
 from .processing import ProcessingError, validate_cuts, validate_transcript
 
-POLICY_VERSION = "scene-edges-v5"
+POLICY_VERSION = "scene-edges-v7"
 INFERENCE_PROFILE = "scene-endpoints-reasoning256-output1024"
 MAX_TARGETS = 8
 MAX_OUTPUT_TOKENS = 1024
@@ -55,6 +55,8 @@ Genuine trailers and listen/follow invitations for another podcast are commercia
 free ones. Use program_cross_promotion for their complete promotional setup, previews, cast,
 schedule or invitations. Actual sponsor, product, paid-service and paid-subscription offers
 are also commercial. Combining those target promotion types does not make a unit mixed.
+Use program_cross_promotion for generic network catalogue/app invitations to find more
+podcasts too. A neighbouring neutral production credit does not protect that invitation.
 An unbranded or conversational setup is commercial when its persuasive point is completed by the
 following actual offer. Humor, a speaker change, or no brand in one line does not make that setup editorial.
 editorial: an entirely separate navigation unit for the CURRENT podcast, publisher/network/station identification,

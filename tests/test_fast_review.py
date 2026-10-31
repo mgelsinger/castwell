@@ -180,6 +180,34 @@ def test_fake_rutabaga_podcast_sketch_and_current_show_follow_cannot_be_reopened
     assert audit[0]["boundary_audit"]["word_votes"] == {}
 
 
+def test_catalogue_app_cta_preserves_neutral_credit_and_current_show_follow(monkeypatch):
+    source = transcript('A production of Example Network. Find more podcasts on our app. Follow this show.'.split())
+    original, audit = deepcopy(source), []
+    provider = Provider(lambda stage, identifier, _: 'commercial' if stage == 'words' or identifier == 1 else 'editorial')
+    monkeypatch.setattr(fast, '_classifier_request', provider)
+    cuts = classify(source, decision_sink=audit.append)
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(2.5, 5.5)]
+    assert all(not cut['approved'] and cut['requires_review'] for cut in cuts)
+    assert audit[0]['word_decisions'] == {
+        i: 'commercial' if 5 <= i <= 10 else 'editorial' for i in range(14)}
+    assert [call[0] for call in provider.calls] == ['scenes', 'words']
+    assert all(INSTRUCTIONS in call[4]['messages'][0]['content'] for call in provider.calls)
+
+
+def test_word_pass_preserves_short_bridge_into_editorial_return_without_padding(monkeypatch):
+    source = transcript('Buy this plan. And now back to our discussion.'.split())
+    original, audit = deepcopy(source), []
+    provider = Provider(lambda stage, identifier, _: 'commercial' if stage == 'scenes' or identifier < 3 else 'editorial')
+    monkeypatch.setattr(fast, '_classifier_request', provider)
+    cuts = classify(source, decision_sink=audit.append)
+    assert source == original
+    assert [(cut['start'], cut['end']) for cut in cuts] == [(0, 1.5)]
+    assert audit[0]['word_decisions'][3] == 'editorial'
+    assert all(audit[0]['word_decisions'][i] == 'editorial' for i in range(3, 9))
+    assert all(not cut['approved'] and cut['requires_review'] for cut in cuts)
+
+
 def test_context_vote_nominates_scene_even_when_core_owner_calls_it_editorial(monkeypatch):
     def overlapping(source, **options):
         return [{"core_ids": [0], "units": source[:2]},

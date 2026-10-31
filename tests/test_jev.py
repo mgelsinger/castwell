@@ -253,7 +253,7 @@ def test_invalid_local_configuration_fails_before_network(monkeypatch, settings)
 def test_both_typed_providers_select_real_promo_preserve_parody_and_keep_mixed_review(monkeypatch, provider):
     source = transcript(6)
     texts = ['Listen to our other free podcast.', 'Buy its paid premium feed.',
-             'A humorous lead-in to the real sponsor offer.',
+             'Find more podcasts on our network app or website.',
              'Our imaginary Rutabaga Radio is an unpaid fictional podcast sketch.',
              'Follow this show for the next episode.',
              'Follow our other podcast and now back to our ordinary history discussion']
@@ -293,6 +293,7 @@ def test_both_typed_providers_select_real_promo_preserve_parody_and_keep_mixed_r
             assert 'state.task' in question['instructions']
             assert 'CURRENT-show' in question['criteria']['editorial']
             assert 'another podcast, including a free one' in question['criteria']['commercial']
+            assert 'Generic network catalogue invitations' in question['criteria']['commercial']
             assert 'paid-subscription' in question['criteria']['commercial']
             assert 'inseparably' in question['criteria']['uncertain']
 

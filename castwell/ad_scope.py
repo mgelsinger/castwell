@@ -7,14 +7,32 @@ Removal scope: sponsor/product reads AND genuine promos or trailers for OTHER po
 including free podcasts. Label those genuine podcast promotions commercial even when
 no payment, purchase, or sponsorship is established. Include their persuasive setup,
 story premises, cast descriptions, schedules, and invitations to listen or follow.
+Generic network CATALOGUE invitations are also podcast promotions, even without
+naming a particular show: "find more podcasts", "discover our other shows", or
+"for more podcasts, visit our app or website". Include the associated app/platform
+call to action when it promotes discovering or listening to the network's other podcasts.
+Neutral production attribution alone, such as "a production of Example Network",
+stays editorial. Split that credit from an adjacent catalogue invitation; a shared
+publisher name does not make the invitation a neutral credit. An ordinary direction
+to follow or listen to ONLY the CURRENT show stays editorial, including its app location.
+An incidental reference to earlier episodes or related shows' past coverage is
+editorial unless it genuinely pitches listening to or discovering that other show.
 Actual sponsor, product, affiliate, paid-service and paid-subscription offers remain
 commercial, including the host's own paid offer, persuasive setup, jokes and terms.
+An unsolicited sample or listener gift, tasting, praise, thanks, or unsponsored shoutout
+alone is independent product discussion, not a sponsor relationship or sales pitch.
+Look for an actual offer, persuasive sales conversion, or paid/affiliate/obligated
+arrangement in context. A disclaimer such as "not sponsored" is not a blanket exemption:
+an actual sales pitch or genuine other-podcast promotion still belongs in the removal scope.
 Humor does not protect a genuine commercial read or genuine podcast promotion.
 Preserve fake ads, fictional sponsor sketches, unpaid parody/jokes, quoted ads being
 discussed as editorial, ordinary discussion, and independent product or podcast discussion.
 A fictional podcast invented for a joke is not a genuine podcast promotion.
 Preserve the CURRENT show's ordinary navigation, episode previews, free follow requests,
 and neutral publisher or production credits. A current-show paid offer remains commercial.
+A short connector or return bridge belongs with the clause it introduces. Preserve
+"and" or similar words when they resume show discussion, even if ASR isolates the word
+in a separate unit. A connector continuing a real promotion remains commercial.
 Split actual promotions from neighboring editorial speech. Two target promotion types
 in the same unit do not make it mixed. If one indivisible unit contains both target
 promotion and meaningful protected speech, mark mixed or uncertain and require review.
