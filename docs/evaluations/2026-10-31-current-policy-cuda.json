@@ -1,0 +1,993 @@
+{
+  "schema_version": 3,
+  "date": "2026-10-31",
+  "created_at_utc": "2026-10-31T18:39:00.368498+00:00",
+  "current_candidate": "v10",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3090 Ti",
+    "vram_mib": 24564,
+    "driver": "610.88"
+  },
+  "runs": [
+    {
+      "episode": "july",
+      "configuration": {
+        "detector": "whole-episode-boundaries-v9",
+        "inference_profile": "global-thinking6144-product-promo-boundaries1024-v9",
+        "removal_scope": "sponsor-product-and-podcast-promos-v2",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "maximum_classifier_requests": 4,
+        "global_reasoning_tokens": 6144,
+        "word_reasoning_tokens": 1024,
+        "commercial_gap_split_seconds": 0.8,
+        "edge_padding_seconds": 0
+      },
+      "audio_seconds": 4513.123265,
+      "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+      "native_server_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "ffmpeg_sha256": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2",
+      "runner_sha256": "8e6110db7385992b620d63ccf588deecb9c3fc9f8cd7e6b20f136a7f2d90b06f",
+      "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+      "git_revision_at_start": "cdb6fa19caceaef9eafa3248302d227fec5ccce5",
+      "phases": {
+        "adapter_setup": {
+          "complete": true,
+          "seconds": 0.051041499999882944
+        },
+        "episode_preparation": {
+          "complete": true,
+          "seconds": 10.141489000000547
+        },
+        "model_prepare": {
+          "complete": true,
+          "seconds": 0.18270870000014838
+        },
+        "transcription": {
+          "complete": true,
+          "seconds": 81.83009579999998
+        },
+        "detection": {
+          "complete": true,
+          "seconds": 228.2573781000001
+        },
+        "render": {
+          "complete": true,
+          "seconds": 36.28027620000012
+        },
+        "cleanup": {
+          "complete": true,
+          "seconds": 1.3057536999995136
+        }
+      },
+      "elapsed_seconds_including_cleanup": 358.12415239999973,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 285.66623886351994,
+        "episode_budget_seconds": 376.0936054166667,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 220.59671750000052,
+        "token_usage_complete": true,
+        "known_input_tokens": 29387,
+        "known_output_tokens": 7310
+      },
+      "cut_count": 18,
+      "original_preserved": true,
+      "owned_classifier_stopped": true,
+      "source_sha256": {
+        "castwell/processing.py": "7b22661966ae57a4f098d2e887ce651ee343eeb5ecea24d96b1560cf1c1ee638",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+        "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+        "castwell/fast_review.py": "128701f3011be32f59c1df8b3edbbc4b2d6921a1fb70eae1f2379e95e4c81c53",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/ad_scope.py": "2173bf98c7012ddae8e24b02d57d42e75082ed21913cd62bbbb2e797dec7ca0f",
+        "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0"
+      },
+      "preflight_hash_probe_inventory_seconds_excluded": 16.00080960000014,
+      "preview_mp3_sha256": "63d342eefbdf5ce5379ad1b9ce871c9b12edfcce168906664d3e3efb7d4993bc",
+      "transcript_private_json_sha256": "9a0d4959a31431fbd0b2c030324af99c050e3684d546766a2956fddcb9163b9e",
+      "cuts_private_json_sha256": "855f8985bf905853dedb7102ba0d6ac818c5cd32eceec3c655c61fea86491155",
+      "decisions_private_json_sha256": "1d4dd396b2d507269d6dae9d1e0ed7b342d361efcfa7a5bb29c92593d0630103",
+      "runtime": {
+        "models_cold_at_start": true,
+        "initial_whisper_cache_entries": 0,
+        "initial_vad_cache_entries": 0,
+        "transcript_cache_hits": 0,
+        "prediction_cache_hits": 0,
+        "asset_downloads": 0,
+        "cuda_only_verified": true,
+        "speech_cuda_verified": true,
+        "classifier_cuda_verified": true,
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "speech_model_loads_in_run": 1,
+        "speech_cache_released": true,
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        },
+        "source_unchanged_during_run": true
+      },
+      "private_report_sha256": "bdcb5d624531faf3426d1ceb1281bf3c096aa8bd4ba4e53f41e9fcd01f88848d",
+      "private_inspection_sha256": "0891f5819131bcda4844c49b7ce6c3151a7564700901c39c59da587011e3f9d5",
+      "private_gpu_samples_sha256": "6c20c2780be97d4ad896c012ba21664cf5fbf20ddcb1728597d932651f7cd14b",
+      "transcript_reused": false,
+      "prediction_reused": false,
+      "production_accuracy_passed": false,
+      "candidate": "v9",
+      "run_attempt": "v1"
+    },
+    {
+      "episode": "august",
+      "configuration": {
+        "detector": "whole-episode-boundaries-v9",
+        "inference_profile": "global-thinking6144-product-promo-boundaries1024-v9",
+        "removal_scope": "sponsor-product-and-podcast-promos-v2",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "maximum_classifier_requests": 4,
+        "global_reasoning_tokens": 6144,
+        "word_reasoning_tokens": 1024,
+        "commercial_gap_split_seconds": 0.8,
+        "edge_padding_seconds": 0
+      },
+      "audio_seconds": 4795.010612,
+      "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+      "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+      "native_server_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "ffmpeg_sha256": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2",
+      "runner_sha256": "8e6110db7385992b620d63ccf588deecb9c3fc9f8cd7e6b20f136a7f2d90b06f",
+      "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+      "git_revision_at_start": "f596aefa21fc9d195156d1a243e96c1d662c7f20",
+      "phases": {
+        "adapter_setup": {
+          "complete": true,
+          "seconds": 0.0416666000000987
+        },
+        "episode_preparation": {
+          "complete": true,
+          "seconds": 11.280609899999945
+        },
+        "model_prepare": {
+          "complete": true,
+          "seconds": 0.005761700000221026
+        },
+        "transcription": {
+          "complete": true,
+          "seconds": 85.40849319999961
+        },
+        "detection": {
+          "complete": true,
+          "seconds": 240.9358798000003
+        },
+        "render": {
+          "complete": true,
+          "seconds": 37.58830289999969
+        },
+        "cleanup": {
+          "complete": true,
+          "seconds": 1.2916213999997126
+        }
+      },
+      "elapsed_seconds_including_cleanup": 376.6194268999998,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 282.75848513179454,
+        "episode_budget_seconds": 399.5842176666667,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 234.39984770000046,
+        "token_usage_complete": true,
+        "known_input_tokens": 32644,
+        "known_output_tokens": 7503
+      },
+      "cut_count": 19,
+      "original_preserved": true,
+      "owned_classifier_stopped": true,
+      "source_sha256": {
+        "castwell/processing.py": "7b22661966ae57a4f098d2e887ce651ee343eeb5ecea24d96b1560cf1c1ee638",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+        "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+        "castwell/fast_review.py": "128701f3011be32f59c1df8b3edbbc4b2d6921a1fb70eae1f2379e95e4c81c53",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/ad_scope.py": "2173bf98c7012ddae8e24b02d57d42e75082ed21913cd62bbbb2e797dec7ca0f",
+        "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0"
+      },
+      "preflight_hash_probe_inventory_seconds_excluded": 15.726090199999817,
+      "preview_mp3_sha256": "978b0e67e37bab598b7093697a2d41f5243389996c699d418c2073a2046f5a12",
+      "transcript_private_json_sha256": "9d3e15339512144b801ca8e0823e690a5973f49bb0e84e20c1f4684b49551aae",
+      "cuts_private_json_sha256": "f1d2d97914339836306749154d1e6318a2e44ed83101c59a2d504b06aa98e8d1",
+      "decisions_private_json_sha256": "4802b674bea8bc519fd9a53cf673e10553cdbcf719374167a4d9398581d1f004",
+      "runtime": {
+        "models_cold_at_start": true,
+        "initial_whisper_cache_entries": 0,
+        "initial_vad_cache_entries": 0,
+        "transcript_cache_hits": 0,
+        "prediction_cache_hits": 0,
+        "asset_downloads": 0,
+        "cuda_only_verified": true,
+        "speech_cuda_verified": true,
+        "classifier_cuda_verified": true,
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "speech_model_loads_in_run": 1,
+        "speech_cache_released": true,
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        },
+        "source_unchanged_during_run": true
+      },
+      "private_report_sha256": "33f33b771d37bc3fddf5ca04f62b6cbb08bc837f692643425e4195e09c20aee9",
+      "private_inspection_sha256": "5a2717e38ae70b0b2dcc321d72565bfb05eb60c9e695d0ac2f3e87d82ea50e2d",
+      "private_gpu_samples_sha256": "23f52f0a3aa2d817683fcf082b611fc80c5de2e061d7b89b29a0f4b73e4ac196",
+      "transcript_reused": false,
+      "prediction_reused": false,
+      "production_accuracy_passed": false,
+      "candidate": "v9",
+      "run_attempt": "v1"
+    },
+    {
+      "episode": "august",
+      "configuration": {
+        "detector": "whole-episode-boundaries-v10",
+        "inference_profile": "global-thinking6144-product-promo-boundaries1024-v10",
+        "removal_scope": "sponsor-product-and-podcast-promos-v2",
+        "speech_model": "large-v3",
+        "speech_batch_size": 8,
+        "speech_beam_size": 5,
+        "speech_without_timestamps": true,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M",
+        "cuda_only": true,
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "maximum_classifier_requests": 4,
+        "global_reasoning_tokens": 6144,
+        "word_reasoning_tokens": 1024,
+        "commercial_gap_split_seconds": 0.8,
+        "edge_padding_seconds": 0
+      },
+      "audio_seconds": 4795.010612,
+      "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+      "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+      "native_server_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+      "ffmpeg_sha256": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2",
+      "runner_sha256": "4c0d63a5b8733a75df867600c805e84b072e18cfcbfb3cbc6999065105954f3e",
+      "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+      "git_revision_at_start": "6bcfe6ce74dcb179e4a7d5704383d4470afef2da",
+      "phases": {
+        "adapter_setup": {
+          "complete": true,
+          "seconds": 0.059383900000284484
+        },
+        "episode_preparation": {
+          "complete": true,
+          "seconds": 16.746554299999843
+        },
+        "model_prepare": {
+          "complete": true,
+          "seconds": 0.005962300000646792
+        },
+        "transcription": {
+          "complete": true,
+          "seconds": 90.83061420000013
+        },
+        "detection": {
+          "complete": true,
+          "seconds": 244.0645584999993
+        },
+        "render": {
+          "complete": true,
+          "seconds": 32.55964120000044
+        },
+        "cleanup": {
+          "complete": true,
+          "seconds": 1.3913118999998915
+        }
+      },
+      "elapsed_seconds_including_cleanup": 385.7326016999996,
+      "timing": {
+        "target_seconds_per_audio_hour": 300.0,
+        "observed_seconds_per_audio_hour": 289.60047818138145,
+        "episode_budget_seconds": 399.5842176666667,
+        "complete_pipeline": true,
+        "no_transcript_or_prediction_reuse": true,
+        "timing_target_met": true
+      },
+      "cold_cuda_timing_target_met": true,
+      "requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 237.20668710000064,
+        "token_usage_complete": true,
+        "known_input_tokens": 32194,
+        "known_output_tokens": 7410
+      },
+      "cut_count": 18,
+      "original_preserved": true,
+      "owned_classifier_stopped": true,
+      "source_sha256": {
+        "castwell/processing.py": "9d29057cd406f9ae037c230371ca890a79a8d1cdc60147d87c646b1f04836b81",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+        "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+        "castwell/fast_review.py": "7f5c437c8a4686aa0cc500ca56beaa8e066db81a40b370e5c4690082d8b60cf3",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/ad_scope.py": "2d567d4de9d9c12baa4b59c1a09c7d606488d83828b221081b15a3f4c509b394",
+        "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0"
+      },
+      "preflight_hash_probe_inventory_seconds_excluded": 16.40095569999994,
+      "preview_mp3_sha256": "ccc47ef7d23e51b49863a00ebd5239d48976351de9e898098beed0fb5de42827",
+      "transcript_private_json_sha256": "8fde5419e4d6c00af3a5968c7d34d8c80fc6da121d4382762158dc2b16b7fe94",
+      "cuts_private_json_sha256": "6b0ade57998776e0131fd8f4860b6b5afdaec05d0877fa0e60ed298a3495a422",
+      "decisions_private_json_sha256": "ca9e7d5c8a9f4b04f365481b81da3e6eb2c11cdff2cc9f1a1663ad1b654c75be",
+      "runtime": {
+        "models_cold_at_start": true,
+        "initial_whisper_cache_entries": 0,
+        "initial_vad_cache_entries": 0,
+        "transcript_cache_hits": 0,
+        "prediction_cache_hits": 0,
+        "asset_downloads": 0,
+        "cuda_only_verified": true,
+        "speech_cuda_verified": true,
+        "classifier_cuda_verified": true,
+        "actual_whisper_device": "cuda",
+        "actual_whisper_compute_type": "float16",
+        "vad_provider": "CUDAExecutionProvider",
+        "vad_cpu_fallback_disabled": "1",
+        "speech_model_loads_in_run": 1,
+        "speech_cache_released": true,
+        "classifier_gpu_layers": 66,
+        "classifier_total_layers": 66,
+        "package_versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.8.2",
+          "onnxruntime-gpu": "1.23.2",
+          "requests": "2.34.2"
+        },
+        "source_unchanged_during_run": true
+      },
+      "candidate": "v10",
+      "run_attempt": "v2",
+      "private_report_sha256": "731e61912b23e7ccebc9b0881f4044fd388d135f37d41d5a1c8dd7a3555de2be",
+      "private_inspection_sha256": "f520e14655a6b01ad7dc7858b9e244b57842bda236addf7201c4327a3d5bad1e",
+      "private_gpu_samples_sha256": "32090522a55ac84545c2452b78bf166031222cb27f17820d99021dd92918ebe8",
+      "transcript_reused": false,
+      "prediction_reused": false,
+      "production_accuracy_passed": false
+    }
+  ],
+  "completed_run_order": [
+    "v9-july",
+    "v9-august",
+    "v10-august"
+  ],
+  "run_order_reason": "August v10 ran first to check the contextual recommendation; July v10 was then deferred by the owner after a GPU-memory preflight block.",
+  "total_generation_requests": 6,
+  "v10_generation_requests": 2,
+  "total_paid_requests": 0,
+  "new_asr_runs": 3,
+  "v10_new_asr_runs": 1,
+  "transcript_reuse": false,
+  "prediction_reuse": false,
+  "consumed_development": true,
+  "accuracy_acceptance_eligible": false,
+  "whole_episode_human_listening_verified": false,
+  "residual_ad_audio_duration_measured": false,
+  "application_library_modified": false,
+  "application_cuts_approved": false,
+  "manual_cut_overrides": false,
+  "owner_scope_choice": "Keep brief contextual recommendations woven into conversation; remove actual sponsor/product/affiliate offers, including embedded or humorous reads, plus distinct podcast promos and network catalogue invitations.",
+  "v9_july_regression": {
+    "exact_same_classification_word_table": true,
+    "exact_same_cut_intervals": true,
+    "changed_word_decision_count": 0,
+    "unresolved_word_count": 0,
+    "word_count": 12110,
+    "preview_identical_to_listener_reviewed_candidate": true,
+    "listening_scope": "Previously accepted excerpts only; no whole-episode acceptance inferred."
+  },
+  "v9_august_development_diagnostics": {
+    "historical_reference_sha256": "7fe22f0524a730c7a99210a28bd5ba62a85674105d7bedaec2c712242afbe192",
+    "historical_transcript_sha256": "a485e82337c00d575abc856948c70cc35ea576c37c85ddd00c64903285b93d1f",
+    "first_cut_start": 238.51,
+    "unresolved_word_count": 0,
+    "protected_units": [
+      {
+        "id": "protected-01",
+        "name": "Episode introduction and production identity",
+        "start": 0.0,
+        "end": 58.99,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-02",
+        "name": "Baggy's rutabaga/buffalo parody",
+        "start": 60.55,
+        "end": 107.01,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-03",
+        "name": "Parody discussion, Buc-ee's references and editorial segue",
+        "start": 109.87,
+        "end": 233.05,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-04",
+        "name": "iHeart network identity before first ad block",
+        "start": 233.05,
+        "end": 237.47,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-05",
+        "name": "Listener mail: sleeper agents and private clubs",
+        "start": 396.25,
+        "end": 1718.65,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-06",
+        "name": "Music recommendations, quotations and listener mail",
+        "start": 1893.98,
+        "end": 2297.37,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-07",
+        "name": "Mock show slogan",
+        "start": 2297.81,
+        "end": 2302.39,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-08",
+        "name": "Book-scanning discussion and editorial break",
+        "start": 2304.75,
+        "end": 3050.55,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-09",
+        "name": "Gandalf protest, sources, episode plugs and dystopian fiction",
+        "start": 3309.15,
+        "end": 3954.71,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 7.5,
+        "selected_word_seconds": 6.6599999999998545,
+        "selected_word_entries": 17
+      },
+      {
+        "id": "protected-10",
+        "name": "Fictional puppy-barbecue stock-sale parody",
+        "start": 3956.57,
+        "end": 3975.53,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-11",
+        "name": "Foundation recommendation, Devil Corp discussion and show correspondence",
+        "start": 3975.75,
+        "end": 4570.52,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-13",
+        "name": "iHeart identity after external trailer",
+        "start": 4790.68,
+        "end": 4794.04,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      }
+    ],
+    "old_combined_credit_platform_unit_excluded": "protected-12",
+    "historical_product_read_units": [
+      {
+        "id": "ad-01",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0.2400000000000091,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-02",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.4399999999999977,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-03",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-04",
+        "name": "CBS / Paramount Plus: NCIS New York",
+        "historical_word_seconds_unselected": 0.18999999999999773,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-05",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-06",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.18000000000006366,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-07",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0.25,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-08",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0.23999999999978172,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-09",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.33999999999969077,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-10",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0.15999999999985448,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-11",
+        "name": "Underdog: Keep Your Million",
+        "historical_word_seconds_unselected": 0.5300000000002001,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-12",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.32999999999992724,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-13",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-14",
+        "name": "Underdog: Keep Your Million",
+        "historical_word_seconds_unselected": 0.23000000000138243,
+        "missed_word_entries": 2
+      }
+    ],
+    "historical_product_word_seconds_unselected": 3.130000000000905,
+    "promotion_checks": [
+      {
+        "id": "ambiguous-promo-01",
+        "name": "The Haunted Library free-podcast trailer",
+        "historical_category": "ambiguous_promotional_units",
+        "start": 4764.34,
+        "end": 4789.62,
+        "selected_interval_seconds": 23.6899999999996
+      }
+    ],
+    "acoustic_accuracy_verified": false,
+    "interpretation": "Frozen consumed ASR-unit overlaps, not current-scope ground truth or audible duration. Historical labels are unchanged."
+  },
+  "v10_august_comparison": {
+    "old_cuts_sha256": "f1d2d97914339836306749154d1e6318a2e44ed83101c59a2d504b06aa98e8d1",
+    "old_report_sha256": "33f33b771d37bc3fddf5ca04f62b6cbb08bc837f692643425e4195e09c20aee9",
+    "exact_same_classification_word_table": true,
+    "newly_selected_intervals": [],
+    "newly_retained_intervals": [
+      [
+        390.1,
+        391.72
+      ],
+      [
+        3450.05,
+        3457.55
+      ]
+    ],
+    "expected_newly_retained_intervals": [
+      [
+        3450.05,
+        3457.55
+      ]
+    ],
+    "only_expected_cut_change": false,
+    "changed_word_decision_count": 19
+  },
+  "v10_august_additional_retained_ad_finding": {
+    "source_interval": [
+      390.1,
+      391.72
+    ],
+    "additional_retained_interval_seconds": 1.62,
+    "word_count": 3,
+    "description": "Closing streaming-platform phrase at the end of an advertisement.",
+    "changed_from_v9": true,
+    "human_listening_verified": false,
+    "audible_ad_duration_measured": false,
+    "disposition": "Disclosed minor-remnant tradeoff under existing tolerance preference; no further prompt change or manual cut override.",
+    "not_an_accuracy_acceptance_pass": true
+  },
+  "v10_august_development_diagnostics": {
+    "historical_reference_sha256": "7fe22f0524a730c7a99210a28bd5ba62a85674105d7bedaec2c712242afbe192",
+    "historical_transcript_sha256": "a485e82337c00d575abc856948c70cc35ea576c37c85ddd00c64903285b93d1f",
+    "first_cut_start": 238.51,
+    "unresolved_word_count": 0,
+    "classification_word_count": 12898,
+    "protected_units": [
+      {
+        "id": "protected-01",
+        "name": "Episode introduction and production identity",
+        "start": 0.0,
+        "end": 58.99,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-02",
+        "name": "Baggy's rutabaga/buffalo parody",
+        "start": 60.55,
+        "end": 107.01,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-03",
+        "name": "Parody discussion, Buc-ee's references and editorial segue",
+        "start": 109.87,
+        "end": 233.05,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-04",
+        "name": "iHeart network identity before first ad block",
+        "start": 233.05,
+        "end": 237.47,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-05",
+        "name": "Listener mail: sleeper agents and private clubs",
+        "start": 396.25,
+        "end": 1718.65,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-06",
+        "name": "Music recommendations, quotations and listener mail",
+        "start": 1893.98,
+        "end": 2297.37,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-07",
+        "name": "Mock show slogan",
+        "start": 2297.81,
+        "end": 2302.39,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-08",
+        "name": "Book-scanning discussion and editorial break",
+        "start": 2304.75,
+        "end": 3050.55,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-09",
+        "name": "Gandalf protest, sources, episode plugs and dystopian fiction",
+        "start": 3309.15,
+        "end": 3954.71,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-10",
+        "name": "Fictional puppy-barbecue stock-sale parody",
+        "start": 3956.57,
+        "end": 3975.53,
+        "role": "unpaid_parody",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-11",
+        "name": "Foundation recommendation, Devil Corp discussion and show correspondence",
+        "start": 3975.75,
+        "end": 4570.52,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      },
+      {
+        "id": "protected-13",
+        "name": "iHeart identity after external trailer",
+        "start": 4790.68,
+        "end": 4794.04,
+        "role": "protected_editorial_or_identity",
+        "selected_interval_seconds": 0,
+        "selected_word_seconds": 0,
+        "selected_word_entries": 0
+      }
+    ],
+    "old_combined_credit_platform_unit_excluded": "protected-12",
+    "historical_product_read_units": [
+      {
+        "id": "ad-01",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0.2400000000000091,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-02",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.4399999999999977,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-03",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-04",
+        "name": "CBS / Paramount Plus: NCIS New York",
+        "historical_word_seconds_unselected": 1.8100000000000023,
+        "missed_word_entries": 4
+      },
+      {
+        "id": "ad-05",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-06",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.18000000000006366,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-07",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0.25,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-08",
+        "name": "YouTube Premium",
+        "historical_word_seconds_unselected": 0.23999999999978172,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-09",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.33999999999969077,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-10",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0.15999999999985448,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-11",
+        "name": "Underdog: Keep Your Million",
+        "historical_word_seconds_unselected": 0.5300000000002001,
+        "missed_word_entries": 2
+      },
+      {
+        "id": "ad-12",
+        "name": "Orderly Meds",
+        "historical_word_seconds_unselected": 0.32999999999992724,
+        "missed_word_entries": 1
+      },
+      {
+        "id": "ad-13",
+        "name": "American Military University",
+        "historical_word_seconds_unselected": 0,
+        "missed_word_entries": 0
+      },
+      {
+        "id": "ad-14",
+        "name": "Underdog: Keep Your Million",
+        "historical_word_seconds_unselected": 0.23000000000138243,
+        "missed_word_entries": 2
+      }
+    ],
+    "historical_product_word_seconds_unselected": 4.7500000000009095,
+    "promotion_checks": [
+      {
+        "id": "ambiguous-promo-01",
+        "name": "The Haunted Library free-podcast trailer",
+        "historical_category": "ambiguous_promotional_units",
+        "start": 4764.34,
+        "end": 4789.62,
+        "selected_interval_seconds": 23.6899999999996
+      }
+    ],
+    "acoustic_accuracy_verified": false,
+    "interpretation": "Frozen consumed ASR-unit overlaps, not whole-episode current-scope ground truth or audible duration. Historical labels are unchanged."
+  },
+  "v10_july": {
+    "status": "owner_deferred_after_zero_call_gpu_preflight_block",
+    "minimum_free_gpu_memory_mib": 20480,
+    "generation_requests": 0,
+    "new_asr_runs": 0,
+    "timing_target_evaluated": false,
+    "current_policy_speed_measured": false,
+    "current_policy_output_equivalence_verified": false,
+    "private_preflight_failure_sha256": "0cb82f8ee3f73c552fc2c465efd30fcd0bd41d1f8bc05c0304cf9ef8a8d991cc",
+    "private_deferral_record_sha256": "b698eecf3ebfd63de7651869f1e476246ef8451118f5a6a52243eea683731ef5",
+    "reserve_lowered": false,
+    "user_applications_stopped": false,
+    "retry_launched": false,
+    "background_polling_active": false
+  },
+  "timing_conditions": {
+    "model_caches_cold": true,
+    "os_disk_cache_flushed": false,
+    "isolated_gpu_timing": false,
+    "gpu_sample_period_seconds": 15,
+    "v9_conditions": {
+      "model_caches_cold": true,
+      "os_disk_cache_flushed": false,
+      "isolated_gpu_timing": false,
+      "gpu_sample_period_seconds": 15,
+      "jul_cpu_disk_build_overlap_utc": [
+        "18:04:56-18:05:04 dependency archive",
+        "18:05:24-18:06:58 source/freezer build"
+      ],
+      "august_build_overlap": "Light source/archive hash reads around 18:09 UTC; builder otherwise waiting for GPU handoff.",
+      "no_other_castwell_gpu_task_during_runs": true,
+      "user_offered_to_close_gpu_apps": true,
+      "user_offer_does_not_establish_idle_gpu": true
+    },
+    "v10_august_build_overlap_utc": "18:25:09-18:26:23 CPU/disk package freezing, during setup and ASR",
+    "no_other_castwell_gpu_task_during_completed_runs": true,
+    "user_offered_to_close_gpu_apps": true,
+    "user_offer_does_not_establish_idle_gpu": true
+  },
+  "limitations": [
+    "Observed timing on this machine, not a guarantee on every GPU or podcast.",
+    "Models/audio already local; network downloads and preflight identity hashing/probing excluded and reported separately.",
+    "Timed work includes isolated database/waveform preparation, model setup, fresh speech recognition, classification, preview rendering and service cleanup.",
+    "UI interaction and application queue scheduling are excluded.",
+    "Historical ASR-unit overlap checks are consumed development diagnostics, not independently verified acoustic accuracy.",
+    "Manual review remains required. The five residual ad seconds per hour target has not been independently measured.",
+    "Only August has a completed fast-v10 full pipeline result. Prior July v9 equivalence and speed do not establish v10 July behavior.",
+    "The owner deferred July v10; no background retry or resource polling remains."
+  ],
+  "report_authoring_script_sha256": "b113970d2f83eb10707600c5a9146d073c6b963830b4e98bae4620dc81fa3001"
+}

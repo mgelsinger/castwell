@@ -1,24 +1,32 @@
 # Castwell
 
-**A complete local podcast library, with show shelves, batch tools, and cuts you control.**
+**CUDA podcast preparation, batch ad removal, and cuts you control.**
 
-A personal podcast suite that downloads episodes, creates searchable transcripts, and exports listening copies with your approved cuts. Browse show shelves and continue-listening rows, choose whether each podcast keeps its ads, and prepare or export episodes in batches. Originals stay available, and every cut can be reviewed or restored.
+Prepare batches of podcast episodes on NVIDIA CUDA, identify real promotional reads, preserve unpaid jokes and program speech, and export copies with your approved cuts. Choose **Remove ads** or **Keep original** for each podcast. Originals stay available, and every cut can be reviewed or restored. Reliable unattended ad removal remains the release goal; the current candidate requires review.
+
+**Removal scope in 0.5.6:** remove real sponsor/product reads and standalone promos for other podcasts, including free ones. Keep fake ads, unpaid parody and jokes that are part of the show, ordinary editorial speech and current-show navigation. Brief topical recommendations woven into the conversation stay, including invitations to check a related episode. Humor inside a real promotion does not make it a fake ad. This supersedes the earlier sponsor/product-only policy; the frozen 0.5.5 packages and earlier measurements retain that older scope.
+
+**License:** [GNU AGPLv3 only](LICENSE). Everyone, including companies, may use Castwell under its terms. Covered distributed derivatives must retain the license, and users of modified network versions must be offered the corresponding source. See [licensing](#licensing) for the scope.
 
 [Get started](#start-listening) | [Watch the tour](#see-it-in-action) | [Production operation](docs/production.md) | [Docker](#docker) | [Local AI](#run-the-classifier-locally) | [Ad-read evaluation](docs/ad-read-evaluation.md) | [Configuration](#configuration-and-backups) | [Development](#development)
 
-**Ad-removal readiness:** the released 0.5.1 classifier is too slow for routine batch use. The [full CUDA episode evaluation](docs/evaluations/2026-10-11-full-stdwytk-cuda.html) took 106:34 to classify a 79:55 recording, missed two commercial openings, and proposed one extra sponsor transition. It preserved the rutabaga parody. Manual approval remains required; this result does not meet the production ad-removal goal. Classifier improvements must pass measured speed and accuracy checks before replacing this baseline.
+**Current Windows candidate: 0.5.6.** Both the portable app and full installer passed actual CUDA speech transcription, native launch/shutdown, batch/export, portable relocation, and installation/uninstallation checks. Matching application and dependency source archives and checksums are complete. These unsigned packages are available locally, not yet on GitHub Releases; speech and classifier weights are separate. See the [package results](docs/evaluations/2026-10-31-windows-promo-candidate.md) and [Windows guide](docs/windows.md).
 
-The [experimental speed repair](docs/evaluations/2026-10-12-classifier-speed-repair.md) classified the same transcript in 6:07 on CUDA and proposed every labeled commercial word, but still proposed seven protected words. A further boundary adjustment introduced new errors and was rejected. This prototype is not enabled in the application or the published downloads.
+**Five-minute target:** the current fast v10 policy processed a 79:55 episode in **6:25.73**, equivalent to **4:49.60 per audio hour**, on an RTX 3090 Ti. This includes fresh CUDA transcription, both classifier passes, waveform/database preparation, rendering and cleanup. Downloads and diagnostic preflight checks are excluded. The [results matrix](docs/evaluations/2026-10-31-current-policy-cuda.md) retains the earlier v9 runs and explicitly marks the v10 July rerun as deferred by the owner. The packaged 27B classifier and speech/classifier handoff still need their own check when GPU memory is available.
+
+**Accuracy still requires review.** The current August result preserves the full annotated rutabaga sketch and a contextual sister-show recommendation. Compared with v9, it also leaves a 1.62-second ad ending by transcript timing. The owner accepted small remnants as a tradeoff for preserving the show, but the complete audible residual-ad total has not been measured. The [listening record](docs/evaluations/2026-10-31-listening-corrections.md) documents the accepted July v9 transitions; it does not establish v10 July equivalence. Fast mode retains both review passes and always requires saved manual approval.
+
+Historical packages and results remain unchanged: [0.5.5 source and package validation](docs/evaluations/2026-10-15-windows-source-candidate.md), [earlier timing comparison](docs/evaluations/2026-10-14-tolerance-comparison.md), and the [published 0.5.1 detector's 106-minute run](docs/evaluations/2026-10-11-full-stdwytk-cuda.html). The older downloads do not contain the current fast workflow. See the [release plan](docs/ad-removal-production-plan.md) for remaining validation.
 
 ![Castwell suite with a featured episode, podcast shelves, and continue listening in a synthetic demo library](docs/images/suite-desktop.png)
 
-## A library built around listening
+## Prepare episodes, review cuts, and export batches
 
-- **Browse your shows.** Subscribe by RSS, import OPML, or upload recordings. Explore podcast shelves, new episodes, your review queue, and continue-listening rows. Filter the full library, save favorites, and pick up where you left off.
 - **Choose ads per podcast.** Save **Keep original** or **Remove ads** for each show, or update several shows together. Preparation follows those choices within a mixed batch. Keeping ads skips ad detection; removing ads prepares suggestions for approval.
 - **Manage whole batches.** Select matching episodes or a podcast to download, prepare, retry, cancel, render approved cuts, or update favorites, played status, and archives. Download a ZIP with preferred, original, or cleaned audio and a report for unavailable items.
 - **Find the moment.** Create local Whisper transcripts, search the text, and jump straight to a timestamp. Keep listening with the mini player while you browse.
 - **Review every cut.** Inspect suggested advertisements on the waveform, adjust their boundaries, and export the selections you approve. Originals and recent cut revisions stay available.
+- **Bring your episodes.** Subscribe by RSS, import OPML, or upload recordings. Filter shows and the review queue, save favorites, and resume playback.
 - **Keep your options open.** Use local rules, run an optional local AI classifier, or connect an OpenAI-compatible service. Download audio and transcripts, or use Library RSS in a reachable podcast player.
 
 ## See it in action
@@ -57,7 +65,7 @@ Open an episode to review its transcript, compare original and cleaned playback,
 
 ### Windows desktop package
 
-Download **Castwell-0.5.1-Windows-x64-Setup.exe** or **Castwell-0.5.1-Windows-x64-Portable.zip** from [GitHub Releases](https://github.com/mgelsinger/castwell/releases/latest). The installer creates a current-user Start menu shortcut. For the portable version, extract the entire archive and open `Castwell\Castwell.exe`.
+The **0.5.6 portable and installer candidates are built and locally checked, but not published to GitHub Releases**. Their [results matrix](docs/evaluations/2026-10-31-windows-promo-candidate.md) separates completed package checks from the deferred large-classifier test and remaining accuracy validation. Follow the [candidate pull request](https://github.com/mgelsinger/castwell/pull/1) for source changes. The [existing releases](https://github.com/mgelsinger/castwell/releases) contain the older 0.5.1 detector. The installer creates a current-user Start menu shortcut. For the portable version, extract the entire archive and open `Castwell\Castwell.exe`.
 
 The packages include Python, FFmpeg, Whisper's engine, and CUDA llama.cpp. They require a supported NVIDIA GPU and compatible driver, check CUDA and float16 support before starting, and do not fall back to CPU inference. Choose the data folder and optional local GGUF classifier in the launcher, then select **Start**. Speech and classifier weights are separate. Prepare a free speech model explicitly in Settings. The pinned Qwen3.8 model automatically selects its reviewed bounded reasoning profile; other GGUF files use a generic local profile. Keep manual cut review enabled.
 
@@ -83,7 +91,9 @@ python -m pip install --no-deps --force-reinstall onnxruntime-gpu==1.23.2
 python -m castwell --data-dir ./data
 ```
 
-On Windows PowerShell, create the environment with `py -m venv .venv` and activate it with `.\.venv\Scripts\Activate.ps1`, then run the same install and start commands. Install FFmpeg separately and confirm `ffmpeg -version` and `ffprobe -version` work in that terminal. If compatible native CUDA libraries are not already available, run `python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda` to explicitly download the free pinned runtime files. Apply the ONNX GPU reinstall commands last so a CPU package does not replace its shared Python namespace. The desktop packages already bundle these native dependencies.
+On Windows PowerShell, create the environment with `py -m venv .venv` and activate it with `.\.venv\Scripts\Activate.ps1`, then run the same install and start commands. Install FFmpeg separately and confirm `ffmpeg -version` and `ffprobe -version` work in that terminal. Apply the ONNX GPU reinstall commands last so a CPU package does not replace its shared Python namespace. The desktop packages already bundle their native dependencies.
+
+Maintainers can prepare the pinned Windows dependencies with `python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda`. This now downloads native runtime archives **and compiles the controlled FFmpeg tools, shared libraries, and custom PyAV wheel**; it requires Windows x64 CPython 3.12 and the pinned MSVC toolset. It does not install those files globally or configure a source checkout's PATH. Follow the [complete build instructions](docs/windows.md#build-the-windows-distributions) to pass the verified media, Microsoft runtime, and PyAV receipt into packaging and bind the separate dependency-source archive. The ordinary source installation above continues to use its declared PyAV dependency; the custom wheel is part of the controlled Windows packaging workflow.
 
 A fresh checkout includes the application code. Speech models, classifier weights, and your podcast library are prepared or downloaded on your device; they are not included in GitHub.
 
@@ -91,12 +101,14 @@ Open **http://127.0.0.1:8000**. Castwell is a single-user application with no lo
 
 On an already configured Windows installation, `./scripts/start_suite.ps1 -ReviewedProfile` starts the verified local classifier and Castwell together, checks the installed speech model and library, and writes a readiness report. Use `./scripts/stop_suite.ps1` to stop its recorded services while idle. The [production guide](docs/production.md) explains installation checks, custom paths, backups, recovery, and the full-podcast acceptance test.
 
+The current source also supports `./scripts/start_suite.ps1 -FastProfile` for experimental whole-episode review. This explicit flag selects the pinned CUDA profile, enables manual approval, and saves speech batch size 8, overriding those two saved preferences. Saved or explicitly chosen speech models remain respected. The [fast profile instructions](docs/production.md#start-the-suite-on-windows) explain the limits; selecting it does not establish production accuracy.
+
 For a private deployment using another hostname, set `CASTWELL_ALLOWED_HOSTS=castwell.lan,192.168.1.25` to the exact hostnames or IP addresses clients will use. Loopback hosts are always allowed; other request hosts are rejected unless listed. Wildcards are not supported. This setting works alongside the listen address or reverse proxy and does not add authentication.
 
 1. **Add a podcast or upload audio.** Use an RSS feed, import subscriptions from OPML, or upload MP3, WAV, M4A, MP4, FLAC, OGG, Opus, or AAC recordings up to 2 GB. Identical uploads are deduplicated.
 2. **Prepare the speech model.** In Settings & models, choose a Whisper model, save settings, and select **Download model**. The default source model is `base`; speech inference uses CUDA float16, and speech activity detection uses GPU ONNX Runtime with CPU fallback disabled. Environment check reports whether its files are available.
 3. **Choose each podcast's ad preference and prepare episodes.** **Keep original** downloads and transcribes without detecting ads. **Remove ads** makes a waveform and transcript, then proposes ad cuts for review. Use an episode, selected batch, or whole podcast. Review is enabled by default; only selections you approve are exported. **Download originals** prepares audio without transcription or detection.
-4. **Review and listen.** Open Ad review, listen around the suggested boundaries, adjust timestamps, or use **Mark start / Mark end** while listening. Select the cuts you want, then export cleaned audio.
+4. **Review and listen.** Open Ad review and use **Hear start / Hear end** for short original-audio previews around each boundary. Previews stop automatically and preserve your episode position. Adjust timestamps, or stop the preview and use **Mark start / Mark end** during normal playback. Select the cuts you want, then export cleaned audio. An empty cut list does not prove an episode is ad-free.
 
 The gallery supports podcast and status filters, favorites, archived episodes, played/unplayed state, search, and sorting. Playback resumes at your saved position; change speed, skip 15 seconds, or keep listening through the mini player after closing the episode. The waveform shows the original timeline and proposed cuts. Search transcript text and click timestamps to hear the passage.
 
@@ -331,3 +343,11 @@ python download_podcast.py <feed_url> <output_directory>
 ```
 
 It creates dated filenames, skips existing downloads, and ignores feed items without playable enclosures. Avoid putting premium subscription credentials in shared terminal history.
+
+## Licensing
+
+Castwell's original code is licensed under the **GNU Affero General Public License, version 3 only** (`AGPL-3.0-only`). See [LICENSE](LICENSE) for the full terms and [NOTICE](NOTICE) for the project notice.
+
+Commercial use, modification, and charging for copies or services are allowed under those terms. When covered copies or derivatives are distributed, recipients must receive the required corresponding source and the same license rights. A modified version used interactively over a network must offer its corresponding source to those users. These requirements preserve access to covered code; they do not prohibit commercial competition or require unrelated, independent software to adopt Castwell's license.
+
+Third-party components and model weights retain their own licenses. Windows packages include separate third-party notices; Castwell's AGPL designation does not replace those terms. Podcast recordings and other user content are not relicensed by this project. Castwell is provided without warranty, as described in the license.

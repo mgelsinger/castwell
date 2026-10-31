@@ -6,21 +6,25 @@ not presumed editorial, and provisional transcript anchors are not acoustic gold
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from copy import deepcopy
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
 import time
+from unittest.mock import patch
 from urllib.parse import urlsplit, urlunsplit
 
 from . import processing
+from .ad_scope import REMOVAL_SCOPE
 from .evaluation import union_intervals, validate_endpoint
 
 ROOT = Path(__file__).resolve().parents[1]
 VIEWS = ("candidates", "verified", "approved")
 LIMITATIONS = [
-    "References are independently annotated from publisher context and ASR, without human listening verification.",
+    "Declared references must match the active removal scope. Undeclared reference scope remains unknown, not acceptance evidence; historical sponsor-only results do not establish acceptance for genuine podcast-promo removal.",
+    "Listening and payment verification are supplied reference declarations, not independently attested by this evaluator. Missing declarations remain unknown.",
     "Only labeled intervals are scored. Unverified intervals are excluded; unlabeled audio is not assumed editorial.",
     "Unit coverage concerns provisional transcript spans, not exact acoustic cut boundaries or real-world accuracy.",
     "Candidates are each backend's proposed removal intervals. Verified AI can propose uncertain spans; Kev proposes units whose selected class is commercial and keeps other typed decisions in the private report.",
@@ -114,13 +118,19 @@ def score_cuts(cuts, reference, duration, *, backend="verified-ai"):
                      and not cut.get("requires_review", True) and cut.get("confidence", 0) >= .90],
         "approved": [cut for cut in cuts if cut.get("approved") is True],
     }
+    if backend == "scene-ai":
+        views["verified"] = [cut for cut in views["verified"]
+            if cut.get("approval_metadata", {}).get("eligible") is True
+            and cut["approval_metadata"].get("global_requires_review") is False]
     return {name: None if name == "verified" and backend == "kev" else score_intervals(selected, reference, duration)
             for name, selected in views.items()}
 
 
-def _code_hashes():
-    files = ("castwell/processing.py", "castwell/ad_review.py", "castwell/jev.py", "castwell/evaluation.py", "castwell/transcript_quality.py",
+def _code_hashes(backend="verified-ai"):
+    files = ("castwell/processing.py", "castwell/ad_scope.py", "castwell/ad_review.py", "castwell/jev.py", "castwell/evaluation.py", "castwell/transcript_quality.py",
              "castwell/recording_evaluation.py", "scripts/evaluate_recordings.py")
+    if backend == "scene-ai":
+        files += ("castwell/scene_review.py", "castwell/scene_edges.py", "castwell/scene_pipeline.py")
     return {name: sha256(ROOT / name) for name in files}
 
 
@@ -138,11 +148,25 @@ def _public_url(value):
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
 
 
+def _reference_verification(reference):
+    declared = {}
+    for name in ("human_listening_verified", "payment_verified"):
+        value = reference.get(name)
+        if value is not None and type(value) is not bool:
+            raise ValueError("Reference verification declarations must be booleans or null")
+        declared[name] = value is True
+        declared[name + "_status"] = "unknown" if value is None else "declared_verified" if value else "declared_unverified"
+    return declared
+
+
 def _load_reference(path):
     path = Path(path).resolve()
     reference = json.loads(path.read_text(encoding="utf-8"))
     if reference.get("detector_predictions_seen") is not False:
         raise ValueError("Reference must explicitly declare no detector predictions seen")
+    scope = reference.get("removal_scope")
+    if scope is not None and scope != REMOVAL_SCOPE:
+        raise ValueError("Reference removal scope differs from the current removal policy")
     transcript_path = Path(reference["transcript"])
     if not transcript_path.is_absolute():
         transcript_path = path.parent / transcript_path
@@ -183,6 +207,10 @@ def _load_reference(path):
         "source_manifest_sha256": sha256(manifest_path),
         "metadata_sha256": sha256(metadata_path),
         "duration": transcript["duration"],
+        "reference_verification": _reference_verification(reference),
+        "reference_removal_scope": scope,
+        "reference_scope_status": "undeclared" if scope is None else "matches_current_policy",
+        "reference_scope_matches_current_policy": scope == REMOVAL_SCOPE,
     }
     return path, reference, transcript, provenance
 
@@ -197,6 +225,9 @@ def public_summary(report):
             clean["metrics"] = row["metrics"]
         if row["status"] == "error":
             clean["error_type"] = row["error_type"]
+        for key in ("scene_audit_complete", "scene_unit_decisions", "endpoint_unit_decisions", "unresolved_unit_count"):
+            if key in row:
+                clean[key] = row[key]
         output["clips"].append(clean)
     successful = [row for row in report["clips"] if row["status"] == "ok"]
     output["summary"] = {
@@ -232,17 +263,21 @@ def _save(path, data):
 def evaluate_recordings(references, *, output, summary_output, base_url, model, model_label,
                         model_files, candidate_config=None, resume=False, on_progress=None,
                         detector=None, backend="verified-ai", ai_reasoning=False):
-    """Run an explicit local verified-AI or Kev backend, with review enabled."""
+    """Run an explicit local backend, with manual review and frozen references."""
     from .ad_review import inference_settings
     request_profile = inference_settings(ai_reasoning)
-    if backend not in {"verified-ai", "kev"}:
-        raise ValueError("Recording backend must be verified-ai or kev")
+    if backend not in {"verified-ai", "kev", "scene-ai"}:
+        raise ValueError("Recording backend must be verified-ai, scene-ai or kev")
     if ai_reasoning and backend != "verified-ai":
         raise ValueError("AI reasoning requires the verified-ai backend")
     base_url = validate_endpoint(base_url)  # No remote or paid override exists.
     if backend == "kev":
         from . import jev
         jev._local_endpoint(base_url)  # Validate the stricter typed endpoint path before any work.
+    elif backend == "scene-ai":
+        from . import scene_review, scene_edges, scene_pipeline
+        request_profile = {"intent": scene_review.inference_settings(False),
+            "boundaries": scene_review.boundary_inference_settings(), "endpoints": scene_edges.inference_settings()}
     if not model or not model_label or not model_files:
         raise ValueError("Model alias, exact label and at least one model artifact are required")
     output, summary_output = Path(output).resolve(), Path(summary_output).resolve()
@@ -258,12 +293,19 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
     protected_paths.update(Path(path).resolve() for path in model_files)
     if output in protected_paths or summary_output in protected_paths:
         raise ValueError("Reports cannot replace an input artifact")
-    hashes = _code_hashes()
+    hashes = _code_hashes(backend)
     provenance = {"source_sha256": hashes, "model_artifacts": [
         {"file": Path(path).name, "sha256": sha256(path), "bytes": Path(path).stat().st_size} for path in model_files]}
     if candidate_config:
         candidate = json.loads(Path(candidate_config).read_text(encoding="utf-8"))
+        expected_scope = candidate.get("detector_configuration", {}).get("removal_scope",
+            candidate.get("removal_scope"))
+        if expected_scope is not None and expected_scope != REMOVAL_SCOPE:
+            raise ValueError("Removal scope differs from frozen candidate configuration")
         expected_profile = candidate.get("detector_configuration", {}).get("request_profile")
+        if backend == "scene-ai":
+            expected_profile = candidate.get("detector_configuration", {}).get("request_profiles",
+                candidate.get("request_profiles", expected_profile))
         if expected_profile is not None and expected_profile != request_profile:
             raise ValueError("Inference profile differs from frozen candidate configuration")
         for name, expected in candidate.get("source_sha256", {}).items():
@@ -271,13 +313,14 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
             if matching is not None and matching != expected:
                 raise ValueError("Source differs from frozen candidate configuration")
         provenance["candidate_configuration_sha256"] = sha256(candidate_config)
-    environment = _classifier_environment() if backend == "verified-ai" else {}
+    environment = _classifier_environment() if backend in {"verified-ai", "scene-ai"} else {}
     configuration = {"backend": backend, "base_url": base_url, "model": model,
+                     "removal_scope": REMOVAL_SCOPE,
                      "model_label": model_label, "review_only": True,
-                     "auto_approve_threshold": .90 if backend == "verified-ai" else None,
+                     "auto_approve_threshold": .90 if backend != "kev" else None,
                      "transport": "literal loopback, no redirects, no inherited credentials or proxies",
                      "classifier_environment": environment,
-                     "view_availability": {"candidates": True, "verified": backend == "verified-ai", "approved": True},
+                     "view_availability": {"candidates": True, "verified": backend != "kev", "approved": True},
                      "confidence_semantics": {
                          "confidence": "normalized_probability_margin", "review_score": "selected_probability",
                          "review_threshold": .90,
@@ -289,13 +332,36 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
                      }}
     if backend == "verified-ai":
         configuration.update(ai_reasoning=ai_reasoning, request_profile=request_profile)
+    elif backend == "scene-ai":
+        try:
+            requested_window = int(environment["CASTWELL_AI_WINDOW_CHARS"])
+            requested_context = int(environment["CASTWELL_AI_CONTEXT_SEGMENTS"])
+            request_timeout = float(environment["CASTWELL_AI_TIMEOUT"])
+            if not 256 <= requested_window <= 100000 or not 0 <= requested_context <= 40 or not 10 <= request_timeout <= 600:
+                raise ValueError
+            window_chars, context_segments = scene_review._bounds(requested_window, requested_context)
+        except (TypeError, ValueError):
+            raise ValueError("Scene window, context and timeout settings are invalid") from None
+        configuration.update(ai_reasoning=False, request_profiles=request_profile,
+            window_chars=window_chars, context_segments=context_segments, request_timeout=request_timeout,
+            requested_window_chars=requested_window, requested_context_segments=requested_context,
+            policy_versions={"scene": scene_review.POLICY_VERSION, "endpoints": scene_edges.POLICY_VERSION,
+                "composition": scene_pipeline.POLICY_VERSION})
+        configuration["confidence_semantics"] = {
+            "confidence": "minimum_qualified_uncalibrated_scene_score",
+            "endpoint_confidence": "unscored_role_judgment",
+            "review_score": "composition_eligibility_with_global_unresolved_gate", "review_threshold": .90,
+            "interpretation": "Scene scores are uncalibrated; endpoint roles are unscored. Verified means an eligible model proposal, not listening or payment verification."}
     backend_limit = ("Kev has no two-pass intent/boundary verifier. Its verified view is unavailable (null), not a failed quality score. All Kev cuts require manual approval."
                      if backend == "kev" else "Verified suggestions passed both model checks and alignment safeguards; actual approval remains off during this run.")
+    if backend == "scene-ai":
+        backend_limit = "Complete scene, endpoint and approval audits are required. All cuts remain unapproved. Audit completeness does not establish acoustic or semantic accuracy."
     report = {"schema_version": 1, "started_at_utc": datetime.now(timezone.utc).isoformat(),
               "configuration": configuration, "provenance": provenance, "limitations": [*LIMITATIONS, backend_limit], "clips": []}
     for path, reference, transcript, identity in inputs:
         commercial, protected, excluded = annotation_intervals(reference, transcript["duration"])
         report["clips"].append({"id": path.name, "status": "pending", "provenance": identity,
+            "reference_verification_provenance": deepcopy(reference.get("verification_provenance")),
             "eligible": {"commercial_seconds": _seconds(commercial), "protected_seconds": _seconds(protected),
                          "unverified_seconds": _seconds(excluded)}, "elapsed_seconds": 0.})
     if resume and output.exists():
@@ -312,8 +378,8 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
     for row, (_, reference, transcript, _) in zip(report["clips"], inputs):
         if row["status"] in {"ok", "error"}:
             continue
-        current_environment = _classifier_environment() if backend == "verified-ai" else {}
-        if _code_hashes() != hashes or current_environment != environment:
+        current_environment = _classifier_environment() if backend in {"verified-ai", "scene-ai"} else {}
+        if _code_hashes(backend) != hashes or current_environment != environment:
             raise ValueError("Candidate code or classifier environment changed during evaluation")
         row["status"] = "running"
         checkpoint()
@@ -325,6 +391,66 @@ def evaluate_recordings(references, *, output, summary_output, base_url, model, 
                 provider_result = run(transcript, base_url=base_url, model=model)
                 row["provider_result"] = provider_result
                 cuts = provider_result["cuts"]
+            elif backend == "scene-ai":
+                from .ad_review import _review_units
+                source = processing._classification_transcript(transcript, max_chars=min(800, requested_window))
+                original = deepcopy(source)
+                units, _ = _review_units(source["segments"])
+                captured = {name: [] for name in ("scene", "endpoints", "approval")}
+                row.update(scene_audit_complete=False, scene_audit=None, endpoint_audit=None, approval_audit=None)
+                def receive(name, value):
+                    captured[name].append(deepcopy(value))
+                    row[{"scene": "scene_audit", "endpoints": "endpoint_audit", "approval": "approval_audit"}[name]] = deepcopy(value)
+                pipeline = scene_pipeline.classify_scene_pipeline
+                pipeline_sources = []
+                def instrument(actual_source, **options):
+                    pipeline_sources.append(deepcopy(actual_source))
+                    if (actual_source != original or options.get("key") != ""
+                            or options.get("base_url") != base_url or options.get("model") != model
+                            or options.get("threshold") != .90
+                            or options.get("review_only") is not True or options.get("ai_reasoning") is not False
+                            or options.get("allow_redirects") is not False or options.get("trust_env") is not False
+                            or options.get("window_chars") != requested_window
+                            or options.get("context_segments") != requested_context
+                            or options.get("request_timeout") != request_timeout):
+                        raise processing.ProcessingError("Scene dispatch differs from recorded manual request settings")
+                    options.update(decision_sink=lambda value: receive("scene", value),
+                        edge_decision_sink=lambda value: receive("endpoints", value),
+                        approval_sink=lambda value: receive("approval", value))
+                    result = pipeline(actual_source, **options)
+                    if actual_source != pipeline_sources[-1]:
+                        raise processing.ProcessingError("Scene evaluation changed source transcript units")
+                    return result
+                with patch.object(scene_pipeline, "classify_scene_pipeline", instrument):
+                    cuts = run(transcript, "ai", config={"ai_base_url": base_url, "ai_model": model,
+                        "ai_key": "", "ai_allow_redirects": False, "ai_trust_env": False,
+                        "ai_policy": "scene", "ai_reasoning": False,
+                        "review_only": True, "auto_approve_threshold": .90},
+                        progress=(lambda message: on_progress(row["id"], message)) if on_progress else None)
+                if len(pipeline_sources) != 1 or source != original or any(len(value) != 1 for value in captured.values()):
+                    raise processing.ProcessingError("Scene evaluation requires unchanged input and exactly one complete audit per stage")
+                scenes, edges, approval = row["scene_audit"], row["endpoint_audit"], row["approval_audit"]
+                if (not isinstance(scenes, dict) or set(scenes) != {unit["id"] for unit in units}
+                        or any(type(key) is not int or value.get("segment_id") != key for key, value in scenes.items())
+                        or not isinstance(edges, dict) or not isinstance(approval, dict)
+                        or approval.get("scene_audit") != scenes or approval.get("endpoint_audit") != edges):
+                    raise processing.ProcessingError("Scene evaluation audit ownership is incomplete")
+                plan = approval.get("edge_plan", {})
+                targets = {identifier for request in plan.get("requests", []) for identifier in request["target_ids"]}
+                if (set(edges) != targets or not targets <= set(scenes) or plan.get("review_unit_count") != len(units)
+                        or any(type(key) is not int or value.get("segment_id") != key for key, value in edges.items())
+                        or len(approval.get("cut_approvals", [])) != len(cuts)
+                        or any(cut.get("approved") is not False for cut in cuts)):
+                    raise processing.ProcessingError("Scene endpoint or manual approval audit is incomplete")
+                for cut, proof in zip(cuts, approval["cut_approvals"]):
+                    stored = {key: value for key, value in cut.get("approval_metadata", {}).items()
+                        if key != "unresolved_source_unit_ids"}
+                    if (stored != proof or proof.get("approved") is not False
+                            or proof.get("manual_review_setting") is not True):
+                        raise processing.ProcessingError("Scene manual cut proof differs from its complete audit")
+                row.update(scene_audit_complete=True, scene_unit_decisions=len(scenes), endpoint_unit_decisions=len(edges),
+                    unresolved_unit_ids=approval.get("unresolved_unit_ids", []),
+                    unresolved_unit_count=len(approval.get("unresolved_unit_ids", [])))
             else:
                 cuts = run(transcript, "ai", config={"ai_base_url": base_url, "ai_model": model,
                     "ai_key": "", "ai_allow_redirects": False, "ai_trust_env": False,

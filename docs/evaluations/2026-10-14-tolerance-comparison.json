@@ -1,0 +1,2269 @@
+{
+  "schema_version": 1,
+  "evaluation_date": "2026-10-14",
+  "title": "Consumed-recording tolerance and processing comparison",
+  "created_at_utc": "2026-10-15T01:15:39.463997+00:00",
+  "status": "complete",
+  "protocol_freeze_sha256": "bf342991d421049bcd599471d5b1b30ba07a37eed7538f29ab94e6c60dc79451",
+  "comparison_script_sha256": "2d03265a340f4663e8aaf48512fc2a15d1f61da964c5800796edf7eb6be24ae5",
+  "aggregation_script_sha256": "e7fa335b1775e8a0df2bf1e7c8ce7151be21aafae7e6a855962287b9edfc4a9c",
+  "planned_attempt_cap": 5,
+  "schedule": [
+    {
+      "id": "S-july",
+      "status": "complete"
+    },
+    {
+      "id": "F-july",
+      "status": "failed"
+    },
+    {
+      "id": "H-july",
+      "status": "complete"
+    },
+    {
+      "id": "H-august",
+      "status": "complete"
+    },
+    {
+      "id": "S-august",
+      "status": "complete"
+    }
+  ],
+  "finished_attempt_count": 5,
+  "completed_output_count": 4,
+  "failed_attempt_count": 1,
+  "classifier_requests_in_finished_attempts": 7,
+  "paid_requests_in_finished_attempts": 0,
+  "offline_aggregation_inference_requests": 0,
+  "profiles": {
+    "S": {
+      "description": "Whole-episode classification with focused word boundary review",
+      "global_reasoning_tokens": 6144,
+      "word_reasoning_tokens": 1024
+    },
+    "F": {
+      "description": "Shorter global reasoning with unchanged focused boundary review",
+      "global_reasoning_tokens": 2048,
+      "word_reasoning_tokens": 1024,
+      "stopped_after_july_guard_failure": true,
+      "august_not_attempted": true
+    },
+    "H": {
+      "description": "Full global reasoning with deterministic original-word boundaries and no word-review request",
+      "global_reasoning_tokens": 6144,
+      "word_boundary_inference": false,
+      "mixed_or_uncertain_remain_unresolved": true
+    }
+  },
+  "shared_settings": {
+    "cuda_only": true,
+    "speech_model": "large-v3",
+    "speech_compute_type": "float16",
+    "speech_batch_size": 8,
+    "classifier": "Qwen3.8-27B-Q4_K_M",
+    "native_context_tokens": 32768,
+    "commercial_gap_split_seconds": 0.8,
+    "edge_padding_seconds": 0,
+    "no_artificial_edge_padding": true,
+    "cold_model_start_required": true
+  },
+  "threshold_units": {
+    "commercial_remainder": "seconds per full source audio hour",
+    "processing": "wall seconds per full source audio hour",
+    "show_loss": "seconds per episode; 1/3/5 are exploratory assumptions pending user choice"
+  },
+  "cohorts": {
+    "july": {
+      "schema_version": 1,
+      "removal_scope": "sponsor-product-reads-only-v1",
+      "comparison_identity": {
+        "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+        "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+        "audio_seconds": 4513.123265
+      },
+      "thresholds": {
+        "max_ad_seconds_per_audio_hour": 5.0,
+        "max_processing_seconds_per_audio_hour": 300.0,
+        "show_loss_budgets_seconds_per_episode": [
+          0.0,
+          1.0,
+          3.0,
+          5.0
+        ],
+        "whole_missed_sponsor_reads_allowed": 0
+      },
+      "candidates": [
+        {
+          "id": "S-july",
+          "run_status": "complete",
+          "score_scope": "rendered",
+          "render_mode": "candidate_preview",
+          "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+          "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+          "audio_seconds": 4513.123265,
+          "timing": {
+            "complete_pipeline": true,
+            "fresh_transcription": true,
+            "fresh_predictions": true,
+            "cold_models": true,
+            "cuda_only": true,
+            "request_telemetry_complete": true,
+            "asset_downloads": 0,
+            "wall_seconds": 347.7104956000039,
+            "observed_seconds_per_audio_hour": 277.35953809806125,
+            "eligible_for_speed_gate": true,
+            "speed_target_met": true
+          },
+          "evidence": {
+            "consumed_development": true,
+            "human_listening_verified": false,
+            "payment_status_verified": false,
+            "acceptance_eligible": false,
+            "removal_scope": "sponsor-product-reads-only-v1"
+          },
+          "word_metrics": {
+            "commercial_missed_seconds": 1.309999999999036,
+            "protected_selected_seconds": 0.0,
+            "zero_duration_commercial_points_missed": 0,
+            "zero_duration_protected_points_selected": 0,
+            "commercial_missed_seconds_per_audio_hour": 1.0449526243986889
+          },
+          "elapsed_audio_metrics": null,
+          "protected_controls": null,
+          "verification_blockers": [
+            "human_listening_not_verified",
+            "reference_consumed_or_consumption_unknown",
+            "reference_not_declared_acceptance_eligible",
+            "elapsed_audio_accuracy_unknown",
+            "complete_sponsor_read_coverage_unknown"
+          ],
+          "threshold_matrix": [
+            {
+              "show_loss_budget_seconds_per_episode": 0.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 1.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 3.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 5.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            }
+          ],
+          "execution_details": {
+            "benchmark_report_sha256": "ab5e13583799a2209fce73bc1ec9d987ff5e6e2ba83afe3e5f98c9e3cd4f9c8b",
+            "started_at_utc": "2026-10-15T00:46:52.927869+00:00",
+            "measured_wall_scope": "completed_pipeline",
+            "configuration": {
+              "detector": "whole-episode-boundaries-v6",
+              "inference_profile": "global-thinking6144-product-boundaries1024-v6",
+              "speech_model": "large-v3",
+              "speech_batch_size": 8,
+              "speech_beam_size": 5,
+              "speech_without_timestamps": true,
+              "classifier_model": "Qwen3.8-27B-Q4_K_M",
+              "cuda_only": true,
+              "context_tokens": 32768,
+              "max_output_tokens": 8192,
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "maximum_classifier_requests": 8,
+              "comparison_candidate": "S",
+              "global_reasoning_tokens": 6144,
+              "word_reasoning_tokens": 1024,
+              "word_boundary_inference": true,
+              "commercial_gap_split_seconds": 0.8,
+              "edge_padding_seconds": 0
+            },
+            "configuration_sha256": "323d89afc940d2cd9c93ba28ce2d804bd3ee5c5ba94d3e197df0720ca5bc3c76",
+            "model_sha256": {
+              "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+              "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+            },
+            "source_sha256": {
+              "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+              "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+              "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+              "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+              "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+              "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+              "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+              "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+              "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+              "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+              "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+              "castwell/ad_scope.py": "5fdf59fc7c71686f2e746d09f3fe7a72a6ddf953eb7557da2ea08168a42e376c",
+              "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c"
+            },
+            "private_adapter_sha256": {
+              "candidate_adapter.py": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter.py": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "run_one.py": "2016e908de1f3a0e4bb44d1b393dbfffa6b4b9fa389122607d6aed387d2d4553"
+            },
+            "reference_metadata": {
+              "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+              "reference_transcript_sha256": "63d6708f35184b47b29f5f06e1281374d51a0ee86ee7493182a7d80c14e59758",
+              "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+              "reference_format": "word-table",
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "acceptance_eligible": false,
+              "human_listening_verified_declaration": false,
+              "payment_verified_declaration": false
+            },
+            "phases": {
+              "adapter_setup": {
+                "seconds": 0.10240109999722335,
+                "complete": true
+              },
+              "episode_preparation": {
+                "seconds": 10.243979999999283,
+                "complete": true
+              },
+              "model_prepare": {
+                "seconds": 0.048095799997099675,
+                "complete": true
+              },
+              "transcription": {
+                "seconds": 83.43756409999332,
+                "complete": true
+              },
+              "detection": {
+                "seconds": 219.30150159999903,
+                "complete": true
+              },
+              "render": {
+                "seconds": 34.497210300003644,
+                "complete": true
+              },
+              "cleanup_excluded": {
+                "seconds": 1.2790096000026097,
+                "complete": true
+              }
+            },
+            "runtime_evidence": {
+              "models_cold_at_start": true,
+              "initial_whisper_cache_entries": 0,
+              "initial_vad_cache_entries": 0,
+              "transcript_cache_hits": 0,
+              "prediction_cache_hits": 0,
+              "asset_downloads": 0,
+              "request_telemetry_complete": true,
+              "cuda_only_verified": true,
+              "speech_cuda_verified": true,
+              "classifier_cuda_verified": true,
+              "native_token_preflights": 2,
+              "python_version": "3.12.10",
+              "package_versions": {
+                "faster-whisper": "1.2.1",
+                "ctranslate2": "4.8.2",
+                "onnxruntime-gpu": "1.23.2",
+                "requests": "2.34.2"
+              },
+              "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter_sha256": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "historical_adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "skipped_word_boundary_inference": false,
+              "experiment_does_not_change_application_defaults": true,
+              "actual_whisper_device": "cuda",
+              "actual_whisper_compute_type": "float16",
+              "vad_provider": "CUDAExecutionProvider",
+              "vad_cpu_fallback_disabled": "1",
+              "speech_model_loads_in_run": 1,
+              "speech_cache_released": true,
+              "classifier_gpu_layers": 66,
+              "classifier_total_layers": 66,
+              "classifier_start_seconds": 6.987711599998875,
+              "source_unchanged_during_run": true
+            },
+            "requests": {
+              "summary": {
+                "requests": 2,
+                "failures": 0,
+                "cache_hits": 0,
+                "paid_requests": 0,
+                "request_wall_seconds_sum": 212.02443420000054,
+                "token_usage_complete": true,
+                "known_input_tokens": 28909,
+                "known_output_tokens": 7440
+              },
+              "observations": [
+                {
+                  "elapsed_seconds": 177.06775100000232,
+                  "succeeded": true,
+                  "input_tokens": 20588,
+                  "output_tokens": 6303,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "global"
+                },
+                {
+                  "elapsed_seconds": 34.956683199998224,
+                  "succeeded": true,
+                  "input_tokens": 8321,
+                  "output_tokens": 1137,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "boundary"
+                }
+              ]
+            },
+            "original_source_unchanged": true,
+            "existing_user_library_modified": false,
+            "episode_preparation_included": true,
+            "preflight_hash_and_probe_seconds_excluded": 16.067094400001224,
+            "output_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+            "render_result": {
+              "duration": 3814.813265,
+              "removed_seconds": 698.3100000000009
+            },
+            "gpu_observations": {
+              "private_telemetry_sha256": "b6df8dbd0ca1603338c235e80077fb3dc3d674762e05c7dd44263a6840f21dc2",
+              "sample_period_seconds": 15,
+              "sample_count": 26,
+              "isolated_gpu_timing": false,
+              "concurrent_desktop_activity_present": true,
+              "first_observed_sample": {
+                "utc": "2026-10-15T00:46:36.860169+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 3002,
+                "utilization_percent": 29,
+                "temperature_celsius": 54,
+                "sm_clock_mhz": 210
+              },
+              "last_observed_sample": {
+                "utc": "2026-10-15T00:52:42.199763+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 3192,
+                "utilization_percent": 16,
+                "temperature_celsius": 56,
+                "sm_clock_mhz": 210
+              },
+              "peak_observed_memory_mib": 21251,
+              "sampling_scope": "Before, during and after the pipeline; device-level measurements cannot attribute utilization to an individual process."
+            },
+            "actual_global_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 8192,
+              "reasoning_budget_tokens": 6144,
+              "reasoning_format": "deepseek"
+            },
+            "actual_word_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 2048,
+              "reasoning_budget_tokens": 1024,
+              "reasoning_format": "deepseek"
+            },
+            "rendered_reference_word_counts": {
+              "commercial": {
+                "word_entries": 1985,
+                "word_seconds": 637.7599999999886,
+                "word_seconds_selected": 636.4499999999896,
+                "word_seconds_unselected": 1.309999999999036,
+                "word_entries_any_selected": 1984,
+                "word_entries_fully_selected": 1971,
+                "word_entries_not_fully_selected": 14,
+                "zero_duration_word_entries": 15,
+                "zero_duration_points_selected": 15
+              },
+              "protected": {
+                "word_entries": 10512,
+                "word_seconds": 3339.5000000000055,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 3339.5000000000055,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 10512,
+                "zero_duration_word_entries": 180,
+                "zero_duration_points_selected": 0
+              },
+              "ambiguous": {
+                "word_entries": 0,
+                "word_seconds": 0.0,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 0.0,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 0,
+                "zero_duration_word_entries": 0,
+                "zero_duration_points_selected": 0
+              }
+            },
+            "concurrent_work_note": "Background graphics activity was present; not an isolated-machine timing."
+          }
+        },
+        {
+          "id": "F-july",
+          "run_status": "failed",
+          "score_scope": "unknown",
+          "render_mode": "candidate_preview",
+          "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+          "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+          "audio_seconds": 4513.123265,
+          "timing": {
+            "complete_pipeline": false,
+            "fresh_transcription": false,
+            "fresh_predictions": false,
+            "cold_models": true,
+            "cuda_only": true,
+            "request_telemetry_complete": true,
+            "asset_downloads": 0,
+            "wall_seconds": 169.06577259999904,
+            "observed_seconds_per_audio_hour": 134.85933036220683,
+            "eligible_for_speed_gate": false,
+            "speed_target_met": null
+          },
+          "evidence": {
+            "consumed_development": true,
+            "human_listening_verified": false,
+            "payment_status_verified": false,
+            "acceptance_eligible": false,
+            "removal_scope": "sponsor-product-reads-only-v1"
+          },
+          "word_metrics": null,
+          "elapsed_audio_metrics": null,
+          "protected_controls": null,
+          "verification_blockers": [
+            "analysis_failed_or_incomplete",
+            "rendered_output_score_not_established",
+            "fresh_complete_cold_cuda_timing_not_established",
+            "human_listening_not_verified",
+            "reference_consumed_or_consumption_unknown",
+            "reference_not_declared_acceptance_eligible",
+            "elapsed_audio_accuracy_unknown",
+            "complete_sponsor_read_coverage_unknown"
+          ],
+          "threshold_matrix": [
+            {
+              "show_loss_budget_seconds_per_episode": 0.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": null,
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": null,
+              "no_whole_sponsor_read_missed": null,
+              "result": "run_failed"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 1.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": null,
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": null,
+              "no_whole_sponsor_read_missed": null,
+              "result": "run_failed"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 3.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": null,
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": null,
+              "no_whole_sponsor_read_missed": null,
+              "result": "run_failed"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 5.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": null,
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": null,
+              "no_whole_sponsor_read_missed": null,
+              "result": "run_failed"
+            }
+          ],
+          "execution_details": {
+            "benchmark_report_sha256": "29f77f1eff4c65a3e3ce198984c93dd2d48b28bb85dceeacc5fc959fb5c4d8e9",
+            "started_at_utc": "2026-10-15T00:53:05.525621+00:00",
+            "measured_wall_scope": "failed_partial_attempt",
+            "configuration": {
+              "detector": "whole-episode-boundaries-v6",
+              "inference_profile": "experimental-global2048-word1024-v1",
+              "speech_model": "large-v3",
+              "speech_batch_size": 8,
+              "speech_beam_size": 5,
+              "speech_without_timestamps": true,
+              "classifier_model": "Qwen3.8-27B-Q4_K_M",
+              "cuda_only": true,
+              "context_tokens": 32768,
+              "max_output_tokens": 8192,
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "maximum_classifier_requests": 8,
+              "comparison_candidate": "F",
+              "global_reasoning_tokens": 2048,
+              "word_reasoning_tokens": 1024,
+              "word_boundary_inference": true,
+              "commercial_gap_split_seconds": 0.8,
+              "edge_padding_seconds": 0
+            },
+            "configuration_sha256": "2ae2f9aeabc715827318280a3530bd34fdb2a92b51252ab9873a78b99c522e62",
+            "model_sha256": {
+              "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+              "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+            },
+            "source_sha256": {
+              "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+              "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+              "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+              "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+              "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+              "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+              "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+              "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+              "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+              "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+              "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+              "castwell/ad_scope.py": "5fdf59fc7c71686f2e746d09f3fe7a72a6ddf953eb7557da2ea08168a42e376c",
+              "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c"
+            },
+            "private_adapter_sha256": {
+              "candidate_adapter.py": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter.py": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "run_one.py": "2016e908de1f3a0e4bb44d1b393dbfffa6b4b9fa389122607d6aed387d2d4553"
+            },
+            "reference_metadata": {
+              "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+              "reference_transcript_sha256": "63d6708f35184b47b29f5f06e1281374d51a0ee86ee7493182a7d80c14e59758",
+              "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+              "reference_format": "word-table",
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "acceptance_eligible": false,
+              "human_listening_verified_declaration": false,
+              "payment_verified_declaration": false
+            },
+            "phases": {
+              "adapter_setup": {
+                "seconds": 0.09434950000286335,
+                "complete": true
+              },
+              "episode_preparation": {
+                "seconds": 9.852705499994045,
+                "complete": true
+              },
+              "model_prepare": {
+                "seconds": 0.006427300002542324,
+                "complete": true
+              },
+              "transcription": {
+                "seconds": 80.03470129999914,
+                "complete": true
+              },
+              "detection": {
+                "seconds": 78.99783190000016,
+                "complete": false
+              },
+              "cleanup_excluded": {
+                "seconds": 1.2225027000022237,
+                "complete": true
+              }
+            },
+            "runtime_evidence": {
+              "models_cold_at_start": true,
+              "initial_whisper_cache_entries": 0,
+              "initial_vad_cache_entries": 0,
+              "transcript_cache_hits": 0,
+              "prediction_cache_hits": 0,
+              "asset_downloads": 0,
+              "request_telemetry_complete": true,
+              "cuda_only_verified": true,
+              "speech_cuda_verified": true,
+              "classifier_cuda_verified": true,
+              "native_token_preflights": 1,
+              "python_version": "3.12.10",
+              "package_versions": {
+                "faster-whisper": "1.2.1",
+                "ctranslate2": "4.8.2",
+                "onnxruntime-gpu": "1.23.2",
+                "requests": "2.34.2"
+              },
+              "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter_sha256": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "historical_adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "skipped_word_boundary_inference": false,
+              "experiment_does_not_change_application_defaults": true,
+              "actual_whisper_device": "cuda",
+              "actual_whisper_compute_type": "float16",
+              "vad_provider": "CUDAExecutionProvider",
+              "vad_cpu_fallback_disabled": "1",
+              "speech_model_loads_in_run": 1,
+              "speech_cache_released": true,
+              "classifier_gpu_layers": 66,
+              "classifier_total_layers": 66,
+              "classifier_start_seconds": 6.36540149999928,
+              "source_unchanged_during_run": true
+            },
+            "requests": {
+              "summary": {
+                "requests": 1,
+                "failures": 0,
+                "cache_hits": 0,
+                "paid_requests": 0,
+                "request_wall_seconds_sum": 72.42225450000115,
+                "token_usage_complete": true,
+                "known_input_tokens": 20588,
+                "known_output_tokens": 2183
+              },
+              "observations": [
+                {
+                  "elapsed_seconds": 72.42225450000115,
+                  "succeeded": true,
+                  "input_tokens": 20588,
+                  "output_tokens": 2183,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "global"
+                }
+              ]
+            },
+            "original_source_unchanged": true,
+            "existing_user_library_modified": false,
+            "episode_preparation_included": true,
+            "preflight_hash_and_probe_seconds_excluded": 16.21394919999875,
+            "output_sha256": null,
+            "render_result": {},
+            "gpu_observations": {
+              "private_telemetry_sha256": "f716e4c459bf768f5999d01a0139b9f717b1f9f3b4de91aa90df3d6cbc7d80ea",
+              "sample_period_seconds": 15,
+              "sample_count": 14,
+              "isolated_gpu_timing": false,
+              "concurrent_desktop_activity_present": true,
+              "first_observed_sample": {
+                "utc": "2026-10-15T00:52:49.310578+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 2940,
+                "utilization_percent": 17,
+                "temperature_celsius": 54,
+                "sm_clock_mhz": 210
+              },
+              "last_observed_sample": {
+                "utc": "2026-10-15T00:55:55.908360+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 3197,
+                "utilization_percent": 3,
+                "temperature_celsius": 67,
+                "sm_clock_mhz": 2040
+              },
+              "peak_observed_memory_mib": 21136,
+              "sampling_scope": "Before, during and after the pipeline; device-level measurements cannot attribute utilization to an individual process."
+            },
+            "actual_global_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 8192,
+              "reasoning_budget_tokens": 2048,
+              "reasoning_format": "deepseek"
+            },
+            "actual_word_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 2048,
+              "reasoning_budget_tokens": 1024,
+              "reasoning_format": "deepseek"
+            },
+            "failure_category": "omission_guard_rejected",
+            "failure_interpretation": "This attempt produced no completed output result; partial elapsed time cannot meet the processing target.",
+            "concurrent_work_note": "Background graphics activity was present; not an isolated-machine timing."
+          }
+        },
+        {
+          "id": "H-july",
+          "run_status": "complete",
+          "score_scope": "rendered",
+          "render_mode": "candidate_preview",
+          "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+          "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+          "audio_seconds": 4513.123265,
+          "timing": {
+            "complete_pipeline": true,
+            "fresh_transcription": true,
+            "fresh_predictions": true,
+            "cold_models": true,
+            "cuda_only": true,
+            "request_telemetry_complete": true,
+            "asset_downloads": 0,
+            "wall_seconds": 289.1105519000048,
+            "observed_seconds_per_audio_hour": 230.61590072479822,
+            "eligible_for_speed_gate": true,
+            "speed_target_met": true
+          },
+          "evidence": {
+            "consumed_development": true,
+            "human_listening_verified": false,
+            "payment_status_verified": false,
+            "acceptance_eligible": false,
+            "removal_scope": "sponsor-product-reads-only-v1"
+          },
+          "word_metrics": {
+            "commercial_missed_seconds": 1.309999999999036,
+            "protected_selected_seconds": 0.0,
+            "zero_duration_commercial_points_missed": 0,
+            "zero_duration_protected_points_selected": 0,
+            "commercial_missed_seconds_per_audio_hour": 1.0449526243986889
+          },
+          "elapsed_audio_metrics": null,
+          "protected_controls": null,
+          "verification_blockers": [
+            "human_listening_not_verified",
+            "reference_consumed_or_consumption_unknown",
+            "reference_not_declared_acceptance_eligible",
+            "elapsed_audio_accuracy_unknown",
+            "complete_sponsor_read_coverage_unknown"
+          ],
+          "threshold_matrix": [
+            {
+              "show_loss_budget_seconds_per_episode": 0.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 1.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 3.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 5.0,
+              "ad_budget_seconds_per_episode": 6.268226756944445,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            }
+          ],
+          "execution_details": {
+            "benchmark_report_sha256": "6e62af14616c580540631d7aa0fea30e3d87dd328ad4003f68e55a2588916240",
+            "started_at_utc": "2026-10-15T00:56:19.106447+00:00",
+            "measured_wall_scope": "completed_pipeline",
+            "configuration": {
+              "detector": "whole-episode-boundaries-v6",
+              "inference_profile": "experimental-global6144-word0-v1",
+              "speech_model": "large-v3",
+              "speech_batch_size": 8,
+              "speech_beam_size": 5,
+              "speech_without_timestamps": true,
+              "classifier_model": "Qwen3.8-27B-Q4_K_M",
+              "cuda_only": true,
+              "context_tokens": 32768,
+              "max_output_tokens": 8192,
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "maximum_classifier_requests": 8,
+              "comparison_candidate": "H",
+              "global_reasoning_tokens": 6144,
+              "word_reasoning_tokens": 1024,
+              "word_boundary_inference": false,
+              "commercial_gap_split_seconds": 0.8,
+              "edge_padding_seconds": 0
+            },
+            "configuration_sha256": "658db164971cc620975019d1a8a06d43d209c393ea6b002bef9c3f5c1fa64f2c",
+            "model_sha256": {
+              "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+              "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+            },
+            "source_sha256": {
+              "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+              "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+              "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+              "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+              "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+              "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+              "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+              "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+              "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+              "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+              "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+              "castwell/ad_scope.py": "5fdf59fc7c71686f2e746d09f3fe7a72a6ddf953eb7557da2ea08168a42e376c",
+              "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c"
+            },
+            "private_adapter_sha256": {
+              "candidate_adapter.py": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter.py": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "run_one.py": "2016e908de1f3a0e4bb44d1b393dbfffa6b4b9fa389122607d6aed387d2d4553"
+            },
+            "reference_metadata": {
+              "reference_sha256": "867116339022144f5416175604994abe7a528dc60dcdf6c744b4a9c81fc4eac9",
+              "reference_transcript_sha256": "63d6708f35184b47b29f5f06e1281374d51a0ee86ee7493182a7d80c14e59758",
+              "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+              "reference_format": "word-table",
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "acceptance_eligible": false,
+              "human_listening_verified_declaration": false,
+              "payment_verified_declaration": false
+            },
+            "phases": {
+              "adapter_setup": {
+                "seconds": 0.08178590000170516,
+                "complete": true
+              },
+              "episode_preparation": {
+                "seconds": 10.058546400003252,
+                "complete": true
+              },
+              "model_prepare": {
+                "seconds": 0.0065188999942620285,
+                "complete": true
+              },
+              "transcription": {
+                "seconds": 74.24557979999372,
+                "complete": true
+              },
+              "detection": {
+                "seconds": 173.90602170000057,
+                "complete": true
+              },
+              "render": {
+                "seconds": 30.756937400001334,
+                "complete": true
+              },
+              "cleanup_excluded": {
+                "seconds": 1.2109140000029583,
+                "complete": true
+              }
+            },
+            "runtime_evidence": {
+              "models_cold_at_start": true,
+              "initial_whisper_cache_entries": 0,
+              "initial_vad_cache_entries": 0,
+              "transcript_cache_hits": 0,
+              "prediction_cache_hits": 0,
+              "asset_downloads": 0,
+              "request_telemetry_complete": true,
+              "cuda_only_verified": true,
+              "speech_cuda_verified": true,
+              "classifier_cuda_verified": true,
+              "native_token_preflights": 1,
+              "python_version": "3.12.10",
+              "package_versions": {
+                "faster-whisper": "1.2.1",
+                "ctranslate2": "4.8.2",
+                "onnxruntime-gpu": "1.23.2",
+                "requests": "2.34.2"
+              },
+              "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter_sha256": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "historical_adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "skipped_word_boundary_inference": true,
+              "experiment_does_not_change_application_defaults": true,
+              "actual_whisper_device": "cuda",
+              "actual_whisper_compute_type": "float16",
+              "vad_provider": "CUDAExecutionProvider",
+              "vad_cpu_fallback_disabled": "1",
+              "speech_model_loads_in_run": 1,
+              "speech_cache_released": true,
+              "classifier_gpu_layers": 66,
+              "classifier_total_layers": 66,
+              "classifier_start_seconds": 5.68020190000243,
+              "source_unchanged_during_run": true
+            },
+            "requests": {
+              "summary": {
+                "requests": 1,
+                "failures": 0,
+                "cache_hits": 0,
+                "paid_requests": 0,
+                "request_wall_seconds_sum": 168.02092159999302,
+                "token_usage_complete": true,
+                "known_input_tokens": 20588,
+                "known_output_tokens": 6303
+              },
+              "observations": [
+                {
+                  "elapsed_seconds": 168.02092159999302,
+                  "succeeded": true,
+                  "input_tokens": 20588,
+                  "output_tokens": 6303,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "global"
+                }
+              ]
+            },
+            "original_source_unchanged": true,
+            "existing_user_library_modified": false,
+            "episode_preparation_included": true,
+            "preflight_hash_and_probe_seconds_excluded": 16.37425510000321,
+            "output_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+            "render_result": {
+              "duration": 3814.813265,
+              "removed_seconds": 698.3100000000009
+            },
+            "gpu_observations": {
+              "private_telemetry_sha256": "66831b530ee928c6c5d14531e796c269c5afa8995040dca105257283a3e76ba9",
+              "sample_period_seconds": 15,
+              "sample_count": 22,
+              "isolated_gpu_timing": false,
+              "concurrent_desktop_activity_present": true,
+              "first_observed_sample": {
+                "utc": "2026-10-15T00:56:02.731164+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 2952,
+                "utilization_percent": 18,
+                "temperature_celsius": 61,
+                "sm_clock_mhz": 210
+              },
+              "last_observed_sample": {
+                "utc": "2026-10-15T01:01:09.674683+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 1470,
+                "utilization_percent": 0,
+                "temperature_celsius": 57,
+                "sm_clock_mhz": 210
+              },
+              "peak_observed_memory_mib": 19377,
+              "sampling_scope": "Before, during and after the pipeline; device-level measurements cannot attribute utilization to an individual process."
+            },
+            "actual_global_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 8192,
+              "reasoning_budget_tokens": 6144,
+              "reasoning_format": "deepseek"
+            },
+            "rendered_reference_word_counts": {
+              "commercial": {
+                "word_entries": 1985,
+                "word_seconds": 637.7599999999886,
+                "word_seconds_selected": 636.4499999999896,
+                "word_seconds_unselected": 1.309999999999036,
+                "word_entries_any_selected": 1984,
+                "word_entries_fully_selected": 1971,
+                "word_entries_not_fully_selected": 14,
+                "zero_duration_word_entries": 15,
+                "zero_duration_points_selected": 15
+              },
+              "protected": {
+                "word_entries": 10512,
+                "word_seconds": 3339.5000000000055,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 3339.5000000000055,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 10512,
+                "zero_duration_word_entries": 180,
+                "zero_duration_points_selected": 0
+              },
+              "ambiguous": {
+                "word_entries": 0,
+                "word_seconds": 0.0,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 0.0,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 0,
+                "zero_duration_word_entries": 0,
+                "zero_duration_points_selected": 0
+              }
+            },
+            "concurrent_work_note": "Background graphics activity stopped during this run. July S/H timings are condition-confounded; do not attribute their full difference to architecture."
+          }
+        }
+      ],
+      "application_defaults_changed": false,
+      "limitations": [
+        "Elapsed-audio errors and summed ASR word-duration proxies are distinct and are never substituted.",
+        "Unknown or unlistened coverage cannot establish a verified pass; consumed references remain development evidence.",
+        "A verified pass is conditional on supplied metadata and reviewed reference declarations, not an independent attestation.",
+        "A whole missed sponsor read fails regardless of its duration or the remaining-ad budget.",
+        "Show-loss columns are seconds per episode; ad and processing budgets scale by full source audio duration.",
+        "Cached or partial timings cannot pass the fresh complete cold CUDA speed gate.",
+        "Incomplete request telemetry or unknown/nonzero asset downloads cannot pass the speed gate; proposal scores do not describe an approved-subset export.",
+        "No inferred silence labels, reference expansion, model calls, application approvals or cut edits occur."
+      ],
+      "offline_comparison_inference_requests": 0,
+      "matched_execution_checks": {
+        "identical_model_asset_hashes": true,
+        "identical_inference_source_hashes": true,
+        "identical_private_adapter_hashes": true,
+        "identical_fixed_asr_settings": true,
+        "runtime_sources_unchanged": true
+      },
+      "timing_conditions": "July background GPU conditions changed during H; architecture speed differences are confounded."
+    },
+    "august": {
+      "schema_version": 1,
+      "removal_scope": "sponsor-product-reads-only-v1",
+      "comparison_identity": {
+        "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+        "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+        "audio_seconds": 4795.010612
+      },
+      "thresholds": {
+        "max_ad_seconds_per_audio_hour": 5.0,
+        "max_processing_seconds_per_audio_hour": 300.0,
+        "show_loss_budgets_seconds_per_episode": [
+          0.0,
+          1.0,
+          3.0,
+          5.0
+        ],
+        "whole_missed_sponsor_reads_allowed": 0
+      },
+      "candidates": [
+        {
+          "id": "H-august",
+          "run_status": "complete",
+          "score_scope": "rendered",
+          "render_mode": "candidate_preview",
+          "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+          "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+          "audio_seconds": 4795.010612,
+          "timing": {
+            "complete_pipeline": true,
+            "fresh_transcription": true,
+            "fresh_predictions": true,
+            "cold_models": true,
+            "cuda_only": true,
+            "request_telemetry_complete": true,
+            "asset_downloads": 0,
+            "wall_seconds": 289.921368000003,
+            "observed_seconds_per_audio_hour": 217.66728152550974,
+            "eligible_for_speed_gate": true,
+            "speed_target_met": true
+          },
+          "evidence": {
+            "consumed_development": true,
+            "human_listening_verified": false,
+            "payment_status_verified": false,
+            "acceptance_eligible": false,
+            "removal_scope": "sponsor-product-reads-only-v1"
+          },
+          "word_metrics": {
+            "commercial_missed_seconds": 3.130000000000905,
+            "protected_selected_seconds": 0.0,
+            "zero_duration_commercial_points_missed": 0,
+            "zero_duration_protected_points_selected": 0,
+            "commercial_missed_seconds_per_audio_hour": 2.3499426616082864
+          },
+          "elapsed_audio_metrics": null,
+          "protected_controls": [
+            {
+              "id": "protected-02",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 133,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 38.8,
+              "selected_word_seconds": 0.0
+            },
+            {
+              "id": "protected-07",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 16,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 4.3,
+              "selected_word_seconds": 0.0
+            },
+            {
+              "id": "protected-10",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 44,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 17.62,
+              "selected_word_seconds": 0.0
+            }
+          ],
+          "verification_blockers": [
+            "human_listening_not_verified",
+            "reference_consumed_or_consumption_unknown",
+            "reference_not_declared_acceptance_eligible",
+            "elapsed_audio_accuracy_unknown",
+            "complete_sponsor_read_coverage_unknown"
+          ],
+          "threshold_matrix": [
+            {
+              "show_loss_budget_seconds_per_episode": 0.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 1.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 3.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 5.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            }
+          ],
+          "execution_details": {
+            "benchmark_report_sha256": "85070c054929cbcbe8bfefa4d21bb9a279bdc143ca0d9ec3e80473bacd271140",
+            "started_at_utc": "2026-10-15T01:01:35.153135+00:00",
+            "measured_wall_scope": "completed_pipeline",
+            "configuration": {
+              "detector": "whole-episode-boundaries-v6",
+              "inference_profile": "experimental-global6144-word0-v1",
+              "speech_model": "large-v3",
+              "speech_batch_size": 8,
+              "speech_beam_size": 5,
+              "speech_without_timestamps": true,
+              "classifier_model": "Qwen3.8-27B-Q4_K_M",
+              "cuda_only": true,
+              "context_tokens": 32768,
+              "max_output_tokens": 8192,
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "maximum_classifier_requests": 8,
+              "comparison_candidate": "H",
+              "global_reasoning_tokens": 6144,
+              "word_reasoning_tokens": 1024,
+              "word_boundary_inference": false,
+              "commercial_gap_split_seconds": 0.8,
+              "edge_padding_seconds": 0
+            },
+            "configuration_sha256": "658db164971cc620975019d1a8a06d43d209c393ea6b002bef9c3f5c1fa64f2c",
+            "model_sha256": {
+              "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+              "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+            },
+            "source_sha256": {
+              "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+              "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+              "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+              "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+              "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+              "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+              "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+              "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+              "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+              "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+              "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+              "castwell/ad_scope.py": "5fdf59fc7c71686f2e746d09f3fe7a72a6ddf953eb7557da2ea08168a42e376c",
+              "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c"
+            },
+            "private_adapter_sha256": {
+              "candidate_adapter.py": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter.py": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "run_one.py": "2016e908de1f3a0e4bb44d1b393dbfffa6b4b9fa389122607d6aed387d2d4553"
+            },
+            "reference_metadata": {
+              "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+              "reference_transcript_sha256": "a485e82337c00d575abc856948c70cc35ea576c37c85ddd00c64903285b93d1f",
+              "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+              "reference_format": "full-episode-word-ranges",
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "acceptance_eligible": false,
+              "human_listening_verified_declaration": false,
+              "payment_verified_declaration": false
+            },
+            "phases": {
+              "adapter_setup": {
+                "seconds": 0.09073500000522472,
+                "complete": true
+              },
+              "episode_preparation": {
+                "seconds": 9.434462999997777,
+                "complete": true
+              },
+              "model_prepare": {
+                "seconds": 0.004711100002168678,
+                "complete": true
+              },
+              "transcription": {
+                "seconds": 72.36241980000341,
+                "complete": true
+              },
+              "detection": {
+                "seconds": 175.50984609999432,
+                "complete": true
+              },
+              "render": {
+                "seconds": 32.46106000000145,
+                "complete": true
+              },
+              "cleanup_excluded": {
+                "seconds": 1.1939208999974653,
+                "complete": true
+              }
+            },
+            "runtime_evidence": {
+              "models_cold_at_start": true,
+              "initial_whisper_cache_entries": 0,
+              "initial_vad_cache_entries": 0,
+              "transcript_cache_hits": 0,
+              "prediction_cache_hits": 0,
+              "asset_downloads": 0,
+              "request_telemetry_complete": true,
+              "cuda_only_verified": true,
+              "speech_cuda_verified": true,
+              "classifier_cuda_verified": true,
+              "native_token_preflights": 1,
+              "python_version": "3.12.10",
+              "package_versions": {
+                "faster-whisper": "1.2.1",
+                "ctranslate2": "4.8.2",
+                "onnxruntime-gpu": "1.23.2",
+                "requests": "2.34.2"
+              },
+              "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter_sha256": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "historical_adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "skipped_word_boundary_inference": true,
+              "experiment_does_not_change_application_defaults": true,
+              "actual_whisper_device": "cuda",
+              "actual_whisper_compute_type": "float16",
+              "vad_provider": "CUDAExecutionProvider",
+              "vad_cpu_fallback_disabled": "1",
+              "speech_model_loads_in_run": 1,
+              "speech_cache_released": true,
+              "classifier_gpu_layers": 66,
+              "classifier_total_layers": 66,
+              "classifier_start_seconds": 5.768567899998743,
+              "source_unchanged_during_run": true
+            },
+            "requests": {
+              "summary": {
+                "requests": 1,
+                "failures": 0,
+                "cache_hits": 0,
+                "paid_requests": 0,
+                "request_wall_seconds_sum": 169.50496819999535,
+                "token_usage_complete": true,
+                "known_input_tokens": 22581,
+                "known_output_tokens": 6257
+              },
+              "observations": [
+                {
+                  "elapsed_seconds": 169.50496819999535,
+                  "succeeded": true,
+                  "input_tokens": 22581,
+                  "output_tokens": 6257,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "global"
+                }
+              ]
+            },
+            "original_source_unchanged": true,
+            "existing_user_library_modified": false,
+            "episode_preparation_included": true,
+            "preflight_hash_and_probe_seconds_excluded": 14.437239600003522,
+            "output_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+            "render_result": {
+              "duration": 4071.830612,
+              "removed_seconds": 723.1799999999985
+            },
+            "gpu_observations": {
+              "private_telemetry_sha256": "2aec36a978d968fda6a23c61cfcd0b271b4e2a88f58a1c53d72eaaa90135b7b0",
+              "sample_period_seconds": 15,
+              "sample_count": 22,
+              "isolated_gpu_timing": false,
+              "concurrent_desktop_activity_present": true,
+              "first_observed_sample": {
+                "utc": "2026-10-15T01:01:20.705356+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 1219,
+                "utilization_percent": 0,
+                "temperature_celsius": 55,
+                "sm_clock_mhz": 210
+              },
+              "last_observed_sample": {
+                "utc": "2026-10-15T01:06:26.520562+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 1473,
+                "utilization_percent": 0,
+                "temperature_celsius": 57,
+                "sm_clock_mhz": 210
+              },
+              "peak_observed_memory_mib": 19381,
+              "sampling_scope": "Before, during and after the pipeline; device-level measurements cannot attribute utilization to an individual process."
+            },
+            "actual_global_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 8192,
+              "reasoning_budget_tokens": 6144,
+              "reasoning_format": "deepseek"
+            },
+            "rendered_reference_word_counts": {
+              "commercial": {
+                "word_entries": 2098,
+                "word_seconds": 626.0599999999985,
+                "word_seconds_selected": 622.9299999999976,
+                "word_seconds_unselected": 3.130000000000905,
+                "word_entries_any_selected": 2098,
+                "word_entries_fully_selected": 2083,
+                "word_entries_not_fully_selected": 15,
+                "zero_duration_word_entries": 26,
+                "zero_duration_points_selected": 26
+              },
+              "protected": {
+                "word_entries": 10921,
+                "word_seconds": 3380.270000000001,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 3380.270000000001,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 10921,
+                "zero_duration_word_entries": 167,
+                "zero_duration_points_selected": 0
+              },
+              "ambiguous": {
+                "word_entries": 0,
+                "word_seconds": 0.0,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 0.0,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 0,
+                "zero_duration_word_entries": 0,
+                "zero_duration_points_selected": 0
+              }
+            },
+            "concurrent_work_note": "First GPU observation is recorded explicitly. Normal desktop activity remains, so this is not an isolated-machine measurement."
+          }
+        },
+        {
+          "id": "S-august",
+          "run_status": "complete",
+          "score_scope": "rendered",
+          "render_mode": "candidate_preview",
+          "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+          "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+          "audio_seconds": 4795.010612,
+          "timing": {
+            "complete_pipeline": true,
+            "fresh_transcription": true,
+            "fresh_predictions": true,
+            "cold_models": true,
+            "cuda_only": true,
+            "request_telemetry_complete": true,
+            "asset_downloads": 0,
+            "wall_seconds": 322.0585232000012,
+            "observed_seconds_per_audio_hour": 241.79522786007223,
+            "eligible_for_speed_gate": true,
+            "speed_target_met": true
+          },
+          "evidence": {
+            "consumed_development": true,
+            "human_listening_verified": false,
+            "payment_status_verified": false,
+            "acceptance_eligible": false,
+            "removal_scope": "sponsor-product-reads-only-v1"
+          },
+          "word_metrics": {
+            "commercial_missed_seconds": 3.130000000000905,
+            "protected_selected_seconds": 0.0,
+            "zero_duration_commercial_points_missed": 0,
+            "zero_duration_protected_points_selected": 0,
+            "commercial_missed_seconds_per_audio_hour": 2.3499426616082864
+          },
+          "elapsed_audio_metrics": null,
+          "protected_controls": [
+            {
+              "id": "protected-02",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 133,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 38.8,
+              "selected_word_seconds": 0.0
+            },
+            {
+              "id": "protected-07",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 16,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 4.3,
+              "selected_word_seconds": 0.0
+            },
+            {
+              "id": "protected-10",
+              "reference_role": "reference_labeled_parody",
+              "reference_word_entries": 44,
+              "selected_word_entries": 0,
+              "zero_duration_points_selected": 0,
+              "reference_word_seconds": 17.62,
+              "selected_word_seconds": 0.0
+            }
+          ],
+          "verification_blockers": [
+            "human_listening_not_verified",
+            "reference_consumed_or_consumption_unknown",
+            "reference_not_declared_acceptance_eligible",
+            "elapsed_audio_accuracy_unknown",
+            "complete_sponsor_read_coverage_unknown"
+          ],
+          "threshold_matrix": [
+            {
+              "show_loss_budget_seconds_per_episode": 0.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 1.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 3.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            },
+            {
+              "show_loss_budget_seconds_per_episode": 5.0,
+              "ad_budget_seconds_per_episode": 6.65973696111111,
+              "word_proxy_checks": {
+                "remaining_ads_within_budget": true,
+                "show_loss_within_budget": true
+              },
+              "elapsed_audio_checks": null,
+              "word_proxy_thresholds_met": true,
+              "no_whole_sponsor_read_missed": null,
+              "result": "not_verified"
+            }
+          ],
+          "execution_details": {
+            "benchmark_report_sha256": "d9efeeab7caa739712fb6e08e9aa9c43e2d8abb8ea7a876f1c9827f2774d835f",
+            "started_at_utc": "2026-10-15T01:06:49.953604+00:00",
+            "measured_wall_scope": "completed_pipeline",
+            "configuration": {
+              "detector": "whole-episode-boundaries-v6",
+              "inference_profile": "global-thinking6144-product-boundaries1024-v6",
+              "speech_model": "large-v3",
+              "speech_batch_size": 8,
+              "speech_beam_size": 5,
+              "speech_without_timestamps": true,
+              "classifier_model": "Qwen3.8-27B-Q4_K_M",
+              "cuda_only": true,
+              "context_tokens": 32768,
+              "max_output_tokens": 8192,
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "maximum_classifier_requests": 8,
+              "comparison_candidate": "S",
+              "global_reasoning_tokens": 6144,
+              "word_reasoning_tokens": 1024,
+              "word_boundary_inference": true,
+              "commercial_gap_split_seconds": 0.8,
+              "edge_padding_seconds": 0
+            },
+            "configuration_sha256": "323d89afc940d2cd9c93ba28ce2d804bd3ee5c5ba94d3e197df0720ca5bc3c76",
+            "model_sha256": {
+              "Qwen3.8-27B-Q4_K_M.gguf": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+              "large-v3-model.bin": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1"
+            },
+            "source_sha256": {
+              "scripts/benchmark_episode.py": "05012f4a0e5fe1cc0df30c63ca00d990c4950fc8a5861e76331c846dbcb11bf2",
+              "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0",
+              "castwell/fast_review.py": "7b2b043ab51dec5b062aad5bcc9cd3c016984b4ca7ef97831d6371f923e3fc98",
+              "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+              "castwell/episode_omissions.py": "736ddc631b198a9705849bcf706bfaa9e1f379d3b907fe79ba25e49e6cb4eef3",
+              "castwell/processing.py": "17a1172b1d7cfcd6f408dac8c99caee0197d9eec5f41f1123ccf1faa6be631af",
+              "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+              "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+              "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+              "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+              "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+              "castwell/ad_scope.py": "5fdf59fc7c71686f2e746d09f3fe7a72a6ddf953eb7557da2ea08168a42e376c",
+              "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c"
+            },
+            "private_adapter_sha256": {
+              "candidate_adapter.py": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter.py": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "run_one.py": "2016e908de1f3a0e4bb44d1b393dbfffa6b4b9fa389122607d6aed387d2d4553"
+            },
+            "reference_metadata": {
+              "reference_sha256": "7deebe746d7b307b57c1b323aae6aa4a7053750f4e49f67ba6a87aad2908c1d2",
+              "reference_transcript_sha256": "a485e82337c00d575abc856948c70cc35ea576c37c85ddd00c64903285b93d1f",
+              "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+              "reference_format": "full-episode-word-ranges",
+              "removal_scope": "sponsor-product-reads-only-v1",
+              "consumed_development": true,
+              "acceptance_eligible": false,
+              "human_listening_verified_declaration": false,
+              "payment_verified_declaration": false
+            },
+            "phases": {
+              "adapter_setup": {
+                "seconds": 0.07336039999790955,
+                "complete": true
+              },
+              "episode_preparation": {
+                "seconds": 9.441554600001837,
+                "complete": true
+              },
+              "model_prepare": {
+                "seconds": 0.004548400000203401,
+                "complete": true
+              },
+              "transcription": {
+                "seconds": 73.19958849999966,
+                "complete": true
+              },
+              "detection": {
+                "seconds": 206.5636441999959,
+                "complete": true
+              },
+              "render": {
+                "seconds": 32.71812599999976,
+                "complete": true
+              },
+              "cleanup_excluded": {
+                "seconds": 1.2828061999971396,
+                "complete": true
+              }
+            },
+            "runtime_evidence": {
+              "models_cold_at_start": true,
+              "initial_whisper_cache_entries": 0,
+              "initial_vad_cache_entries": 0,
+              "transcript_cache_hits": 0,
+              "prediction_cache_hits": 0,
+              "asset_downloads": 0,
+              "request_telemetry_complete": true,
+              "cuda_only_verified": true,
+              "speech_cuda_verified": true,
+              "classifier_cuda_verified": true,
+              "native_token_preflights": 2,
+              "python_version": "3.12.10",
+              "package_versions": {
+                "faster-whisper": "1.2.1",
+                "ctranslate2": "4.8.2",
+                "onnxruntime-gpu": "1.23.2",
+                "requests": "2.34.2"
+              },
+              "adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "matched_adapter_sha256": "253f185c58118a401d95af69d9a0b3bf1e94ba7a921e9ff592e6a0b88952f646",
+              "historical_adapter_sha256": "2b199bb33ca687e7f94622c8db4ce474e9bc28f67c429575eb732b283bef6774",
+              "skipped_word_boundary_inference": false,
+              "experiment_does_not_change_application_defaults": true,
+              "actual_whisper_device": "cuda",
+              "actual_whisper_compute_type": "float16",
+              "vad_provider": "CUDAExecutionProvider",
+              "vad_cpu_fallback_disabled": "1",
+              "speech_model_loads_in_run": 1,
+              "speech_cache_released": true,
+              "classifier_gpu_layers": 66,
+              "classifier_total_layers": 66,
+              "classifier_start_seconds": 5.958356400005869,
+              "source_unchanged_during_run": true
+            },
+            "requests": {
+              "summary": {
+                "requests": 2,
+                "failures": 0,
+                "cache_hits": 0,
+                "paid_requests": 0,
+                "request_wall_seconds_sum": 200.36399569999776,
+                "token_usage_complete": true,
+                "known_input_tokens": 30448,
+                "known_output_tokens": 7299
+              },
+              "observations": [
+                {
+                  "elapsed_seconds": 169.6056038999959,
+                  "succeeded": true,
+                  "input_tokens": 22581,
+                  "output_tokens": 6257,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "global"
+                },
+                {
+                  "elapsed_seconds": 30.758391800001846,
+                  "succeeded": true,
+                  "input_tokens": 7867,
+                  "output_tokens": 1042,
+                  "cached": false,
+                  "paid": false,
+                  "stage": "boundary"
+                }
+              ]
+            },
+            "original_source_unchanged": true,
+            "existing_user_library_modified": false,
+            "episode_preparation_included": true,
+            "preflight_hash_and_probe_seconds_excluded": 14.367712400002347,
+            "output_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+            "render_result": {
+              "duration": 4071.830612,
+              "removed_seconds": 723.1799999999985
+            },
+            "gpu_observations": {
+              "private_telemetry_sha256": "7a9ae4e99b229778ff65b885527eab5ca795c8ab37733ab9a721a022c8e9d53f",
+              "sample_period_seconds": 15,
+              "sample_count": 24,
+              "isolated_gpu_timing": false,
+              "concurrent_desktop_activity_present": true,
+              "first_observed_sample": {
+                "utc": "2026-10-15T01:06:35.585134+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 1222,
+                "utilization_percent": 0,
+                "temperature_celsius": 55,
+                "sm_clock_mhz": 210
+              },
+              "last_observed_sample": {
+                "utc": "2026-10-15T01:12:13.572057+00:00",
+                "gpu": "NVIDIA GeForce RTX 3090 Ti",
+                "driver_version": "610.88",
+                "total_memory_mib": 24564,
+                "used_memory_mib": 1474,
+                "utilization_percent": 0,
+                "temperature_celsius": 58,
+                "sm_clock_mhz": 210
+              },
+              "peak_observed_memory_mib": 19381,
+              "sampling_scope": "Before, during and after the pipeline; device-level measurements cannot attribute utilization to an individual process."
+            },
+            "actual_global_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 8192,
+              "reasoning_budget_tokens": 6144,
+              "reasoning_format": "deepseek"
+            },
+            "actual_word_inference_settings": {
+              "temperature": 0.6,
+              "top_p": 0.95,
+              "top_k": 20,
+              "min_p": 0,
+              "repeat_penalty": 1,
+              "seed": 42,
+              "max_tokens": 2048,
+              "reasoning_budget_tokens": 1024,
+              "reasoning_format": "deepseek"
+            },
+            "rendered_reference_word_counts": {
+              "commercial": {
+                "word_entries": 2098,
+                "word_seconds": 626.0599999999985,
+                "word_seconds_selected": 622.9299999999976,
+                "word_seconds_unselected": 3.130000000000905,
+                "word_entries_any_selected": 2098,
+                "word_entries_fully_selected": 2083,
+                "word_entries_not_fully_selected": 15,
+                "zero_duration_word_entries": 26,
+                "zero_duration_points_selected": 26
+              },
+              "protected": {
+                "word_entries": 10921,
+                "word_seconds": 3380.270000000001,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 3380.270000000001,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 10921,
+                "zero_duration_word_entries": 167,
+                "zero_duration_points_selected": 0
+              },
+              "ambiguous": {
+                "word_entries": 0,
+                "word_seconds": 0.0,
+                "word_seconds_selected": 0.0,
+                "word_seconds_unselected": 0.0,
+                "word_entries_any_selected": 0,
+                "word_entries_fully_selected": 0,
+                "word_entries_not_fully_selected": 0,
+                "zero_duration_word_entries": 0,
+                "zero_duration_points_selected": 0
+              }
+            },
+            "concurrent_work_note": "First GPU observation is recorded explicitly. Normal desktop activity remains, so this is not an isolated-machine measurement."
+          }
+        }
+      ],
+      "application_defaults_changed": false,
+      "limitations": [
+        "Elapsed-audio errors and summed ASR word-duration proxies are distinct and are never substituted.",
+        "Unknown or unlistened coverage cannot establish a verified pass; consumed references remain development evidence.",
+        "A verified pass is conditional on supplied metadata and reviewed reference declarations, not an independent attestation.",
+        "A whole missed sponsor read fails regardless of its duration or the remaining-ad budget.",
+        "Show-loss columns are seconds per episode; ad and processing budgets scale by full source audio duration.",
+        "Cached or partial timings cannot pass the fresh complete cold CUDA speed gate.",
+        "Incomplete request telemetry or unknown/nonzero asset downloads cannot pass the speed gate; proposal scores do not describe an approved-subset export.",
+        "No inferred silence labels, reference expansion, model calls, application approvals or cut edits occur."
+      ],
+      "offline_comparison_inference_requests": 0,
+      "matched_execution_checks": {
+        "identical_model_asset_hashes": true,
+        "identical_inference_source_hashes": true,
+        "identical_private_adapter_hashes": true,
+        "identical_fixed_asr_settings": true,
+        "runtime_sources_unchanged": true
+      },
+      "timing_conditions": "H/S run in order after background graphics closed; compare recorded baselines and retain normal desktop/nonisolated caveat."
+    }
+  },
+  "timing_contract": {
+    "fresh_transcription_required": true,
+    "fresh_predictions_required": true,
+    "waveform_database_analysis_persistence_and_preview_rendering_included": true,
+    "cold_model_start_included": true,
+    "initial_audio_and_model_downloads_excluded": true,
+    "preflight_hashing_and_probing_excluded": true,
+    "post_output_cleanup_excluded": true,
+    "os_file_caches_flushed": false,
+    "independent_installed_desktop_acceptance_test": false
+  },
+  "application_defaults_changed": false,
+  "final_show_loss_target_selected": false,
+  "acceptance_eligible": false,
+  "independent_listening_verified": false,
+  "payment_status_verified": false,
+  "consumed_development_recordings": true,
+  "fresh_holdouts_used": false,
+  "production_accuracy_passed": false,
+  "limits": [
+    "Reported accuracy is a provisional ASR reference word-duration proxy. Elapsed audible ad remainder and show loss remain unknown.",
+    "Words and their zero-duration points do not classify interword gaps, uncovered audio, music, silence or missing speech.",
+    "No complete listened sponsor-read inventory is supplied; unknown whole-read coverage cannot become a verified pass.",
+    "Protected parody controls preserve existing reference roles and word IDs; they do not independently verify payment or the actual performance.",
+    "All source references were consumed for development, and no independent human listening is claimed.",
+    "Failed F remains in the comparison with missing scores and no complete speed result; its short partial attempt is not a faster successful variant.",
+    "Same-source/reference cohorts are compared separately; recordings and annotation formats are not pooled into a single ranking.",
+    "Only five planned full attempts were permitted, with no repeat-until-pass selection. Single runs cannot establish timing distributions.",
+    "The strict application default remains unchanged. Exploratory tolerance columns do not approve cuts or select a new product target."
+  ],
+  "background_transition_evidence_sha256": "ccdf287aed28885968156da79f4059bd597b2a033fa4a4212cc4140a2cfdb8aa",
+  "july_prior_audit_input_equivalence": {
+    "schema_version": 1,
+    "comparison": "Current July S/H versus historical July v6",
+    "canonical_hash_encoding": "JSON sorted keys, compact separators, finite numeric values; ordered original word tuples retain exact text and times before hashing",
+    "identities": {
+      "july-v6": {
+        "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+        "source_word_count": 12110,
+        "cut_count": 15,
+        "ordered_cut_intervals_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "normalized_cut_union_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "source_words_text_and_times_sha256": "aac5e1b6c1de6a3639b5048a90f55e1e70de22f3a56aaf003a5c2e21ff88a56a",
+        "saved_word_decisions_sha256": "c59fb15b7626e72f37ee2a7eaf1a26bb908f2dab2e98b1e6080d0308f9d910fb",
+        "cut_boundary_ownership_sha256": "5ca93f5fe5b424a8f44f389203345c2194389a8cc6809a91c74aeed1f1ddae23",
+        "preview_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+        "cut_file_sha256": "0206b2ba13b7e9bbc4582c290128c5de1b0f4715d0d1ef21caaba0f085579343",
+        "transcript_file_sha256": "e7c61f29e218d2a001c18b294d8c8117a70164f561604900578273ab51986a30",
+        "decisions_file_sha256": "1f300d5c6fb12b2dbf7c18cfd335f63466b8430bbca616e5b61f80cb4dd66651"
+      },
+      "S-july": {
+        "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+        "source_word_count": 12110,
+        "cut_count": 15,
+        "ordered_cut_intervals_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "normalized_cut_union_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "source_words_text_and_times_sha256": "aac5e1b6c1de6a3639b5048a90f55e1e70de22f3a56aaf003a5c2e21ff88a56a",
+        "saved_word_decisions_sha256": "c59fb15b7626e72f37ee2a7eaf1a26bb908f2dab2e98b1e6080d0308f9d910fb",
+        "cut_boundary_ownership_sha256": "5ca93f5fe5b424a8f44f389203345c2194389a8cc6809a91c74aeed1f1ddae23",
+        "preview_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+        "cut_file_sha256": "0206b2ba13b7e9bbc4582c290128c5de1b0f4715d0d1ef21caaba0f085579343",
+        "transcript_file_sha256": "e110c9f895b1ad063b8b2b226076b9632ebab8b41fc2ca4d1659bbabfb96cc95",
+        "decisions_file_sha256": "7535308bacf147fd495e61553d9fc9eee5ffa848edc43fe1d8e25fcc09fbf758"
+      },
+      "H-july": {
+        "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+        "source_word_count": 12110,
+        "cut_count": 15,
+        "ordered_cut_intervals_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "normalized_cut_union_sha256": "2e7ec4118e9bdf0c9b23cbd212a4e2bf661ff4f94bb297806647e90454020eb4",
+        "source_words_text_and_times_sha256": "aac5e1b6c1de6a3639b5048a90f55e1e70de22f3a56aaf003a5c2e21ff88a56a",
+        "saved_word_decisions_sha256": "c59fb15b7626e72f37ee2a7eaf1a26bb908f2dab2e98b1e6080d0308f9d910fb",
+        "cut_boundary_ownership_sha256": "5ca93f5fe5b424a8f44f389203345c2194389a8cc6809a91c74aeed1f1ddae23",
+        "preview_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+        "cut_file_sha256": "4483b216a1d0f8c25331fe0780069942f35d6638ce0c360d71eafa9e5d3d6583",
+        "transcript_file_sha256": "adec3b5a79161a266cebba84365b52229b7aad0410b34a0b030c59c641021ce0",
+        "decisions_file_sha256": "7f016d36662e0af4ad554b8a35cd65970e95941b05c624e2b81517f6cca15f48"
+      }
+    },
+    "equivalence_checks": {
+      "source_audio_sha256": true,
+      "source_word_count": true,
+      "cut_count": true,
+      "ordered_cut_intervals_sha256": true,
+      "normalized_cut_union_sha256": true,
+      "source_words_text_and_times_sha256": true,
+      "saved_word_decisions_sha256": true,
+      "cut_boundary_ownership_sha256": true,
+      "preview_sha256": true
+    },
+    "prior_word_audit_relevant_inputs_equivalent": true,
+    "new_independent_listening_performed": false,
+    "new_audio_decode_performed": false
+  },
+  "july_prior_audit_input_equivalence_sha256": "fdccdc60124692c20382b8a57d38ab6bcfa066682ff0896c6ef7616c0336b550",
+  "august_audit_input_equivalence": {
+    "schema_version": 1,
+    "comparison": "Current August H versus S",
+    "canonical_hash_encoding": "JSON sorted keys, compact separators, finite numeric values; ordered original word tuples retain exact text and times before hashing",
+    "identities": {
+      "H-august": {
+        "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+        "source_word_count": 12898,
+        "cut_count": 15,
+        "ordered_cut_intervals_sha256": "bdddeb3649b7cca0387e02542b2ab25d10cb0fb5425587820f36bdb3b39c9536",
+        "normalized_cut_union_sha256": "bdddeb3649b7cca0387e02542b2ab25d10cb0fb5425587820f36bdb3b39c9536",
+        "source_words_text_and_times_sha256": "76c9b095935b1ef52f02147f77a0e1bde1c9b4eba12754c9f8b1cf3491f3de84",
+        "saved_word_decisions_sha256": "dfb2e98028a69e1a9831f24313c0f65d6e5f0e1279d833e90ed0815337666a09",
+        "cut_boundary_ownership_sha256": "724cf503a5e59de8702b9bc1f2bf3b5cd0deb5f4225cfecdb3e2da5162fd22b9",
+        "preview_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+        "cut_file_sha256": "52ce1ba4b6409859c4f543d6c4b279cbe5204b93578adabcd5a29dcbf9c07f2a",
+        "transcript_file_sha256": "dd08f487b478f647985950cf9edbba36325acb1eefef0bfbd3eeb47512060578",
+        "decisions_file_sha256": "37f6911e2b13228cc1c7cee9ecdf7224c1ec81bd2260874560d565a4a027f975"
+      },
+      "S-august": {
+        "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+        "source_word_count": 12898,
+        "cut_count": 15,
+        "ordered_cut_intervals_sha256": "bdddeb3649b7cca0387e02542b2ab25d10cb0fb5425587820f36bdb3b39c9536",
+        "normalized_cut_union_sha256": "bdddeb3649b7cca0387e02542b2ab25d10cb0fb5425587820f36bdb3b39c9536",
+        "source_words_text_and_times_sha256": "76c9b095935b1ef52f02147f77a0e1bde1c9b4eba12754c9f8b1cf3491f3de84",
+        "saved_word_decisions_sha256": "dfb2e98028a69e1a9831f24313c0f65d6e5f0e1279d833e90ed0815337666a09",
+        "cut_boundary_ownership_sha256": "724cf503a5e59de8702b9bc1f2bf3b5cd0deb5f4225cfecdb3e2da5162fd22b9",
+        "preview_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+        "cut_file_sha256": "03b034ce11b6ab0736f2836e100f531d891e0a7aaef2e2bd6e50ed021864f8cb",
+        "transcript_file_sha256": "7608fec511070811ac88fbe8be6bcf8d8eb77f772e2f0a1bd06916619e391486",
+        "decisions_file_sha256": "26d6cceb8100958be14f51836457b9aba142e124e31db45fa4fb24be7d0eda41"
+      }
+    },
+    "equivalence_checks": {
+      "source_audio_sha256": true,
+      "source_word_count": true,
+      "cut_count": true,
+      "ordered_cut_intervals_sha256": true,
+      "normalized_cut_union_sha256": true,
+      "source_words_text_and_times_sha256": true,
+      "saved_word_decisions_sha256": true,
+      "cut_boundary_ownership_sha256": true,
+      "preview_sha256": true
+    },
+    "source_word_audit_relevant_inputs_equivalent": true,
+    "new_independent_listening_performed": false,
+    "new_audio_decode_performed_by_this_comparison": false
+  },
+  "august_audit_input_equivalence_sha256": "e27a6731fcf547b46cafd05c5b6c63f9be3c24601ad9fe663de67038434f5d18",
+  "post_timing_output_audits": {
+    "aggregate_evidence_sha256": "4580b938563424d1b808138dd574859c0fd476f532b72ac2f1eb11b4db463a1a",
+    "results": [
+      {
+        "run_id": "S-july",
+        "audit_sha256": "769aeae43329f3f265e6e8dd8136fb8e6fc9695bf476ecbfbf6bc413fde95289",
+        "source_word_count": 12110,
+        "cut_count": 15,
+        "endpoint_count": 30,
+        "invalid_cut_boundary_count": 0,
+        "positive_duration_commercial_words": 1955,
+        "commercial_word_seconds": 632.340000000005,
+        "commercial_word_seconds_outside_cuts": 0.0,
+        "commercial_word_entries_not_fully_selected": 0,
+        "noncommercial_source_word_intersections": 0,
+        "noncommercial_source_word_seconds_selected": 0,
+        "zero_duration_commercial_points_outside_cuts": 0,
+        "retained_gaps_between_commercial_words": 9,
+        "retained_gap_seconds": 12.72999999999837,
+        "source_duration_seconds": 4513.123265,
+        "cut_union_seconds": 698.3100000000011,
+        "intended_retained_duration_seconds": 3814.813264999999,
+        "overlapping_cut_seconds_before_union": 0.0,
+        "source_word_consistency_passed": true,
+        "unresolved_source_word_count": 0,
+        "declared_timeline_match": true,
+        "full_decoded_source_timeline_match": false,
+        "full_decoded_source_delta_seconds": -0.026122448978185275,
+        "source_decode_origin": "prior_exact_hash_matched_july_v3",
+        "output_decode_origin": "prior_exact_hash_matched_july_v3",
+        "output_decoded_seconds": 3814.8132653061225,
+        "output_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+        "audio_decode": {
+          "source": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4513.123265,
+            "decoded_sample_frames": 199029888,
+            "decoded_seconds": 4513.149387755102
+          },
+          "preview": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 3814.813265,
+            "decoded_sample_frames": 168233265,
+            "decoded_seconds": 3814.8132653061225
+          }
+        },
+        "evidence_sha256": {
+          "source_report_sha256": "ab5e13583799a2209fce73bc1ec9d987ff5e6e2ba83afe3e5f98c9e3cd4f9c8b",
+          "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+          "source_transcript_sha256": "e110c9f895b1ad063b8b2b226076b9632ebab8b41fc2ca4d1659bbabfb96cc95",
+          "saved_decisions_sha256": "7535308bacf147fd495e61553d9fc9eee5ffa848edc43fe1d8e25fcc09fbf758",
+          "saved_cuts_sha256": "0206b2ba13b7e9bbc4582c290128c5de1b0f4715d0d1ef21caaba0f085579343",
+          "audit_script_sha256": "eb8f371a8c442b53aef14bdf60bb4d7ca32936d32629480cc7c0eb403a820e41",
+          "orchestrator_sha256": "382e8ec8609515222231d1138cb6d5fa571f77f99edd6075bf7420a45e9030a2",
+          "ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+          "ffprobe_sha256": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07",
+          "prior_decode_report_sha256": "a8eb694e35ef9f298c4931002a702aaf5e21bfe8d37e4297790c0a12ba29f7fb"
+        }
+      },
+      {
+        "run_id": "H-july",
+        "audit_sha256": "de73819e5b6fa2c2b639dd77b6e70ee4b92ed92139506f22746c60a5e47ec29e",
+        "source_word_count": 12110,
+        "cut_count": 15,
+        "endpoint_count": 30,
+        "invalid_cut_boundary_count": 0,
+        "positive_duration_commercial_words": 1955,
+        "commercial_word_seconds": 632.340000000005,
+        "commercial_word_seconds_outside_cuts": 0.0,
+        "commercial_word_entries_not_fully_selected": 0,
+        "noncommercial_source_word_intersections": 0,
+        "noncommercial_source_word_seconds_selected": 0,
+        "zero_duration_commercial_points_outside_cuts": 0,
+        "retained_gaps_between_commercial_words": 9,
+        "retained_gap_seconds": 12.72999999999837,
+        "source_duration_seconds": 4513.123265,
+        "cut_union_seconds": 698.3100000000011,
+        "intended_retained_duration_seconds": 3814.813264999999,
+        "overlapping_cut_seconds_before_union": 0.0,
+        "source_word_consistency_passed": true,
+        "unresolved_source_word_count": 0,
+        "declared_timeline_match": true,
+        "full_decoded_source_timeline_match": false,
+        "full_decoded_source_delta_seconds": -0.026122448978185275,
+        "source_decode_origin": "prior_exact_hash_matched_july_v3",
+        "output_decode_origin": "prior_exact_hash_matched_july_v3",
+        "output_decoded_seconds": 3814.8132653061225,
+        "output_sha256": "cfbca4097d2c3c6dea101ab44fb64b49aee7c19fd20df4e1a04acd80d719930e",
+        "audio_decode": {
+          "source": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4513.123265,
+            "decoded_sample_frames": 199029888,
+            "decoded_seconds": 4513.149387755102
+          },
+          "preview": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 3814.813265,
+            "decoded_sample_frames": 168233265,
+            "decoded_seconds": 3814.8132653061225
+          }
+        },
+        "evidence_sha256": {
+          "source_report_sha256": "6e62af14616c580540631d7aa0fea30e3d87dd328ad4003f68e55a2588916240",
+          "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+          "source_transcript_sha256": "adec3b5a79161a266cebba84365b52229b7aad0410b34a0b030c59c641021ce0",
+          "saved_decisions_sha256": "7f016d36662e0af4ad554b8a35cd65970e95941b05c624e2b81517f6cca15f48",
+          "saved_cuts_sha256": "4483b216a1d0f8c25331fe0780069942f35d6638ce0c360d71eafa9e5d3d6583",
+          "audit_script_sha256": "eb8f371a8c442b53aef14bdf60bb4d7ca32936d32629480cc7c0eb403a820e41",
+          "orchestrator_sha256": "382e8ec8609515222231d1138cb6d5fa571f77f99edd6075bf7420a45e9030a2",
+          "ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+          "ffprobe_sha256": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07",
+          "prior_decode_report_sha256": "a8eb694e35ef9f298c4931002a702aaf5e21bfe8d37e4297790c0a12ba29f7fb"
+        }
+      },
+      {
+        "run_id": "H-august",
+        "audit_sha256": "8645dc5c2f721609cbd911a482b017ce5099f3b280ea55f4021df5a6e5ea175b",
+        "source_word_count": 12898,
+        "cut_count": 15,
+        "endpoint_count": 30,
+        "invalid_cut_boundary_count": 0,
+        "positive_duration_commercial_words": 2092,
+        "commercial_word_seconds": 654.1599999999971,
+        "commercial_word_seconds_outside_cuts": 0.0,
+        "commercial_word_entries_not_fully_selected": 0,
+        "noncommercial_source_word_intersections": 0,
+        "noncommercial_source_word_seconds_selected": 0,
+        "zero_duration_commercial_points_outside_cuts": 0,
+        "retained_gaps_between_commercial_words": 11,
+        "retained_gap_seconds": 12.220000000000084,
+        "source_duration_seconds": 4795.010612,
+        "cut_union_seconds": 723.1799999999987,
+        "intended_retained_duration_seconds": 4071.8306120000016,
+        "overlapping_cut_seconds_before_union": 0.0,
+        "source_word_consistency_passed": true,
+        "unresolved_source_word_count": 0,
+        "declared_timeline_match": true,
+        "full_decoded_source_timeline_match": false,
+        "full_decoded_source_delta_seconds": -0.02612244898091376,
+        "source_decode_origin": "fresh_post_timing_full_decode",
+        "output_decode_origin": "fresh_post_timing_full_decode",
+        "output_decoded_seconds": 4071.830612244898,
+        "output_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+        "audio_decode": {
+          "source": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4795.010612,
+            "decoded_sample_frames": 211461120,
+            "decoded_seconds": 4795.036734693877
+          },
+          "preview": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4071.830612,
+            "decoded_sample_frames": 179567730,
+            "decoded_seconds": 4071.830612244898
+          }
+        },
+        "evidence_sha256": {
+          "source_report_sha256": "85070c054929cbcbe8bfefa4d21bb9a279bdc143ca0d9ec3e80473bacd271140",
+          "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+          "source_transcript_sha256": "dd08f487b478f647985950cf9edbba36325acb1eefef0bfbd3eeb47512060578",
+          "saved_decisions_sha256": "37f6911e2b13228cc1c7cee9ecdf7224c1ec81bd2260874560d565a4a027f975",
+          "saved_cuts_sha256": "52ce1ba4b6409859c4f543d6c4b279cbe5204b93578adabcd5a29dcbf9c07f2a",
+          "audit_script_sha256": "eb8f371a8c442b53aef14bdf60bb4d7ca32936d32629480cc7c0eb403a820e41",
+          "orchestrator_sha256": "382e8ec8609515222231d1138cb6d5fa571f77f99edd6075bf7420a45e9030a2",
+          "ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+          "ffprobe_sha256": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07",
+          "prior_decode_report_sha256": "a8eb694e35ef9f298c4931002a702aaf5e21bfe8d37e4297790c0a12ba29f7fb"
+        }
+      },
+      {
+        "run_id": "S-august",
+        "audit_sha256": "fc1a0bcb1977f09dcfbf369ba83be86735c5a3e684386f78b36573507f855de5",
+        "source_word_count": 12898,
+        "cut_count": 15,
+        "endpoint_count": 30,
+        "invalid_cut_boundary_count": 0,
+        "positive_duration_commercial_words": 2092,
+        "commercial_word_seconds": 654.1599999999971,
+        "commercial_word_seconds_outside_cuts": 0.0,
+        "commercial_word_entries_not_fully_selected": 0,
+        "noncommercial_source_word_intersections": 0,
+        "noncommercial_source_word_seconds_selected": 0,
+        "zero_duration_commercial_points_outside_cuts": 0,
+        "retained_gaps_between_commercial_words": 11,
+        "retained_gap_seconds": 12.220000000000084,
+        "source_duration_seconds": 4795.010612,
+        "cut_union_seconds": 723.1799999999987,
+        "intended_retained_duration_seconds": 4071.8306120000016,
+        "overlapping_cut_seconds_before_union": 0.0,
+        "source_word_consistency_passed": true,
+        "unresolved_source_word_count": 0,
+        "declared_timeline_match": true,
+        "full_decoded_source_timeline_match": false,
+        "full_decoded_source_delta_seconds": -0.02612244898091376,
+        "source_decode_origin": "fresh_post_timing_full_decode",
+        "output_decode_origin": "fresh_post_timing_full_decode",
+        "output_decoded_seconds": 4071.830612244898,
+        "output_sha256": "05641d3b9b7f3ae100d69a4eaf8b9ea7cf185f7edf651b8e6b08a7619ff92e2f",
+        "audio_decode": {
+          "source": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4795.010612,
+            "decoded_sample_frames": 211461120,
+            "decoded_seconds": 4795.036734693877
+          },
+          "preview": {
+            "full_decode_passed": true,
+            "codec": "mp3",
+            "sample_rate": 44100,
+            "channels": 2,
+            "container_duration_seconds": 4071.830612,
+            "decoded_sample_frames": 179567730,
+            "decoded_seconds": 4071.830612244898
+          }
+        },
+        "evidence_sha256": {
+          "source_report_sha256": "d9efeeab7caa739712fb6e08e9aa9c43e2d8abb8ea7a876f1c9827f2774d835f",
+          "source_audio_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+          "source_transcript_sha256": "7608fec511070811ac88fbe8be6bcf8d8eb77f772e2f0a1bd06916619e391486",
+          "saved_decisions_sha256": "26d6cceb8100958be14f51836457b9aba142e124e31db45fa4fb24be7d0eda41",
+          "saved_cuts_sha256": "03b034ce11b6ab0736f2836e100f531d891e0a7aaef2e2bd6e50ed021864f8cb",
+          "audit_script_sha256": "eb8f371a8c442b53aef14bdf60bb4d7ca32936d32629480cc7c0eb403a820e41",
+          "orchestrator_sha256": "382e8ec8609515222231d1138cb6d5fa571f77f99edd6075bf7420a45e9030a2",
+          "ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+          "ffprobe_sha256": "b49ccc7c6547b141ad5a2f6ec69cc04323d7133d7704d70b331b904c63eecb07",
+          "prior_decode_report_sha256": "a8eb694e35ef9f298c4931002a702aaf5e21bfe8d37e4297790c0a12ba29f7fb"
+        }
+      }
+    ],
+    "included_in_processing_time": false,
+    "inference_requests": 0,
+    "independent_listening_verified": false,
+    "acceptance_eligible": false,
+    "interpretation": "Source-word consistency checks cuts against saved model labels, not independent reference accuracy. It does not replace the commercial reference word-duration remainder.",
+    "retained_gap_scope": "Only retained gaps between commercial-labeled words are counted; this is not a complete episode-wide inventory of unknown audio.",
+    "decoded_timeline_limit": "Outputs match the declared edit timeline. Full decoded originals extend approximately 26.12 ms beyond declared duration; the audible significance is not established."
+  }
+}

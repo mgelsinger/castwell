@@ -16,7 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -95,7 +95,22 @@ jobs:
           print(f'Verified and staged {version} packages from the requested run')
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw 'Reused distribution validation failed' }
-      - name: Fetch verified native CUDA dependencies
+      - name: Verify source-build compiler prerequisites
+        if: ${{ inputs.verification_run_id == '' }}
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio discovery is required for source builds' }
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ($LASTEXITCODE -ne 0 -or -not $vs) { throw 'MSVC x64 build tools are required' }
+          $version = (Get-Content packaging/windows-pyav.lock.json | ConvertFrom-Json).msvc_tools_version
+          foreach ($name in @('cl.exe', 'lib.exe')) {
+            $tool = Join-Path $vs "VC/Tools/MSVC/$version/bin/Hostx64/x64/$name"
+            if (-not (Test-Path -LiteralPath $tool)) { throw "The pinned MSVC $version toolset is required" }
+          }
+          "VSINSTALLDIR=$vs" >> $env:GITHUB_ENV
+          # CMake, Ninja and GCC come from the hash-pinned private w64devkit.
+      - name: Fetch and build verified native CUDA dependencies
         if: ${{ inputs.verification_run_id == '' }}
         run: python scripts/fetch_windows_dependencies.py --output .local/windows-vendor-cuda
       - name: Prepare compiler and release inputs
@@ -119,7 +134,9 @@ jobs:
         shell: pwsh
         run: |
           $vendor = Get-Content .local/windows-vendor-cuda/vendor-manifest.json | ConvertFrom-Json
-          python scripts/build_windows.py --ffmpeg-dir $vendor.ffmpeg_dir --llama-dir $vendor.llama_dir --cuda-dir $vendor.cuda_dir --notices-dir $vendor.notices_dir --inno-path .local/windows-tools/inno/ISCC.exe --skip-runtime-check
+          # CI has no corresponding-source archive input, so its packages remain
+          # explicit incomplete candidates until that archive is independently bound.
+          python scripts/build_windows.py --ffmpeg-dir $vendor.ffmpeg_dir --llama-dir $vendor.llama_dir --cuda-dir $vendor.cuda_dir --vc-runtime-dir $vendor.vc_runtime_dir --pyav-build-manifest $vendor.pyav_build_manifest --notices-dir $vendor.notices_dir --inno-path .local/windows-tools/inno/ISCC.exe --skip-runtime-check
           if ($LASTEXITCODE -ne 0) { throw 'Windows distribution build failed' }
       - name: Release temporary build storage before distribution checks
         if: ${{ inputs.verification_run_id == '' }}

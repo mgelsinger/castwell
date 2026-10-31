@@ -7,6 +7,8 @@ Cancelling a job therefore never throws away its original audio or transcript.
 from __future__ import annotations
 
 from concurrent.futures import Future
+import hashlib
+import importlib
 import json
 import math
 import os
@@ -22,6 +24,130 @@ from .feeds import download_media
 
 PROCESS_DEFAULTS = {'remove_ads': None, 'detector': None, 'redetect': False,
                     'retranscribe': False, 'download_only': False}
+
+
+def _fast_audit_document(audits, transcript, cuts, profile):
+    """Keep complete typed evidence tied to this exact analysis, without keys."""
+    from .fast_review import INFERENCE_PROFILE
+    from .episode_boundaries import (POLICY_VERSION as BOUNDARY_VERSION, GLOBAL_LABELS, WORD_LABELS,
+                                     build_boundary_plan, _render_request)
+    from .episode_omissions import omission_guard
+    fields = {'policy_version', 'removal_scope', 'inference_profile', 'global_decisions',
+              'boundary_audit', 'word_decisions', 'unresolved_word_ids', 'source_word_count',
+              'requires_review', 'automatic_acceptance_validated', 'sweep_requests', 'sweep_votes',
+              'omission_guard'}
+    if len(audits) != 1 or not isinstance(audits[0], dict) or set(audits[0]) != fields:
+        raise processing.ProcessingError('The fast detector did not return one complete review audit; existing decisions are retained.')
+    audit = audits[0]
+    if (audit['policy_version'] != profile['policy_version'] or audit['removal_scope'] != profile['removal_scope']
+            or audit['inference_profile'] != INFERENCE_PROFILE or audit['requires_review'] is not True
+            or audit['automatic_acceptance_validated'] is not False):
+        raise processing.ProcessingError('The fast detector review audit does not match the queued policy.')
+    units = processing._classification_transcript(transcript)['segments']
+    original_words = [word for segment in transcript['segments'] for word in segment.get('words', [])]
+    source_words = [word for unit in units for word in unit.get('words', [])]
+    count = len(original_words)
+    if source_words != original_words:
+        raise processing.ProcessingError('The fast detector review audit cannot be mapped to every original source word.')
+    if type(audit['source_word_count']) is not int or audit['source_word_count'] != count:
+        raise processing.ProcessingError('The fast detector review audit changed source word coverage.')
+    plan = build_boundary_plan(units, audit['global_decisions'])
+    guard = audit['omission_guard']
+    if (not isinstance(guard, dict) or guard != omission_guard(units, audit['global_decisions'])
+            or guard.get('guard_requires_review') is not False):
+        raise processing.ProcessingError('The fast detector omission guard requires review; existing decisions are retained.')
+    requests, sweep_votes = audit['sweep_requests'], audit['sweep_votes']
+    core_ownership, source_counts = [], {i: 0 for i in range(len(units))}
+    if not isinstance(requests, list) or not isinstance(sweep_votes, dict) or set(sweep_votes) != set(source_counts):
+        raise processing.ProcessingError('The fast detector sweep audit has incomplete source ownership.')
+    for request in requests:
+        if not isinstance(request, dict) or set(request) != {'core_ids', 'source_ids'}:
+            raise processing.ProcessingError('The fast detector sweep audit has invalid request fields.')
+        for name in ('core_ids', 'source_ids'):
+            identifiers = request[name]
+            if (not isinstance(identifiers, list) or not identifiers
+                    or any(type(i) is not int or i not in source_counts for i in identifiers)
+                    or identifiers != list(range(identifiers[0], identifiers[-1] + 1))):
+                raise processing.ProcessingError('The fast detector sweep audit has invalid source IDs.')
+        if not set(request['core_ids']) <= set(request['source_ids']):
+            raise processing.ProcessingError('The fast detector sweep audit omitted its own target core.')
+        core_ownership.extend(request['core_ids'])
+        for identifier in request['source_ids']:
+            source_counts[identifier] += 1
+    if core_ownership != list(range(len(units))):
+        raise processing.ProcessingError('The fast detector sweep audit omitted or duplicated a source core.')
+    for identifier, labels in sweep_votes.items():
+        if (type(identifier) is not int or not isinstance(labels, list) or not labels
+                or len(labels) != source_counts[identifier]
+                or any(not isinstance(label, str) or label not in GLOBAL_LABELS for label in labels)
+                or audit['global_decisions'][identifier] != (labels[0] if len(set(labels)) == 1 else 'uncertain')):
+            raise processing.ProcessingError('The fast detector global decisions disagree with its sweep votes.')
+    boundary = audit['boundary_audit']
+    boundary_fields = {'policy_version', 'source_word_count', 'target_word_ids', 'scene_blocks',
+                       'requests', 'word_votes', 'unresolved_word_ids'}
+    expected_scenes = [{key: value for key, value in block.items() if key != 'context_units'}
+                       for block in plan['scene_blocks']]
+    if (not isinstance(boundary, dict) or set(boundary) != boundary_fields
+            or boundary['policy_version'] != BOUNDARY_VERSION
+            or type(boundary['source_word_count']) is not int or boundary['source_word_count'] != count
+            or boundary['target_word_ids'] != plan['target_word_ids']
+            or boundary['scene_blocks'] != expected_scenes or not isinstance(boundary['requests'], list)):
+        raise processing.ProcessingError('The fast detector boundary audit changed required scene ownership.')
+    owned_scenes = []
+    for request in boundary['requests']:
+        if (not isinstance(request, dict) or set(request) != {'scene_ids', 'source_word_ids', 'request_sha256'}
+                or not isinstance(request['scene_ids'], list) or not request['scene_ids']
+                or any(type(i) is not int or not 0 <= i < len(plan['scene_blocks']) for i in request['scene_ids'])):
+            raise processing.ProcessingError('The fast detector boundary audit has invalid request ownership.')
+        expected_request = _render_request([plan['scene_blocks'][i] for i in request['scene_ids']], plan['words'])
+        expected_hash = hashlib.sha256(json.dumps(expected_request, sort_keys=True, separators=(',', ':'),
+                                                  allow_nan=False).encode()).hexdigest()
+        if (request['source_word_ids'] != expected_request['source_word_ids']
+                or request['request_sha256'] != expected_hash):
+            raise processing.ProcessingError('The fast detector boundary audit changed request source identity.')
+        owned_scenes.extend(request['scene_ids'])
+    if owned_scenes != list(range(len(plan['scene_blocks']))):
+        raise processing.ProcessingError('The fast detector boundary audit omitted or duplicated a scene.')
+    votes, decisions = boundary['word_votes'], audit['word_decisions']
+    if (not isinstance(votes, dict) or set(votes) != set(plan['target_word_ids'])
+            or any(type(i) is not int or not isinstance(labels, list) or len(labels) != 1
+                   or not isinstance(labels[0], str) or labels[0] not in WORD_LABELS for i, labels in votes.items())
+            or not isinstance(decisions, dict) or set(decisions) != set(range(count))
+            or any(type(i) is not int or not isinstance(label, str) or label not in WORD_LABELS
+                   for i, label in decisions.items())):
+        raise processing.ProcessingError('The fast detector review audit has incomplete source decisions.')
+    expected_decisions = {**plan['defaults'], **{i: labels[0] for i, labels in votes.items()}}
+    if decisions != expected_decisions:
+        raise processing.ProcessingError('The fast detector review audit contradicts its global or boundary decisions.')
+    expected_unresolved = [i for i, label in decisions.items() if label == 'uncertain']
+    unresolved = audit['unresolved_word_ids']
+    if (boundary['unresolved_word_ids'] != expected_unresolved or not isinstance(unresolved, list)
+            or any(type(i) is not int or i not in decisions for i in unresolved)
+            or unresolved != sorted(set(unresolved)) or not set(expected_unresolved) <= set(unresolved)
+            or any(decisions[i] != 'commercial' or original_words[i]['start'] != original_words[i]['end']
+                   for i in set(unresolved) - set(expected_unresolved))):
+        raise processing.ProcessingError('The fast detector review audit has invalid unresolved decisions.')
+
+    def fingerprint(value):
+        return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+    return {'schema_version': 1, 'analysis_policy': dict(profile), 'transcript_sha256': fingerprint(transcript),
+            'detected_cuts_sha256': fingerprint(cuts), 'duration': transcript['duration'], 'audit': audit,
+            'requires_manual_review': True, 'automatic_acceptance_validated': False}
+
+
+def _write_fast_audit(folder, document):
+    destination = Path(folder) / 'fast-analysis.json'
+    temporary = destination.with_name('.' + destination.name + '.' + uuid.uuid4().hex + '.part')
+    try:
+        with temporary.open('w', encoding='utf-8') as stream:
+            json.dump(document, stream, ensure_ascii=False, indent=2, allow_nan=False)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 class SerialWorker:
@@ -118,8 +244,12 @@ class Jobs:
                     supplied['remove_ads'] = episode.get('ad_mode', 'remove') == 'remove'
                 request = {'operation': operation, 'options': supplied,
                            'prior_status': episode['status'], 'prior_progress': episode['progress']}
-                request['approval_policy'] = self._approval_policy(
-                    self.settings_getter() if self.settings_getter else {})
+                selected_settings = self.settings_getter() if self.settings_getter else {}
+                request['approval_policy'] = self._approval_policy(selected_settings)
+                if operation == 'process' and not supplied['download_only']:
+                    request['transcription_policy'] = self._transcription_policy(selected_settings, self.model)
+                if operation == 'process' and supplied['remove_ads'] and not supplied['download_only']:
+                    request['detection_policy'] = self._detection_policy(selected_settings, supplied.get('detector'))
             self.library.update(episode_id, status='queued', error=None, progress='Waiting to process', pending_job=request)
             self.pending.add(episode_id)
             self._cancellations[episode_id] = threading.Event()
@@ -194,7 +324,97 @@ class Jobs:
                 or not isinstance(threshold, (int, float)) or not math.isfinite(threshold)
                 or not 0 <= threshold <= 1):
             raise ValueError('Invalid approval policy')
-        return {'review_only': review, 'auto_approve_threshold': float(threshold)}
+        return {'review_only': review or settings.get('ai_policy') == 'fast',
+                'auto_approve_threshold': float(threshold)}
+
+    @staticmethod
+    def _transcription_policy(settings, default_model='base'):
+        from .config import _validated
+        from .batched_transcription import VERSION
+        selected = _validated({
+            'transcription_model': settings.get('transcription_model') or default_model,
+            'transcription_batch_size': settings.get('transcription_batch_size', 1),
+            'language': settings.get('language'),
+        })
+        selected['transcription_profile'] = VERSION if selected['transcription_batch_size'] > 1 else 'cuda-serial-v1'
+        return selected
+
+    @classmethod
+    def _restore_transcription_policy(cls, snapshot):
+        if not isinstance(snapshot, dict):
+            raise ValueError('Invalid saved transcription policy')
+        current = cls._transcription_policy(snapshot)
+        if current != snapshot:
+            raise processing.ProcessingError('The speech profile changed since this job was queued. Choose Generate transcript again to use the current profile; saved audio and edits are retained.')
+        return current
+
+    @classmethod
+    def _detection_policy(cls, settings, detector=None):
+        """Snapshot only validated, nonsecret choices and request-profile identity."""
+        from .ad_scope import REMOVAL_SCOPE
+        policy = settings.get('ai_policy', 'legacy')
+        selected_detector = detector or settings.get('detector') or 'auto'
+        reasoning = settings.get('ai_reasoning', False)
+        address = settings.get('ai_base_url', '')
+        model = settings.get('ai_model', '')
+        if (policy not in {'legacy', 'verified', 'scene', 'fast'} or selected_detector not in {'auto', 'ai', 'heuristic'}
+                or not isinstance(reasoning, bool) or not isinstance(address, str) or not isinstance(model, str)):
+            raise ValueError('Invalid detector policy')
+        address, model = address.strip().rstrip('/'), model.strip()
+        if address:
+            try:
+                parsed = urlsplit(address)
+                parsed.port
+                if (parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username is not None
+                        or parsed.password is not None or parsed.query or parsed.fragment
+                        or any(char.isspace() for char in address) or '\\' in address):
+                    raise ValueError
+            except ValueError:
+                raise ValueError('Classifier address cannot contain credentials or query parameters') from None
+        if len(model) > 256 or any(ord(char) < 32 for char in model):
+            raise ValueError('Invalid classifier model')
+        version, profile = processing.LEGACY_AI_POLICY_VERSION, 'legacy-per-unit'
+        if selected_detector == 'heuristic':
+            version, profile = 'commercial-cues-unversioned', 'commercial-cues'
+        elif policy == 'verified':
+            from .ad_review import POLICY_VERSION, inference_settings
+            version = POLICY_VERSION
+            encoded = json.dumps(inference_settings(reasoning), sort_keys=True, separators=(',', ':'))
+            profile = 'verified-' + hashlib.sha256(encoded.encode()).hexdigest()
+        elif policy == 'scene':
+            from .scene_review import POLICY_VERSION, INFERENCE_PROFILE
+            version, profile = POLICY_VERSION, INFERENCE_PROFILE
+            from .scene_pipeline import POLICY_VERSION as PIPELINE_VERSION
+            version = PIPELINE_VERSION + '+' + version
+            # The optional endpoint audit is a separate policy component. Its
+            # arrival or revision invalidates an older queued profile explicitly.
+            try:
+                edges = importlib.import_module('.scene_edges', package='castwell')
+            except ModuleNotFoundError as exc:
+                if exc.name != 'castwell.scene_edges':
+                    raise
+            else:
+                version += '+' + edges.POLICY_VERSION
+                profile += '+' + edges.INFERENCE_PROFILE
+        elif policy == 'fast':
+            from .fast_review import POLICY_VERSION, INFERENCE_PROFILE, inference_settings, word_inference_settings
+            version = POLICY_VERSION
+            encoded = json.dumps({'scenes': inference_settings(), 'words': word_inference_settings()},
+                                 sort_keys=True, separators=(',', ':'))
+            profile = INFERENCE_PROFILE + '-' + hashlib.sha256(encoded.encode()).hexdigest()
+            reasoning = False
+        return {**cls._approval_policy(settings), 'detector': selected_detector, 'ai_policy': policy,
+                'ai_reasoning': reasoning, 'ai_base_url': address, 'ai_model': model,
+                'policy_version': version, 'inference_profile': profile, 'removal_scope': REMOVAL_SCOPE}
+
+    @classmethod
+    def _restore_detection_policy(cls, snapshot):
+        if not isinstance(snapshot, dict):
+            raise ValueError('Invalid saved detector policy')
+        current = cls._detection_policy(snapshot)
+        if current != snapshot:
+            raise processing.ProcessingError('The detector profile changed since this job was queued. Choose Find ads again to use the current detector; existing edits are retained.')
+        return current
 
     @staticmethod
     def _check_cancel(cancel):
@@ -225,6 +445,13 @@ class Jobs:
             if 'approval_policy' in request:
                 # Queued work and retries keep the listener's original policy.
                 settings.update(self._approval_policy(request['approval_policy']))
+            if 'transcription_policy' in request and operation == 'process' and not self._option(options, 'download_only', False):
+                settings.update(self._restore_transcription_policy(request['transcription_policy']))
+            if ('detection_policy' in request and operation == 'process'
+                    and self._option(options, 'remove_ads', True) and not self._option(options, 'download_only', False)):
+                settings.update(self._restore_detection_policy(request['detection_policy']))
+            # Legacy pending jobs intentionally retain their original behavior:
+            # approval controls stay frozen, other choices use current settings.
             if operation in ('process', 'download'):
                 self._process(episode_id, options, settings, cancel, download_only=operation == 'download')
             else:
@@ -318,6 +545,7 @@ class Jobs:
                 audio, model=settings.get('transcription_model') or self.model,
                 language=settings.get('language') or None,
                 model_cache=settings.get('model_cache') or None,
+                batch_size=settings.get('transcription_batch_size', 1),
                 progress=lambda message: self.progress(episode_id, 'transcribing', message),
                 should_cancel=cancel.is_set,
             )
@@ -336,8 +564,8 @@ class Jobs:
 
         if not self._option(options, 'remove_ads', True):
             has_speech = bool(transcript['segments'])
-            self.library.update(episode_id, status='ready' if has_speech else 'review',
-                                progress='Original audio and transcript ready; ads retained' if has_speech else 'No speech detected; review original audio')
+            self.library.update(episode_id, status='ready',
+                                progress='Original audio and transcript ready; ads retained' if has_speech else 'Original audio ready; no speech detected; ads retained')
             return
 
         episode = self.library.get(episode_id)
@@ -345,29 +573,53 @@ class Jobs:
         # redetection may replace them or an existing completed no-ad analysis.
         needs_detection = self._option(options, 'redetect', False) or (
             not episode.get('analysis_done') and not episode['cuts'])
+        profile = self._detection_policy(settings, self._option(options, 'detector', None))
+        if (not needs_detection and episode.get('analysis_profile') is not None
+                and episode['analysis_profile'] != profile):
+            raise processing.ProcessingError('This episode was analyzed with a different detector profile. Choose Find ads again to replace that analysis; existing edits are retained.')
         if needs_detection and transcript['segments']:
             self.progress(episode_id, 'detecting', 'Looking for advertisements in context')
             detector = self._option(options, 'detector', settings.get('detector') or 'auto')
+            audits = []
+            audit_options = {'audit_sink': audits.append} if profile['ai_policy'] == 'fast' else {}
             cuts = processing.detect_ads(
                 transcript, detector=detector, config=settings,
                 progress=lambda message: self.progress(episode_id, 'detecting', message),
                 should_cancel=cancel.is_set,
+                **audit_options,
             )
             cuts = processing.validate_cuts(cuts, duration)
+            if profile['ai_policy'] == 'fast':
+                cuts = [dict(cut, approved=False) for cut in cuts]
+                document = _fast_audit_document(audits, transcript, cuts, profile)
+                self._check_cancel(cancel)
+                _write_fast_audit(folder, document)
             if cuts != episode['cuts']:
                 self.library.save_revision(episode_id, episode['cuts'], 'Before advertisement detection')
-            self._complete_stage(episode_id, 'redetect', cuts=cuts, analysis_done=True, cleaned=None,
+            self._complete_stage(episode_id, 'redetect', cuts=cuts, analysis_done=True, analysis_profile=profile, cleaned=None,
                                  cleaned_duration=0, removed_seconds=0)
         self._check_cancel(cancel)
-        self.render(episode_id, cancel)
+        self.render(episode_id, cancel, automatic=True)
 
-    def render(self, episode_id, cancel=None):
+    def render(self, episode_id, cancel=None, *, automatic=False):
         cancel = cancel or threading.Event()
         self._check_cancel(cancel)
         episode = self.library.get(episode_id)
         if not episode.get('audio') or not Path(episode['audio']).is_file():
             raise ValueError('Download the original audio before exporting cuts.')
         cuts = episode['cuts']
+        no_speech = (episode['transcript'] is not None and not episode['transcript']['segments']
+                     and not self.library.coverage_review_current(episode))
+        coverage_review = bool(episode.get('transcript_review'))
+        experimental_review = (episode.get('analysis_profile') or {}).get('ai_policy') == 'fast'
+        review = no_speech or coverage_review or experimental_review or any(not cut.get('approved') for cut in cuts)
+        if automatic and review:
+            message = ('No speech detected; review original audio' if no_speech else
+                       'Transcript coverage needs review; original audio retained' if coverage_review else
+                       'Review and save the experimental fast analysis before exporting; original audio retained' if experimental_review else
+                       'Review suggested cuts; original audio retained')
+            self.library.update(episode_id, status='review', progress=message)
+            return
         has_approved = any(cut.get('approved') for cut in cuts)
         if has_approved:
             self.progress(episode_id, 'rendering', 'Exporting audio with approved cuts')
@@ -378,9 +630,9 @@ class Jobs:
         else:
             self.library.update(episode_id, cleaned=None, cleaned_duration=0, removed_seconds=0)
         self._check_cancel(cancel)
-        no_speech = episode['transcript'] is not None and not episode['transcript']['segments']
-        review = no_speech or any(not cut.get('approved') for cut in cuts)
         message = ('No speech detected; review original audio' if no_speech else
+                   'Transcript coverage needs review; edited audio is a manual preview' if coverage_review else
+                   'Review and save the experimental fast analysis before exporting' if experimental_review else
                    'Review suggested cuts' if review else
                    'Approved cuts exported' if has_approved else
                    'No cuts selected; original audio retained')

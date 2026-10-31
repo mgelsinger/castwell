@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "scope": "Full cached recording decode/resample equivalence for the actual batched-ASR standalone FFmpeg path; no neural inference or listening acceptance.",
+  "decoder": "standalone FFmpeg CLI via castwell.batched_transcription._decode_pcm",
+  "batched_transcription_source_sha256": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+  "original_ffmpeg_sha256": "1326dde4c84ff1f96fe6b8916c5bed29e163e9b5dccf995f6f3db069d143ec5e",
+  "controlled_ffmpeg_sha256": "a35a970603390b7a5774f0f7843595dc900de10b1d564495491c50e255c5a2c2",
+  "sample_rate_hz": 16000,
+  "channels": 1,
+  "sample_format": "little-endian float32",
+  "audio_stream": "0:a:0",
+  "maximum_decode_seconds": 9831.4,
+  "options_match_application": true,
+  "only_output_destination_changed": "pipe:1 instead of a temporary PCM file for streaming comparison",
+  "persisted_decoded_audio": false,
+  "neural_model_calls": 0,
+  "paid_api_calls": 0,
+  "cases": [
+    {
+      "case": "july",
+      "input_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "source_audio_unchanged": true,
+      "original": {
+        "samples": 72210390,
+        "pcm_sha256": "3100fd8679b74d5dd3fb3a2e1c53ffb491c7f52ec9c3d801ff864b9327453238",
+        "all_finite": true
+      },
+      "controlled": {
+        "samples": 72210390,
+        "pcm_sha256": "3100fd8679b74d5dd3fb3a2e1c53ffb491c7f52ec9c3d801ff864b9327453238",
+        "all_finite": true
+      },
+      "same_sample_count": true,
+      "unequal_samples": 0,
+      "maximum_absolute_delta": 0.0,
+      "mean_absolute_delta": 0.0,
+      "byte_identical": true,
+      "comparison_wall_seconds": 6.454,
+      "successful_exit_codes": [
+        0,
+        0
+      ],
+      "matches_prior_pyav_input_sha256": true
+    },
+    {
+      "case": "august",
+      "input_sha256": "bff55eb275b1230042d7c457b1ef3a58caa7fcfacad4ebe28d2a04e7f35a6c57",
+      "source_audio_unchanged": true,
+      "original": {
+        "samples": 76720588,
+        "pcm_sha256": "f4e40d43f73591061529450e2673e56d68c6f9c6d136c8cd8d34b276cd91e1bb",
+        "all_finite": true
+      },
+      "controlled": {
+        "samples": 76720588,
+        "pcm_sha256": "f4e40d43f73591061529450e2673e56d68c6f9c6d136c8cd8d34b276cd91e1bb",
+        "all_finite": true
+      },
+      "same_sample_count": true,
+      "unequal_samples": 0,
+      "maximum_absolute_delta": 0.0,
+      "mean_absolute_delta": 0.0,
+      "byte_identical": true,
+      "comparison_wall_seconds": 6.859,
+      "successful_exit_codes": [
+        0,
+        0
+      ],
+      "matches_prior_pyav_input_sha256": true
+    }
+  ],
+  "all_pcm_byte_identical": true,
+  "all_sources_unchanged": true,
+  "audible_acceptance_established": false
+}

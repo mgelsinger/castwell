@@ -314,11 +314,13 @@ class AppIntegrationTests(unittest.TestCase):
              patch('castwell.processing.detect_ads', side_effect=AssertionError('Reviewed cuts must be preserved')):
             self.assertEqual(self.client.patch('/api/settings', json={'transcription_model': 'small'}).status_code, 200)
             self.assertEqual(self.client.post(endpoint + '/process', json={'retranscribe': True}).status_code, 202)
-            finished = self.wait_for_job(episode_id, 'ready')
+            finished = self.wait_for_job(episode_id, 'review')
         self.assertEqual(transcribe.call_args.kwargs['model'], 'small')
         self.assertEqual(finished['transcript']['model'], 'small')
         self.assertEqual(finished['cuts'], reviewed)
-        self.assertEqual(finished['removed_seconds'], 2)
+        self.assertTrue(finished['transcript_review'])
+        self.assertFalse(finished['has_cleaned'])
+        self.assertEqual(finished['removed_seconds'], 0)
         self.assertNotIn('pending_job', finished)
         self.assertEqual(self.client.post(endpoint + '/process', json={'download_only': True, 'retranscribe': True}).status_code, 400)
 

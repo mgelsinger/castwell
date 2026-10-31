@@ -175,13 +175,124 @@ def test_owned_session_profile_preserves_saved_provider_configuration(tmp_path, 
     settings = config.Settings(library)
     effective = settings.get()
     assert effective["ai_base_url"] == "http://127.0.0.1:8089/v1"
-    assert effective["ai_reasoning"] is reviewed_qwen and effective["review_only"] is True
+    assert effective["ai_reasoning"] is False
+    assert effective["review_only"] is True
+    assert effective["ai_policy"] == ("fast" if reviewed_qwen else "verified")
+    assert effective["transcription_batch_size"] == (8 if reviewed_qwen else 1)
     settings.update({"ai_base_url": effective["ai_base_url"], "ai_model": effective["ai_model"],
                      "ai_reasoning": False, "detector": "ai", "language": "en"})
     saved = library.get_settings()
     assert saved["ai_base_url"] == "https://saved.example/v1"
     assert saved["ai_model"] == "saved-model" and saved["ai_reasoning"] is True
     assert saved["detector"] == "auto" and saved["language"] == "en"
+
+
+def test_reviewed_profile_defaults_to_manual_and_preserves_explicit_review_choice(tmp_path, monkeypatch):
+    from castwell import config, processing
+    from castwell.library import Library
+    for name in desktop._ENV_KEYS:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(processing, "transcribe", lambda *args, **kwargs: None)
+    monkeypatch.setattr(processing, "detect_ads", lambda *args, **kwargs: [])
+    monkeypatch.setattr(config, "test_classifier", lambda settings: {"ok": True})
+    monkeypatch.setattr(config.Settings, "get", config.Settings.get)
+    monkeypatch.setattr(config.Settings, "update", config.Settings.update)
+    desktop.install_local_processing_guards("http://127.0.0.1:8089/v1", reviewed_qwen=True)
+    library = Library(tmp_path)
+    settings = config.Settings(library)
+    assert settings.get()["review_only"] is True and settings.get()["ai_policy"] == "fast"
+    assert settings.get()["transcription_batch_size"] == 8
+    assert settings.get()["transcription_model"] == "large-v3"
+    settings.update({"review_only": True})
+    assert settings.get()["review_only"] is True and library.get_settings()["review_only"] is True
+    settings.update({"review_only": False})
+    assert settings.get()["review_only"] is True and library.get_settings()["review_only"] is False
+    settings.update({"ai_policy": "scene"})
+    assert settings.get()["review_only"] is False and settings.get()["transcription_batch_size"] == 1
+    settings.update({"ai_policy": "fast", "transcription_batch_size": 3})
+    assert settings.get()["review_only"] is True and settings.get()["transcription_batch_size"] == 3
+    with pytest.raises(processing.ProcessingError, match="API keys"):
+        processing.detect_ads({}, "ai", config={"ai_base_url": "http://127.0.0.1:8089/v1", "ai_key": "private"})
+    with pytest.raises(ValueError, match="API keys"):
+        config.test_classifier({"ai_base_url": "http://127.0.0.1:8089/v1", "ai_key": "private"})
+
+
+def test_reviewed_speech_default_preserves_saved_and_explicit_choices(tmp_path, monkeypatch):
+    from castwell import config, processing
+    from castwell.library import Library
+    for name in desktop._ENV_KEYS:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(processing, "transcribe", lambda *args, **kwargs: None)
+    monkeypatch.setattr(processing, "detect_ads", lambda *args, **kwargs: [])
+    monkeypatch.setattr(config, "test_classifier", lambda settings: {"ok": True})
+    monkeypatch.setattr(config.Settings, "get", config.Settings.get)
+    monkeypatch.setattr(config.Settings, "update", config.Settings.update)
+    desktop.install_local_processing_guards("http://127.0.0.1:8089/v1", reviewed_qwen=True)
+    library = Library(tmp_path)
+    library.update_settings({"transcription_model": "small.en"})
+    settings = config.Settings(library)
+    assert settings.get()["transcription_model"] == "small.en"
+    monkeypatch.setenv("CASTWELL_TRANSCRIPTION_MODEL", str(tmp_path / "Explicit speech directory"))
+    assert settings.get()["transcription_model"] == str(tmp_path / "Explicit speech directory")
+    assert library.get_settings()["transcription_model"] == "small.en"
+
+
+def test_reviewed_desktop_can_explicitly_select_fast_without_changing_provider_policy(tmp_path, monkeypatch):
+    from castwell import config, processing
+    from castwell.library import Library
+    for name in desktop._ENV_KEYS:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("CASTWELL_AI_POLICY", "scene")
+    monkeypatch.setattr(processing, "transcribe", lambda *args, **kwargs: None)
+    monkeypatch.setattr(processing, "detect_ads", lambda *args, **kwargs: [])
+    monkeypatch.setattr(config, "test_classifier", lambda settings: {"ok": True})
+    monkeypatch.setattr(config.Settings, "get", config.Settings.get)
+    monkeypatch.setattr(config.Settings, "update", config.Settings.update)
+    library = Library(tmp_path)
+    library.update_settings({"ai_policy": "legacy", "review_only": False,
+                             "ai_base_url": "https://saved.example/v1", "ai_model": "saved-model"})
+    desktop.install_local_processing_guards("http://127.0.0.1:8089/v1", reviewed_qwen=True)
+    settings = config.Settings(library)
+    assert settings.get()["ai_policy"] == "fast"
+    result = settings.update({"ai_policy": "fast", "transcription_batch_size": 8})
+    assert result["ai_policy"] == "fast" and result["review_only"] is True
+    assert result["ai_policy_options"] == ["scene", "fast"]
+    assert "ai_policy" not in result["env_overrides"]
+    assert result["transcription_batch_size"] == 8
+    saved = library.get_settings()
+    assert saved["desktop_ai_policy"] == "fast" and saved["ai_policy"] == "legacy"
+    assert saved["ai_base_url"] == "https://saved.example/v1" and saved["review_only"] is False
+    assert config.Settings(Library(tmp_path)).get()["ai_policy"] == "fast"
+    with pytest.raises(ValueError, match="supports scene review"):
+        settings.update({"ai_policy": "legacy", "transcription_batch_size": 4})
+    assert settings.get()["transcription_batch_size"] == 8
+    result = settings.update({"ai_policy": "scene"})
+    assert result["ai_policy"] == "scene" and result["review_only"] is False
+
+
+@pytest.mark.parametrize('saved,expected_policy,expected_batch', [
+    ({'ai_policy': 'scene'}, 'scene', 1),
+    ({'ai_policy': 'fast'}, 'fast', 8),
+    ({'desktop_ai_policy': 'scene', 'ai_policy': 'fast'}, 'scene', 1),
+    ({'desktop_ai_policy': 'fast', 'transcription_batch_size': 1}, 'fast', 1),
+])
+def test_reviewed_desktop_preserves_explicit_policy_and_batch(tmp_path, monkeypatch, saved, expected_policy, expected_batch):
+    from castwell import config, processing
+    from castwell.library import Library
+    for name in desktop._ENV_KEYS:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(processing, 'transcribe', lambda *args, **kwargs: None)
+    monkeypatch.setattr(processing, 'detect_ads', lambda *args, **kwargs: [])
+    monkeypatch.setattr(config, 'test_classifier', lambda settings: {'ok': True})
+    monkeypatch.setattr(config.Settings, 'get', config.Settings.get)
+    monkeypatch.setattr(config.Settings, 'update', config.Settings.update)
+    library = Library(tmp_path)
+    library.update_settings(saved)
+    desktop.install_local_processing_guards('http://127.0.0.1:8089/v1', reviewed_qwen=True)
+    effective = config.Settings(library).get()
+    assert effective['ai_policy'] == expected_policy
+    assert effective['transcription_batch_size'] == expected_batch
+    assert library.get_settings() == saved
 
 
 class Child:
@@ -304,8 +415,10 @@ def test_child_environment_drops_keys_and_uses_cuda_all_layers(tmp_path, monkeyp
     controller = desktop.DesktopController(tmp_path, gguf=model_file, no_browser=True)
     monkeypatch.setenv("CASTWELL_AI_KEY", "never-copy-me")
     monkeypatch.setenv("CASTWELL_AI_BASE_URL", "https://paid.example/v1")
+    monkeypatch.setenv("CASTWELL_CLASSIFIER_SLEEP_ADDRESS", "http://192.168.1.3:8089/v1")
     assert "CASTWELL_AI_KEY" not in controller._environment()
     assert "CASTWELL_AI_BASE_URL" not in controller._environment()
+    assert "CASTWELL_CLASSIFIER_SLEEP_ADDRESS" not in controller._environment()
     monkeypatch.setattr(controller, "_probe_runtime", lambda: {"ready": True, "errors": []})
     monkeypatch.setattr(desktop, "is_reviewed_qwen", lambda path: reviewed_qwen)
     commands = []
@@ -322,16 +435,22 @@ def test_child_environment_drops_keys_and_uses_cuda_all_layers(tmp_path, monkeyp
     assert command[command.index("--fit") + 1] == "off"
     assert command[command.index("--verbosity") + 1] == "4"
     assert command[command.index("--host") + 1] == "127.0.0.1"
+    assert command[command.index("--ctx-size") + 1] == ("32768" if reviewed_qwen else "8192")
     assert "--offline" in command
+    assert command[command.index("--sleep-idle-seconds") + 1] == "1"
     assert commands[1][1]["parent_control"] is True
     saved = (tmp_path / "runtime/launcher.json").read_text()
     assert "never-copy-me" not in saved and "paid.example" not in saved
     assert json.loads(saved)["classifier_profile"] == ("reviewed-qwen3.8-cuda" if reviewed_qwen else "generic-local-cuda")
     assert ("--reviewed-qwen" in commands[1][0]) is reviewed_qwen
+    assert controller._environment()["CASTWELL_CLASSIFIER_SLEEP_ADDRESS"] == f"http://127.0.0.1:{controller.model_port}/v1"
     if reviewed_qwen:
         assert command[command.index("--reasoning") + 1] == "off"
-        assert command[command.index("--reasoning-budget") + 1] == "1024"
-        assert command[command.index("--n-predict") + 1] == "4096"
+        assert command[command.index("--reasoning-budget") + 1] == "0"
+        assert command[command.index("--n-predict") + 1] == "2048"
+        assert command[command.index("--temp") + 1] == "0.7"
+        assert command[command.index("--top-p") + 1] == "0.8"
+        assert command[command.index("--presence-penalty") + 1] == "0"
 
 
 def test_reviewed_profile_requires_exact_bytes_and_cached_hash(tmp_path, monkeypatch):

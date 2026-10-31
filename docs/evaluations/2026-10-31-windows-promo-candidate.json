@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-31",
+  "version": "0.5.6",
+  "application_source_revision": "6bcfe6ce74dcb179e4a7d5704383d4470afef2da",
+  "detector_source_policy": "whole-episode-boundaries-v10",
+  "removal_scope": "sponsor-product-and-podcast-promos-v2",
+  "contextual_recommendations_preserved_by_source_policy": true,
+  "completed_validation_passed": true,
+  "validation_scope": "Actual runtime prerequisites, GUI, imported-transcript batches, known-cut rendering, relocation, install/uninstall, exact source bindings and CUDA transcription of the cached 20-second sample when enough memory is free. No classifier service.",
+  "full_packaged_classifier_smoke_verified": false,
+  "packaged_classifier_status": "deferred_insufficient_free_vram_user_requested_packaging",
+  "packaged_speech_status": "passed_both_packages",
+  "classifier_requests": 0,
+  "speech_requests": 2,
+  "paid_api_calls": 0,
+  "model_downloads": 0,
+  "full_episode_detection_runs_in_package_checks": 0,
+  "source_collection_complete": true,
+  "ad_removal_accuracy_verified_by_package_checks": false,
+  "unattended_production_ready": false,
+  "frozen_artifacts": {
+    "portable": {
+      "name": "Castwell-0.5.6-Windows-x64-Portable.zip",
+      "sha256": "859e79f667b54a4a0b92f2da3974d3ac132145d0d92d2f372828ccbf68081e4e",
+      "bytes": 1963034549
+    },
+    "installer": {
+      "name": "Castwell-0.5.6-Windows-x64-Setup.exe",
+      "sha256": "9b705915407c77c00f3332a0fcbcd24bb00150e274e501335ac5e1c4a669c11a",
+      "bytes": 1230144371
+    },
+    "build_manifest": {
+      "name": "Castwell-0.5.6-Windows-x64-manifest.json",
+      "sha256": "98e456d9ae030ce10cae7960bee9ef2185a12d2b3f4cb773fd72fc87de433313",
+      "bytes": 397011
+    },
+    "application_source": {
+      "name": "Castwell-0.5.6-Source.zip",
+      "sha256": "eabf17f3f57c3fe96519e9a3b3b1706c4698718cc1e8edb3754571e7738575f4",
+      "bytes": 6331293
+    },
+    "dependency_sources": {
+      "name": "Castwell-0.5.6-Dependency-Sources.zip",
+      "sha256": "3f761981d57ea28d48c86ba0cf92330e15f95af1c3fca095aebe5f9181c13fc8",
+      "bytes": 336175448
+    }
+  },
+  "application_source_proof": {
+    "passed": true,
+    "application_source_revision": "6bcfe6ce74dcb179e4a7d5704383d4470afef2da",
+    "sha256": "eabf17f3f57c3fe96519e9a3b3b1706c4698718cc1e8edb3754571e7738575f4",
+    "archive_file_count": 234,
+    "git_archive_comment_matches": true,
+    "all_files_match_committed_blobs": true,
+    "complete_committed_tree_present": true,
+    "source_files_executed": false
+  },
+  "dependency_source_proof": {
+    "archive": "Castwell-0.5.6-Dependency-Sources.zip",
+    "sha256": "3f761981d57ea28d48c86ba0cf92330e15f95af1c3fca095aebe5f9181c13fc8",
+    "bytes": 336175448,
+    "source_lock_sha256": "4638d821cb89b0d6414764d9f96ab57a7e1b8bcdb913c2023a3ee26ff8b3f946",
+    "source_requirements_complete": true
+  },
+  "packages": {
+    "portable": {
+      "runtime_prerequisites_passed": true,
+      "version": "0.5.6",
+      "inference_device": "cuda",
+      "compute_type": "float16",
+      "vad_provider": "CUDAExecutionProvider",
+      "vad_cpu_fallback_disabled": true,
+      "speech_inference_run": true,
+      "speech_result": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "classifier_inference_run": false,
+      "classifier_handoff_tested": false,
+      "native_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "source_identity": {
+        "passed": true,
+        "build_manifest_sha256": "fe5a37a99e699e8f60754a9f4e5bc4b9cf87c2aeb99072f85b0af326f5d8ad82",
+        "manifest_files_verified": 2017,
+        "source_static_assets_matched": 3,
+        "repository_notice_files_verified": 22,
+        "source_binary_bindings_verified": 71,
+        "pinned_vc_runtime_verified": true,
+        "project_license_and_inventory_match_source": true,
+        "dependency_source_pointer_verified": true,
+        "source_collection_complete": true,
+        "ad_removal_accuracy_verified": false,
+        "production_go_live_confirmed": false
+      },
+      "workflow": {
+        "known_cut_rendered_seconds": 8.0,
+        "local_feed_episode_count": 2,
+        "export_archive_file_count": 3,
+        "external_python_on_path": false,
+        "external_ffmpeg_on_path": false,
+        "default_library_preference_verified": true
+      },
+      "gpus": [
+        {
+          "name": "NVIDIA GeForce RTX 3090 Ti",
+          "memory_total_mb": 24564
+        }
+      ]
+    },
+    "installed": {
+      "runtime_prerequisites_passed": true,
+      "version": "0.5.6",
+      "inference_device": "cuda",
+      "compute_type": "float16",
+      "vad_provider": "CUDAExecutionProvider",
+      "vad_cpu_fallback_disabled": true,
+      "speech_inference_run": true,
+      "speech_result": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "classifier_inference_run": false,
+      "classifier_handoff_tested": false,
+      "native_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "source_identity": {
+        "passed": true,
+        "build_manifest_sha256": "fe5a37a99e699e8f60754a9f4e5bc4b9cf87c2aeb99072f85b0af326f5d8ad82",
+        "manifest_files_verified": 2017,
+        "source_static_assets_matched": 3,
+        "repository_notice_files_verified": 22,
+        "source_binary_bindings_verified": 71,
+        "pinned_vc_runtime_verified": true,
+        "project_license_and_inventory_match_source": true,
+        "dependency_source_pointer_verified": true,
+        "source_collection_complete": true,
+        "ad_removal_accuracy_verified": false,
+        "production_go_live_confirmed": false
+      },
+      "workflow": {
+        "known_cut_rendered_seconds": 8.0,
+        "local_feed_episode_count": 2,
+        "export_archive_file_count": 3,
+        "external_python_on_path": false,
+        "external_ffmpeg_on_path": false,
+        "default_library_preference_verified": true
+      },
+      "gpus": [
+        {
+          "name": "NVIDIA GeForce RTX 3090 Ti",
+          "memory_total_mb": 24564
+        }
+      ]
+    }
+  },
+  "gpu_memory_checks": [
+    {
+      "phase": "portable",
+      "device": 0,
+      "free_mib": 17879,
+      "minimum_mib": 10240,
+      "speech_selected": true
+    },
+    {
+      "phase": "installed",
+      "device": 0,
+      "free_mib": 17832,
+      "minimum_mib": 10240,
+      "speech_selected": true
+    }
+  ],
+  "portable_relocation": {
+    "default_data_resolved_after_move": true,
+    "original_and_cleaned_audio_unchanged": true,
+    "transcript_and_cut_state_preserved": true,
+    "listening_state_preserved": true,
+    "visible_native_window": true
+  },
+  "installation": {
+    "current_user": true,
+    "shortcut_verified": true,
+    "registry_verified": true,
+    "uninstalled_after_test": true,
+    "owned_test_libraries_preserved": true
+  },
+  "cleanup": {
+    "owned_temporary_workspace_removed": true,
+    "owned_servers_stopped": true,
+    "user_library_accessed": false
+  },
+  "superseded_build": {
+    "source_revision": "f596aefa21fc9d195156d1a243e96c1d662c7f20",
+    "reason": "User clarified keep contextual recommendations.",
+    "portable_completed": true,
+    "installer_compile_interrupted": true,
+    "package_classifier_requests": 0,
+    "published": false,
+    "artifacts_retained_privately": true
+  },
+  "evidence_sha256": {
+    "private_workflow_report": "30569e615c6ba5b9642bc77ab715bba83b8e5281e01cf19ca75ab559181b22f3",
+    "freeze_spec": "a1895b643876339b808b602260ea9f914ccfad4c58e575c2f0d349939b8521fe",
+    "workflow_runner": "ddf9f061deee60785599f297adaf0eaf669dea0f66ac927c4af880d51d0775e7"
+  },
+  "limitations": [
+    "Packaged 27B classifier startup, generation, reviewed-Qwen defaults and classifier/speech sleep-wake handoff remain deferred because available VRAM was below the reviewed profile requirement.",
+    "Current-source full-episode model results are recorded separately; these package checks do not measure ad-removal accuracy or episode throughput.",
+    "No hardware rejection simulation was run for this candidate. No CPU inference fallback or reduced model was used.",
+    "Artifacts are unsigned, model weights are separate, and the review requirement remains enabled by source policy."
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "version": "0.5.2",
+  "status": "Manual-review Windows test candidate",
+  "runtime_checks_passed": true,
+  "ad_removal_accuracy_passed": false,
+  "production_go_live_confirmed": false,
+  "scope": "Frozen CUDA execution, model resource handoff, fixture exports, desktop start/stop, relocation, installation and uninstall. Not real podcast detection accuracy or listening acceptance.",
+  "build_snapshot_sha256": "9778fb98cf34c54356d4e73b4269ee2710dd5184b9f5d65fda6ea75e019f1d0f",
+  "application_code_revision": "4515d30",
+  "post_freeze_changes": "Development dependencies, tests, validation tools and documentation. The packaged application and detector are unchanged.",
+  "build_manifest_sha256": "b52581dd21274f1a75880d90c2284c2a61ff3632cefd8343a0a2bac7f7bb5876",
+  "artifacts": [
+    {
+      "name": "Castwell-0.5.2-Windows-x64-Portable.zip",
+      "sha256": "9e19adca251647bce26d117405afe4688a4fe6de82ce2c6966a7578c1bd1f28b",
+      "bytes": 2059981964
+    },
+    {
+      "name": "Castwell-0.5.2-Windows-x64-Setup.exe",
+      "sha256": "892e75d226ba456d20c446906e25e8cba549ea97c50b9871a98f0ac1531d5a6e",
+      "bytes": 1301232990
+    }
+  ],
+  "speech_and_classifier_weights_bundled": false,
+  "packages": {
+    "portable": {
+      "frozen_runtime_passed": true,
+      "cuda": {
+        "ready": true,
+        "device_count": 1,
+        "float16_supported": true,
+        "allocation_verified": true,
+        "kernel_verified": true,
+        "gpus": [
+          {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "driver_version": "610.47",
+            "memory_total_mb": 24564
+          }
+        ],
+        "errors": [],
+        "vad": {
+          "ready": true,
+          "provider": "CUDAExecutionProvider",
+          "cpu_fallback_disabled": true
+        }
+      },
+      "transcription": {
+        "device": "cuda",
+        "compute_type": "float16",
+        "implicit_downloads": false
+      },
+      "desktop_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "requires_external_python_on_path": false,
+      "requires_external_ffmpeg_on_path": false,
+      "synthetic_known_cut_rendered_seconds": 8.0,
+      "local_fixture_feed_episodes": 2,
+      "fixture_archive_entries": 3,
+      "standard_cuda_speech_crop": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "owned_classifier_phase": {
+        "evidence_reused": true,
+        "new_classifier_requests_in_resumed_run": 0,
+        "actual_classifier_requests_in_phase": 2,
+        "default_manual_review": true,
+        "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+        "native_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+        "executable_sha256": "c1438554eb5b70590e669ecbabae26030e22a04cccc44a592de9cbd1ccd5f4b8",
+        "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+        "speech_crop_sha256": "1d452c65c55443b76e3ec8a872af368ad87d1446a77e7e11d8a660c23b8564a8",
+        "speech": {
+          "prepare_calls": 1,
+          "speech_jobs": 1,
+          "duration_seconds": 20.0,
+          "word_count": 67,
+          "current_podcast_ad_mode": "keep",
+          "original_audio_unchanged": true,
+          "classifier_asleep_during_speech": true,
+          "cuda_only_frozen_runtime": {
+            "device": "cuda",
+            "compute_type": "float16",
+            "implicit_downloads": false
+          },
+          "speech_model_weights_released_evidence": {
+            "method": "Owned source path and GPU memory returned to idle after completion",
+            "direct_cache_introspection": false,
+            "idle_gpu_mb": 4511,
+            "peak_gpu_mb": 8621,
+            "after_speech_gpu_mb": 4525
+          }
+        },
+        "cached_speech_preparation_seconds": 2.657,
+        "speech_phase_seconds": 5.187,
+        "classifier_wake_seconds": 5.891,
+        "full_gpu_offload_events": 3,
+        "model_layers_on_cuda": 66,
+        "all_owned_processes_stopped": true,
+        "phase_report_sha256": "57d70610c21d775a77162e258bb115a13b086b649ec936eef1c5d754c219443f"
+      }
+    },
+    "installed": {
+      "frozen_runtime_passed": true,
+      "cuda": {
+        "ready": true,
+        "device_count": 1,
+        "float16_supported": true,
+        "allocation_verified": true,
+        "kernel_verified": true,
+        "gpus": [
+          {
+            "name": "NVIDIA GeForce RTX 3090 Ti",
+            "driver_version": "610.47",
+            "memory_total_mb": 24564
+          }
+        ],
+        "errors": [],
+        "vad": {
+          "ready": true,
+          "provider": "CUDAExecutionProvider",
+          "cpu_fallback_disabled": true
+        }
+      },
+      "transcription": {
+        "device": "cuda",
+        "compute_type": "float16",
+        "implicit_downloads": false
+      },
+      "desktop_launcher": {
+        "visible_native_window": true,
+        "owned_server_started": true,
+        "owned_server_stopped": true,
+        "browser_opened": false,
+        "automatic_weight_downloads": false
+      },
+      "requires_external_python_on_path": false,
+      "requires_external_ffmpeg_on_path": false,
+      "synthetic_known_cut_rendered_seconds": 8.0,
+      "local_fixture_feed_episodes": 2,
+      "fixture_archive_entries": 3,
+      "standard_cuda_speech_crop": {
+        "segments": 4,
+        "duration": 20.0,
+        "cached_model": true
+      },
+      "owned_classifier_phase": {
+        "evidence_reused": false,
+        "new_classifier_requests_in_resumed_run": 2,
+        "actual_classifier_requests_in_phase": 2,
+        "default_manual_review": true,
+        "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+        "native_sha256": "7b886298b688509ced3e92b420edd57dd3d665da72c1fc207d7a537be5870352",
+        "executable_sha256": "c1438554eb5b70590e669ecbabae26030e22a04cccc44a592de9cbd1ccd5f4b8",
+        "speech_model_sha256": "69f74147e3334731bc3a76048724833325d2ec74642fb52620eda87352e3d4f1",
+        "speech_crop_sha256": "1d452c65c55443b76e3ec8a872af368ad87d1446a77e7e11d8a660c23b8564a8",
+        "speech": {
+          "prepare_calls": 1,
+          "speech_jobs": 1,
+          "duration_seconds": 20.0,
+          "word_count": 67,
+          "current_podcast_ad_mode": "keep",
+          "original_audio_unchanged": true,
+          "classifier_asleep_during_speech": true,
+          "cuda_only_frozen_runtime": {
+            "device": "cuda",
+            "compute_type": "float16",
+            "implicit_downloads": false
+          },
+          "speech_model_weights_released_evidence": {
+            "method": "Owned source path and GPU memory returned to idle after completion",
+            "direct_cache_introspection": false,
+            "idle_gpu_mb": 4515,
+            "peak_gpu_mb": 8611,
+            "after_speech_gpu_mb": 4515
+          }
+        },
+        "cached_speech_preparation_seconds": 2.531,
+        "speech_phase_seconds": 5.344,
+        "classifier_wake_seconds": 5.969,
+        "full_gpu_offload_events": 3,
+        "model_layers_on_cuda": 66,
+        "all_owned_processes_stopped": true,
+        "phase_report_sha256": "39ae1833776ce954dd6712749805cc27f61294957ad54eedfe1ace64615dee3a"
+      }
+    }
+  },
+  "portable_relocation": {
+    "default_data_resolved_after_move": true,
+    "original_and_cleaned_audio_unchanged": true,
+    "transcript_and_cut_state_preserved": true,
+    "listening_state_preserved": true,
+    "visible_native_window": true,
+    "asr_or_ad_classifier_inference_run": false
+  },
+  "installation": {
+    "shortcut_valid": true,
+    "uninstall_registry_valid": true,
+    "current_user": true,
+    "uninstall_preserved_libraries": true
+  },
+  "request_accounting": {
+    "current_run_new_synthetic_classifier_requests": 2,
+    "reused_prior_synthetic_classifier_requests": 2,
+    "total_actual_synthetic_classifier_requests": 4,
+    "paid_api_calls": 0,
+    "model_downloads": 0,
+    "portable_classifier_inference_repeated": false
+  },
+  "prior_fixture_failure": {
+    "report_sha256": "3b4b7f0a430c70efe474c12162dd05cbee1d942eca1d32d44ffb91df745709f1",
+    "cause": "The fixture requested a Keep job while its current podcast remained Remove; unresolved speech coverage correctly retained review status.",
+    "repair": "Set the fixture podcast to Keep before speech processing. Coverage and readiness safeguards are unchanged.",
+    "portable_completed_phase_reused_after_hash_validation": true,
+    "original_portable_phase_report_sha256": "3de8405917234dbdf28bfeca9c1a58e393ddaf558debf2881dc47080f8c4ca30"
+  },
+  "combined_distribution_report_sha256": "961ad0bf0c4765947207f276ef831e48666886bada9ed2eb22c8ac9b9e463f83",
+  "resumed_distribution_elapsed_seconds": 219.23,
+  "accuracy_evidence": "2026-10-12-ad-removal-system.json"
+}

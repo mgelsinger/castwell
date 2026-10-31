@@ -4,11 +4,14 @@ param(
     [ValidateRange(1, 65535)][int]$ClassifierPort = 8081,
     [string]$DataDirectory = '',
     [string]$ModelCache = '',
-    [string]$SpeechModel = 'small.en',
+    [string]$SpeechModel = '',
+    [switch]$ReviewedProfile,
+    [switch]$FastProfile,
     [switch]$Background
 )
 
 $ErrorActionPreference = 'Stop'
+$localReviewedProfile = $ReviewedProfile -or $FastProfile
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (-not $DataDirectory) { $DataDirectory = Join-Path $projectRoot 'data' }
 if (-not $ModelCache) { $ModelCache = Join-Path $projectRoot '.local\models\whisper' }
@@ -21,19 +24,59 @@ if ($LASTEXITCODE -ne 0) { throw 'Install project dependencies with .venv\Script
 foreach ($binary in @('ffmpeg', 'ffprobe')) {
     if (-not (Get-Command $binary -ErrorAction SilentlyContinue)) { throw "$binary is required on PATH." }
 }
+if (-not $SpeechModel) {
+    $resolveModel = @'
+import json,sqlite3,sys
+from pathlib import Path
+p=Path(sys.argv[1]).resolve()/'library.sqlite3'
+model=sys.argv[2]
+if p.is_file():
+    with sqlite3.connect(p.as_uri()+'?mode=ro',uri=True) as db:
+        row=db.execute("SELECT value FROM settings WHERE key='transcription_model'").fetchone()
+        if row: model=json.loads(row[0])
+print(model)
+'@
+    $defaultSpeechModel = if ($localReviewedProfile) { 'large-v3' } else { 'small.en' }
+    $SpeechModel = $resolveModel | & $pythonPath - ([IO.Path]::GetFullPath($DataDirectory)) $defaultSpeechModel
+    if ($LASTEXITCODE -ne 0) { throw 'Could not read the saved speech model.' }
+}
 $portCheck = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, $Port)
 try { $portCheck.Start() } finally { $portCheck.Stop() }
 $environment = @{
     PATH = (Join-Path $projectRoot '.local\windows-vendor-cuda\cuda-runtime') + ';' + $env:PATH
     CASTWELL_AI_BASE_URL = "http://127.0.0.1:$ClassifierPort/v1"
     CASTWELL_AI_MODEL = 'castwell-local'
-    CASTWELL_AI_POLICY = 'verified'
+    CASTWELL_AI_POLICY = $(if ($FastProfile) { 'fast' } elseif ($ReviewedProfile) { 'scene' } else { 'verified' })
     CASTWELL_AI_KEY = $null
     CASTWELL_MODEL_CACHE = [System.IO.Path]::GetFullPath($ModelCache)
+    CASTWELL_CLASSIFIER_SLEEP_ADDRESS = "http://127.0.0.1:$ClassifierPort/v1"
     NO_PROXY = '127.0.0.1,localhost,::1'
 }
-# Review mode is read from the library. A new library defaults to review only;
-# this launcher never writes or overrides an existing user's saved choice.
+# Removal acceptance has not passed. Preserve an explicit saved preference;
+# new profiles require manual review. This direct app launcher does not verify
+# the live classifier identity; use start_suite for the pinned CUDA service.
+if ($localReviewedProfile) {
+    $initializeProfile = @'
+import sys
+from castwell.library import Library
+library=Library(sys.argv[1])
+profile={'ai_reasoning':False,'detector':'ai','auto_approve_threshold':0.90}
+if 'review_only' not in library.get_settings():
+    profile['review_only']=True
+if 'transcription_model' not in library.get_settings():
+    profile['transcription_model']=sys.argv[2]
+if sys.argv[3]=='fast':
+    profile.update(review_only=True,transcription_batch_size=8)
+library.update_settings(profile)
+'@
+    $initializeProfile | & $pythonPath - ([IO.Path]::GetFullPath($DataDirectory)) $SpeechModel $environment.CASTWELL_AI_POLICY
+    if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the reviewed profile preference.' }
+    if ($FastProfile) {
+        Write-Host 'Experimental whole-episode review selected: manual approval required, speech batch size saved as 8. Use start_suite -FastProfile for the verified pinned CUDA service.'
+    } else {
+        Write-Host 'Ad removal acceptance has not passed. New profiles require manual review. Use start_suite for a verified local CUDA service.'
+    }
+}
 $priorEnvironment = @{}
 try {
     foreach ($name in $environment.Keys) {

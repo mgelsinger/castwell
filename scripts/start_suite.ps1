@@ -6,11 +6,14 @@ param(
     [string]$ModelCache = '',
     [string]$SpeechModel = '',
     [switch]$ReviewedProfile,
+    [switch]$FastProfile,
     [switch]$ValidateOnly
 )
 
 # Start only the pinned local services. No downloads, paid API, or broad kills.
 $ErrorActionPreference = 'Stop'
+$localReviewedProfile = $ReviewedProfile -or $FastProfile
+$selectedPolicy = if ($FastProfile) { 'fast' } elseif ($ReviewedProfile) { 'scene' } else { 'verified' }
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 if (-not $DataDirectory) { $DataDirectory = Join-Path $projectRoot 'data' }
 if (-not $ModelCache) { $ModelCache = Join-Path $projectRoot '.local\models\whisper' }
@@ -28,15 +31,16 @@ if (-not $SpeechModel) {
     $resolveModel = @'
 import json,sqlite3,sys
 from pathlib import Path
-p=Path(sys.argv[1])/'library.sqlite3'
-model='small.en'
+p=Path(sys.argv[1]).resolve()/'library.sqlite3'
+model=sys.argv[2]
 if p.is_file():
     with sqlite3.connect(p.as_uri()+'?mode=ro',uri=True) as db:
         row=db.execute("SELECT value FROM settings WHERE key='transcription_model'").fetchone()
         if row: model=json.loads(row[0])
 print(model)
 '@
-    $SpeechModel = $resolveModel | & $pythonPath - $dataPath
+    $defaultSpeechModel = if ($localReviewedProfile) { 'large-v3' } else { 'small.en' }
+    $SpeechModel = $resolveModel | & $pythonPath - $dataPath $defaultSpeechModel
     if ($LASTEXITCODE -ne 0) { throw 'Could not read the saved speech model.' }
 }
 $verifySpeech = @'
@@ -68,6 +72,14 @@ function Get-ProjectListener([string]$Role, [int]$ListenPort) {
     $owned = (Test-Argument $command '--host' '127.0.0.1') -and (Test-Argument $command '--port' ([string]$ListenPort))
     if ($Role -eq 'classifier') {
         $owned = $owned -and $process.ExecutablePath -ieq $binaryPath -and (Test-Argument $command '--model' $modelPath) -and (Test-Argument $command '--alias' 'castwell-local')
+        foreach ($setting in @(
+            @('--n-gpu-layers','all'), @('--fit','off'), @('--reasoning','off'),
+            @('--reasoning-budget','0'), @('--n-predict','2048'), @('--temp','0.7'),
+            @('--top-p','0.8'), @('--presence-penalty','0'), @('--sleep-idle-seconds','1')
+        )) {
+            $owned = $owned -and (Test-Argument $command $setting[0] $setting[1])
+        }
+        if ($FastProfile) { $owned = $owned -and (Test-Argument $command '--ctx-size' '32768') }
     } else {
         $owned = $owned -and $command -match '^(?:"[^"]+"|\S+)\s+(?:-u\s+)?-m\s+castwell(?:\s|$)' -and (Test-Argument $command '--data-dir' $dataPath)
     }
@@ -112,8 +124,19 @@ try {
     $classifier = Get-ProjectListener 'classifier' $ClassifierPort
     $application = Get-ProjectListener 'app' $Port
     if ($ValidateOnly) {
-        [pscustomobject]@{ Validated=$true; StartsServices=$false; SpeechModel=$SpeechModel; ExistingApp=[bool]$application; ExistingClassifier=[bool]$classifier }
+        [pscustomobject]@{ Validated=$true; StartsServices=$false; SpeechModel=$SpeechModel; DetectorPolicy=$selectedPolicy; SpeechBatchOverride=$(if ($FastProfile) { 8 } else { $null }); ExistingApp=[bool]$application; ExistingClassifier=[bool]$classifier }
         return
+    }
+    if ($application) {
+        $currentSettings = Get-LocalJson "http://127.0.0.1:$Port/api/settings"
+        if ($currentSettings.ai_policy -ne $selectedPolicy) {
+            throw 'The running application uses another detector profile. Use stop_suite.ps1 before starting this profile.'
+        }
+        $currentJobs = Get-LocalJson "http://127.0.0.1:$Port/api/jobs"
+        $modelPreparation = Get-LocalJson "http://127.0.0.1:$Port/api/models/status"
+        if (@($currentJobs.jobs).Count -or $modelPreparation.status -notin @('idle','ready','complete','error')) {
+            throw 'Wait for episode processing and speech-model preparation to finish before checking or reusing the classifier.'
+        }
     }
     New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
     if (-not $classifier) {
@@ -123,13 +146,15 @@ try {
     $state.processes += Process-Record $classifier 'classifier' $ClassifierPort
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding UTF8
     if (-not $application) {
-        & (Join-Path $PSScriptRoot 'start_castwell.ps1') -Port $Port -ClassifierPort $ClassifierPort -DataDirectory $dataPath -ModelCache $cachePath -SpeechModel $SpeechModel -Background | Out-Null
+        & (Join-Path $PSScriptRoot 'start_castwell.ps1') -Port $Port -ClassifierPort $ClassifierPort -DataDirectory $dataPath -ModelCache $cachePath -SpeechModel $SpeechModel -ReviewedProfile:$ReviewedProfile -FastProfile:$FastProfile -Background | Out-Null
     }
     $application = Wait-LocalReady "http://127.0.0.1:$Port/api/health" 'app' $Port
     $state.processes += Process-Record $application 'app' $Port
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $statePath -Encoding UTF8
-    if ($ReviewedProfile) {
-        $body = @{ detector='auto'; ai_policy='verified'; ai_reasoning=$true; review_only=$true; auto_approve_threshold=0.90 } | ConvertTo-Json -Compress
+    if ($localReviewedProfile) {
+        $profileSettings = @{ detector='ai'; ai_policy=$selectedPolicy; ai_reasoning=$false; auto_approve_threshold=0.90 }
+        if ($FastProfile) { $profileSettings.review_only=$true; $profileSettings.transcription_batch_size=8 }
+        $body = $profileSettings | ConvertTo-Json -Compress
         $content = [System.Net.Http.StringContent]::new($body, [Text.Encoding]::UTF8, 'application/json')
         $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new('PATCH'), "http://127.0.0.1:$Port/api/settings")
         $request.Content = $content
@@ -139,5 +164,5 @@ try {
     $reportPath = Join-Path $runtimeDir "readiness-$Port.json"
     & $pythonPath (Join-Path $PSScriptRoot 'check_release.py') --app-url "http://127.0.0.1:$Port" --data-dir $dataPath --require-local-ai --output $reportPath
     if ($LASTEXITCODE -ne 0) { throw 'The suite started but release checks found a blocker. Read the readiness report before processing.' }
-    [pscustomobject]@{ Ready=$true; Url="http://127.0.0.1:$Port"; RuntimeState=$statePath; ReadinessReport=$reportPath; SpeechModel=$SpeechModel }
+    [pscustomobject]@{ OperationalReady=$true; RemovalAcceptance='NotMeasured'; Url="http://127.0.0.1:$Port"; RuntimeState=$statePath; ReadinessReport=$reportPath; SpeechModel=$SpeechModel }
 } finally { $httpClient.Dispose(); $httpHandler.Dispose() }

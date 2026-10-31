@@ -139,6 +139,54 @@ def test_recovery_respects_total_audio_budget_and_never_downloads_a_model(monkey
     assert result["quality"]["untranscribed_seconds"] == 600
 
 
+def test_explicit_batched_budget_can_recover_late_gap_after_eight_earlier_gaps(monkeypatch):
+    engine, crop = engine_for(monkeypatch, [])
+    original = {"duration": 150., "segments": [
+        {"id": i, "start": i * 12., "end": i * 12. + 8., "text": "Represented words."} for i in range(12)]}
+    result = recover_transcript_gaps(Path("audio.wav"), original, engine,
+                                     max_crops=32, max_audio_seconds=240, max_wall_seconds=60)
+    recovery = result["quality"]["recovery"]
+    assert len(recovery["attempts"]) == 12
+    assert recovery["attempts"][-1]["end"] == 150
+    assert recovery["budget_exhausted"] is False
+    assert crop.call_count == engine.transcribe.call_count == 12
+    assert result["quality"]["requires_review"]
+
+
+def test_recovery_deadline_after_decode_prevents_model_call(monkeypatch):
+    clock = SimpleNamespace(now=0.)
+    monkeypatch.setattr("castwell.transcript_quality.time.monotonic", lambda: clock.now)
+    engine, crop = engine_for(monkeypatch, [])
+    crop.side_effect = lambda *args: setattr(clock, "now", 61.)
+    result = recover_transcript_gaps(Path("audio.wav"), sample(), engine, max_wall_seconds=60)
+    recovery = result["quality"]["recovery"]
+    engine.transcribe.assert_not_called()
+    assert recovery["budget_exhausted"] is True
+    assert recovery["attempts"][0]["status"] == "budget_exhausted"
+    assert recovery["candidates"] == []
+    assert result["quality"]["requires_review"]
+
+
+def test_recovery_deadline_during_native_iteration_discards_partial_crop_and_closes(monkeypatch):
+    clock = SimpleNamespace(now=0., closed=False)
+    monkeypatch.setattr("castwell.transcript_quality.time.monotonic", lambda: clock.now)
+    engine, _ = engine_for(monkeypatch, [])
+    def source():
+        try:
+            yield segment([word(" provisional", 2, 4)])
+            clock.now = 61.
+            yield segment([word(" late", 4, 6)])
+        finally:
+            clock.closed = True
+    engine.transcribe.side_effect = lambda *args, **kwargs: (source(), None)
+    result = recover_transcript_gaps(Path("audio.wav"), sample(), engine, max_wall_seconds=60)
+    recovery = result["quality"]["recovery"]
+    assert recovery["candidates"] == []
+    assert recovery["budget_exhausted"] is True
+    assert recovery["attempts"][0]["accepted_segments"] == 0
+    assert clock.closed
+
+
 def test_word_gap_inside_original_segment_is_diagnostic_without_replacing_text(monkeypatch):
     original = {"duration": 20, "segments": [{"id": 5, "start": 0, "end": 20, "text": "Keep original text.",
         "words": [{"word": "Keep", "start": 0, "end": 1}, {"word": "text.", "start": 19, "end": 20}]}]}
@@ -193,6 +241,7 @@ def test_crop_cancellation_reaps_decoder(monkeypatch, tmp_path):
 def test_transcribe_adds_diagnostics_and_recovery_defaults_on(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "faster_whisper", Mock())
+    monkeypatch.setattr("castwell.audio_coverage.assess_audio_coverage", lambda audio, transcript, **options: transcript)
     monkeypatch.setattr("castwell.processing.probe_duration", lambda audio: 20)
     opening = SimpleNamespace(start=0, end=4, text="Opening.", words=[])
     returning = SimpleNamespace(start=14, end=20, text="Return.", words=[])
@@ -209,6 +258,7 @@ def test_transcribe_adds_diagnostics_and_recovery_defaults_on(monkeypatch):
 def test_transcribe_can_disable_gap_recovery_but_keeps_diagnostics(monkeypatch):
     import sys
     monkeypatch.setitem(sys.modules, "faster_whisper", Mock())
+    monkeypatch.setattr("castwell.audio_coverage.assess_audio_coverage", lambda audio, transcript, **options: transcript)
     monkeypatch.setattr("castwell.processing.probe_duration", lambda audio: 20)
     opening = SimpleNamespace(start=0, end=4, text="Opening.", words=[])
     engine, crop = engine_for(monkeypatch, [])

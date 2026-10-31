@@ -10,12 +10,17 @@ import math
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 
 GAP_SECONDS = 3.0
 MAX_CROPS = 8
 MAX_CROP_SECONDS = 120.0
 CHUNK_SECONDS = 30.0
 CONTEXT_SECONDS = 2.0
+
+
+class _RecoveryDeadline(Exception):
+    pass
 
 
 def analyze_transcript(transcript, *, gap_threshold_seconds=GAP_SECONDS):
@@ -105,7 +110,9 @@ def _candidates(segment, *, offset, start, end):
              "words": words, "asr_recovered": True, "requires_review": True} for words in groups]
 
 
-def recover_transcript_gaps(audio, transcript, engine, *, progress=None, should_cancel=None):
+def recover_transcript_gaps(audio, transcript, engine, *, progress=None, should_cancel=None,
+                            max_crops=MAX_CROPS, max_audio_seconds=MAX_CROP_SECONDS, max_wall_seconds=None,
+                            reconcile_boundaries=False):
     """Retry bounded gaps with VAD off and preserve all original segment speech.
 
     Recovery is provisional. Confidence filters reduce obvious hallucinations;
@@ -113,9 +120,26 @@ def recover_transcript_gaps(audio, transcript, engine, *, progress=None, should_
     """
     from .processing import ProcessingCancelled, _check_cancel, validate_transcript
 
+    if isinstance(max_crops, bool) or not isinstance(max_crops, int) or not 1 <= max_crops <= 128:
+        raise ValueError("Recovery crop limit must be an integer from 1 to 128")
+    if not _finite(max_audio_seconds) or not 0 < max_audio_seconds <= 600:
+        raise ValueError("Recovery audio budget must be positive and at most 600 seconds")
+    if max_wall_seconds is not None and (not _finite(max_wall_seconds) or not 0 < max_wall_seconds <= 600):
+        raise ValueError("Recovery wall budget must be positive and at most 600 seconds")
+    if not isinstance(reconcile_boundaries, bool):
+        raise ValueError("Boundary reconciliation must be a boolean")
+    begun = time.monotonic()
+    deadline = begun + max_wall_seconds if max_wall_seconds is not None else None
+
+    def check_work():
+        _check_cancel(should_cancel)
+        if deadline is not None and time.monotonic() >= deadline:
+            raise _RecoveryDeadline
+        return False
+
     transcript = validate_transcript(transcript)
     initial = analyze_transcript(transcript)
-    attempts, candidates = [], []
+    attempts, candidates, reconciliations = [], [], []
     used_seconds, budget_exhausted = 0.0, False
     # Segment-internal word gaps remain diagnostic: inserting a new segment
     # inside an existing segment would change its text or violate its timeline.
@@ -124,49 +148,95 @@ def recover_transcript_gaps(audio, transcript, engine, *, progress=None, should_
     ]))
     with tempfile.TemporaryDirectory(prefix="castwell-gap-") as directory:
         for gap in outer["gaps"]:
+            if budget_exhausted:
+                break
             start = gap["start"]
             while start < gap["end"]:
                 _check_cancel(should_cancel)
                 end = min(gap["end"], start + CHUNK_SECONDS)
                 crop_start, crop_end = max(0, start - CONTEXT_SECONDS), min(transcript["duration"], end + CONTEXT_SECONDS)
-                if len(attempts) >= MAX_CROPS or used_seconds + crop_end - crop_start > MAX_CROP_SECONDS:
+                repair_plan = None
+                if reconcile_boundaries:
+                    from .transcript_reconciliation import plan_reconciliation
+                    proposed_plan = plan_reconciliation(transcript, start, end)
+                    if proposed_plan and used_seconds + proposed_plan["crop_end"] - proposed_plan["crop_start"] <= max_audio_seconds:
+                        repair_plan = proposed_plan
+                        crop_start, crop_end = repair_plan["crop_start"], repair_plan["crop_end"]
+                if (len(attempts) >= max_crops or used_seconds + crop_end - crop_start > max_audio_seconds
+                        or deadline is not None and time.monotonic() >= deadline):
                     budget_exhausted = True
                     break
                 used_seconds += crop_end - crop_start
                 attempt = {"start": start, "end": end, "crop_start": crop_start, "crop_end": crop_end,
                            "status": "empty", "accepted_segments": 0, "rejected_segments": 0}
+                if reconcile_boundaries:
+                    attempt["reconciliation"] = "anchors_planned" if repair_plan else "no_bounded_two_sided_anchors"
                 attempts.append(attempt)
                 candidate_offset = len(candidates)
                 source = None
                 if progress:
-                    progress(f"Checking missed speech: gap {len(attempts)} of at most {MAX_CROPS}")
+                    progress(f"Checking missed speech: gap {len(attempts)} of at most {max_crops}")
                 try:
                     target = Path(directory) / "gap.wav"
-                    _crop_audio(audio, target, crop_start, crop_end, should_cancel)
-                    _check_cancel(should_cancel)
+                    _crop_audio(audio, target, crop_start, crop_end, check_work)
+                    check_work()
                     source, _ = engine.transcribe(str(target), beam_size=5, vad_filter=False,
                                                  language=transcript["language"] if transcript["language"] != "unknown" else None,
                                                  word_timestamps=True, condition_on_previous_text=False)
                     source = iter(source)
+                    serial_segments = []
                     while True:
-                        _check_cancel(should_cancel)
+                        check_work()
                         try:
                             segment = next(source)
                         except StopIteration:
                             break
-                        _check_cancel(should_cancel)
+                        check_work()
+                        serial_segments.append(segment)
                         proposed = _candidates(segment, offset=crop_start, start=start, end=end)
                         for candidate in proposed:
                             if candidates and candidate["start"] < candidates[-1]["end"]:
                                 attempt["rejected_segments"] += 1
+                                continue
+                            # A previous anchored repair may have moved its last
+                            # word into this original gap. Containment within the
+                            # old gap alone no longer proves a safe insertion.
+                            if any(candidate["start"] < repair["words"][-1]["end"]
+                                   and candidate["end"] > repair["words"][0]["start"]
+                                   for repair in reconciliations):
+                                attempt["rejected_segments"] += 1
+                                attempt["rejected_reconciliation_overlaps"] = attempt.get("rejected_reconciliation_overlaps", 0) + 1
                                 continue
                             candidates.append(candidate)
                             attempt["accepted_segments"] += 1
                         if not proposed:
                             attempt["rejected_segments"] += 1
                     attempt["status"] = "recovered" if attempt["accepted_segments"] else "empty"
+                    if repair_plan:
+                        from .transcript_reconciliation import apply_reconciliations, reconcile_words
+                        repair, reason = reconcile_words(transcript, repair_plan, serial_segments)
+                        if repair:
+                            left, right = repair["words"][0]["start"], repair["words"][-1]["end"]
+                            if any(candidate["start"] < right and candidate["end"] > left for candidate in candidates[:candidate_offset]):
+                                repair, reason = None, "overlaps_previous_recovery"
+                        if repair:
+                            try:
+                                apply_reconciliations(transcript, [*reconciliations, repair])
+                            except ValueError:
+                                repair, reason = None, "overlapping_or_invalid_replacement"
+                        if repair:
+                            reconciliations.append(repair)
+                            del candidates[candidate_offset:]
+                            attempt.update(status="reconciled", accepted_segments=1,
+                                           added_words=repair["added_words"], original_words_realigned=len(repair["original_words"]))
+                        attempt["reconciliation"] = reason
                 except ProcessingCancelled:
                     raise
+                except _RecoveryDeadline:
+                    budget_exhausted = True
+                    attempt["status"] = "budget_exhausted"
+                    del candidates[candidate_offset:]
+                    attempt["accepted_segments"] = 0
                 except Exception:
                     # Failed recovery is visible, while the successful original
                     # transcript remains usable and untouched.
@@ -178,20 +248,31 @@ def recover_transcript_gaps(audio, transcript, engine, *, progress=None, should_
                     if source is not None and callable(getattr(source, "close", None)):
                         source.close()
                 start = end
+                if budget_exhausted:
+                    break
     _check_cancel(should_cancel)
-    combined = sorted([*transcript["segments"], *candidates], key=lambda segment: (segment["start"], segment["end"]))
+    if reconciliations:
+        from .transcript_reconciliation import apply_reconciliations
+        reconciled = apply_reconciliations(transcript, reconciliations)
+    else:
+        reconciled = transcript
+    combined = sorted([*reconciled["segments"], *candidates], key=lambda segment: (segment["start"], segment["end"]))
     result = validate_transcript(dict(transcript, segments=[dict(segment, id=index) for index, segment in enumerate(combined)]))
     quality = analyze_transcript(result)
     quality["recovery"] = {
         "enabled": True, "method": "bounded-gap-crops-no-vad", "model": transcript.get("model"),
         "initial_gap_count": initial["gap_count"], "initial_untranscribed_seconds": initial["untranscribed_seconds"],
-        "attempts": attempts, "candidates": candidates, "recovered_segments": len(candidates),
+        "attempts": attempts, "candidates": candidates, "recovered_segments": len(candidates) + len(reconciliations),
+        "reconcile_boundaries": reconcile_boundaries, "reconciliations": reconciliations,
         "failed_attempts": sum(attempt["status"] == "failed" for attempt in attempts),
         "processed_audio_seconds": round(used_seconds, 3),
         "budget_exhausted": budget_exhausted,
-        "limits": {"max_crops": MAX_CROPS, "max_audio_seconds": MAX_CROP_SECONDS, "chunk_seconds": CHUNK_SECONDS},
+        "elapsed_seconds": round(time.monotonic() - begun, 6),
+        "limits": {"max_crops": max_crops, "max_audio_seconds": max_audio_seconds,
+                   "max_wall_seconds": max_wall_seconds, "chunk_seconds": CHUNK_SECONDS},
+        "deadline_policy": "Checked around bounded decoder and native model calls; a running native call completes before the deadline is checked.",
     }
-    if candidates or quality["recovery"]["failed_attempts"]:
+    if candidates or reconciliations or quality["recovery"]["failed_attempts"] or budget_exhausted:
         quality["requires_review"] = True
         quality["warning"] = "Missed speech was checked again. Recovered words are provisional; listen to recovered passages and remaining gaps before trusting ad coverage."
     result["quality"] = quality

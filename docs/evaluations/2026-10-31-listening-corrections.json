@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-31",
+  "initial_listening": {
+    "numbered_checks": 18,
+    "numbered_checks_reviewed": 17,
+    "acceptable_checks": 14,
+    "ad_remaining_checks": [
+      "03",
+      "14",
+      "17"
+    ],
+    "deferred_checks": [
+      "04"
+    ],
+    "expanded_context_review": "06",
+    "minor_ad_word_fragments_accepted": true,
+    "residual_duration_measured": false,
+    "whole_episode_acceptance": false,
+    "private_snapshot_sha256": "b25ece5153606270ee7e0547bc41792d37c26e2ff96c1a09ca40ff6a6ab0c4cb"
+  },
+  "candidates": [
+    {
+      "candidate": "july-expanded-v1",
+      "configuration": {
+        "detector": "whole-episode-boundaries-v8",
+        "inference_profile": "global-thinking6144-product-promo-boundaries1024-v8",
+        "removal_scope": "sponsor-product-and-podcast-promos-v2",
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "maximum_classifier_requests": 4,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M"
+      },
+      "disposition": "rejected_show_content_regression",
+      "detector_completed": true,
+      "detection_with_model_start_seconds": 225.77344760000005,
+      "render_seconds": 31.78665209999997,
+      "cached_diagnostic_seconds_excluding_preflight_hashing": 259.18136060000006,
+      "requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 217.65148620000002,
+        "token_usage_complete": true,
+        "known_input_tokens": 30956,
+        "known_output_tokens": 7621
+      },
+      "classifier_cuda_verified": true,
+      "gpu_layers": 66,
+      "total_layers": 66,
+      "sources_unchanged_during_run": true,
+      "owned_classifier_stopped": true,
+      "cut_count": 27,
+      "changed_word_count": 513,
+      "changed_word_group_count": 7,
+      "old_cut_coverage_lost_seconds": 0,
+      "unresolved_word_count": 0,
+      "private_report_sha256": "a986f3051c11a42903cd9ca50f1e7d3f6677f00bf4e823bdd5c16e2f71a24eef",
+      "private_cut_sha256": "ac736b5d5dd64e1a0a1150a117e0265fe9c5090062111684539da005cb61721d",
+      "private_decision_sha256": "da7887e4ab5a9198850fafa600715dd03e437720164a13f16bd5dc831ab36326",
+      "private_diff_sha256": "2801c3eb441072cad96eb550e8639f77ad951e86c1d05dccd4120ea005a571fd",
+      "preview_sha256": "122ff44ecbbbf769c3ee9ae3cec6a9ea5d6b74f429dda25178e54f3bcad8ef61",
+      "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "cached_transcript_sha256": "e7c61f29e218d2a001c18b294d8c8117a70164f561604900578273ab51986a30",
+      "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "source_sha256": {
+        "castwell/processing.py": "bce27dc74193dcc8d88e717bbc5c3db971896fc340551d2fefa1aad6dbcd7f15",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+        "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+        "castwell/fast_review.py": "9c7c37315960af570cf3e0798eedf82c4e97d6cd5d40364a62fd4c3413e17db2",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/ad_scope.py": "6340d31f3f50a9183558588cb92e5f25b6e36a7b2f17f133ea84e4a43f0324db",
+        "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0"
+      }
+    },
+    {
+      "candidate": "july-expanded-v2",
+      "configuration": {
+        "detector": "whole-episode-boundaries-v9",
+        "inference_profile": "global-thinking6144-product-promo-boundaries1024-v9",
+        "removal_scope": "sponsor-product-and-podcast-promos-v2",
+        "context_tokens": 32768,
+        "max_output_tokens": 8192,
+        "maximum_classifier_requests": 4,
+        "classifier_model": "Qwen3.8-27B-Q4_K_M"
+      },
+      "disposition": "proposal_diff_passed_pending_listening",
+      "detector_completed": true,
+      "detection_with_model_start_seconds": 226.2523725000001,
+      "render_seconds": 34.88710479999986,
+      "cached_diagnostic_seconds_excluding_preflight_hashing": 262.7723796,
+      "requests": {
+        "requests": 2,
+        "failures": 0,
+        "cache_hits": 0,
+        "paid_requests": 0,
+        "request_wall_seconds_sum": 218.6748809999999,
+        "token_usage_complete": true,
+        "known_input_tokens": 29387,
+        "known_output_tokens": 7310
+      },
+      "classifier_cuda_verified": true,
+      "gpu_layers": 66,
+      "total_layers": 66,
+      "sources_unchanged_during_run": true,
+      "owned_classifier_stopped": true,
+      "cut_count": 18,
+      "changed_word_count": 187,
+      "changed_word_group_count": 3,
+      "old_cut_coverage_lost_seconds": 0,
+      "unresolved_word_count": 0,
+      "private_report_sha256": "1e343c0eae89c17081154aa3eab00e1fed53f12aa75265216a71380f8a841376",
+      "private_cut_sha256": "855f8985bf905853dedb7102ba0d6ac818c5cd32eceec3c655c61fea86491155",
+      "private_decision_sha256": "1d4dd396b2d507269d6dae9d1e0ed7b342d361efcfa7a5bb29c92593d0630103",
+      "private_diff_sha256": "cc69f101d1c2558e30e865bb0ec3531997e729a18cec76dcda6339ad4d7c5c88",
+      "preview_sha256": "63d342eefbdf5ce5379ad1b9ce871c9b12edfcce168906664d3e3efb7d4993bc",
+      "source_audio_sha256": "cbbddba7665eea47260d1d86192de4eab659f5255d7583cd9ea8c1087cd35fbc",
+      "cached_transcript_sha256": "e7c61f29e218d2a001c18b294d8c8117a70164f561604900578273ab51986a30",
+      "model_sha256": "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169",
+      "source_sha256": {
+        "castwell/processing.py": "7b22661966ae57a4f098d2e887ce651ee343eeb5ecea24d96b1560cf1c1ee638",
+        "castwell/batched_transcription.py": "6a8cbc65f8171ef2ea9306e905ab6eddb8b50b6fea54b17289f69fb50c549ae4",
+        "castwell/transcript_reconciliation.py": "622170b29f507ef5c9d9c6635a4acda79bb9c2dc5133173d05d3ceb1d7682004",
+        "castwell/transcript_quality.py": "924bcef4d546d3ed22d22218ceb9457deab965a0368f504d2710fc7233f979a1",
+        "castwell/audio_coverage.py": "02c666cfa3b2c65ab7a3c9e5d82f4c6b2258b356af142f9041545ca4608fab7a",
+        "castwell/gpu.py": "d3ef550ecf4b270dbb340d18db399d9c6653e192be627b7f6f44c0834e7c5791",
+        "castwell/fast_review.py": "128701f3011be32f59c1df8b3edbbc4b2d6921a1fb70eae1f2379e95e4c81c53",
+        "castwell/episode_boundaries.py": "6222da205c2b2ba42c520d393da5b0892419595517be25a5d0c303acd3c53a92",
+        "castwell/ad_scope.py": "2173bf98c7012ddae8e24b02d57d42e75082ed21913cd62bbbb2e797dec7ca0f",
+        "castwell/library.py": "360932b031a6fc8931b2dee1c4ae4b7c654ab1b5fabb057f1932de0b7e01850c",
+        "castwell/speed_benchmark.py": "bccbf8764c55f4761d0a94f0a506d2a15cd9d3c475c872eccd7f825e0919b7b0"
+      }
+    }
+  ],
+  "selected_for_listening": "july-expanded-v2",
+  "final_diff": {
+    "changed_word_count": 187,
+    "changed_word_groups": 3,
+    "only_three_intended_promos_changed": true,
+    "all_other_word_decisions_unchanged": true,
+    "manual_cut_overrides": false
+  },
+  "rechecks": {
+    "packet_sha256": "d5c11352a08ec4573fcbe194620b422718be8d6af47b93549434ab03a8864c7c",
+    "items": [
+      {
+        "id": "recheck-01",
+        "before_seconds": 74.31,
+        "updated_seconds": 34.92,
+        "before_sha256": "cf382db511befdca535673e49968cdb00ed7e1da0d83f0181d951b054ea7250d",
+        "updated_sha256": "2b317983b088cb76cb042d2ba59af5cc4e27df296f039a571662c9ca460a00d2",
+        "human_listening_status": "owner_acceptable",
+        "recorded_at_utc": "2026-10-31T16:46:51.336668+00:00",
+        "before_presented_inline": false,
+        "residual_duration_measured": false
+      },
+      {
+        "id": "recheck-02",
+        "before_seconds": 56.09326530612245,
+        "updated_seconds": 25.83326530612245,
+        "before_sha256": "864fbe2a1b05170d1172b7e6818a636892457e0ce0b4576843025670437daf8e",
+        "updated_sha256": "56764d9e7092f93bb0fb94f03e8933f6bddd400c79f89ff2ad0b09596ca89206",
+        "human_listening_status": "owner_acceptable",
+        "recorded_at_utc": "2026-10-31T18:01:40.184447+00:00",
+        "before_presented_inline": false,
+        "residual_duration_measured": false
+      }
+    ],
+    "scope": "Owner accepted both updated excerpts; no whole-recording or independent acoustic acceptance inferred.",
+    "private_observation_ledger_sha256": "92ec91c7d845bd91ee298b3329677a9cda7e29edac54d046c8ecc22c5637fc84"
+  },
+  "software_validation": {
+    "tests_passed": 502,
+    "subtests_passed": 67,
+    "scope": "Focused classifier policy and Jobs/recording/comparison integration suites; mocked model outputs are not accuracy evidence"
+  },
+  "new_generation_requests_total": 4,
+  "paid_requests_total": 0,
+  "new_asr_requests": 0,
+  "transcript_reused": true,
+  "independent_acceptance": false,
+  "speed_acceptance_eligible": false,
+  "new_acoustic_listening_complete": true,
+  "application_library_modified": false,
+  "application_cuts_approved": false,
+  "packages_rebuilt": false,
+  "frozen_055_artifacts_modified": false,
+  "limits": [
+    "Previously consumed development audio and cached ASR; not a fresh holdout or full speed run.",
+    "Both updated excerpts were accepted by the owner; the complete recording and numerical residual-ad total remain unverified.",
+    "The actual fake-rutabaga sketch is a separate control; this July run preserves the callback but does not replace that test.",
+    "Tiny accepted remnants were not timed as a complete residual-ad total.",
+    "First failed candidate remains reported rather than dropped from results."
+  ],
+  "new_acoustic_listening_scope": "The two updated excerpts only",
+  "whole_episode_listening_acceptance": false
+}

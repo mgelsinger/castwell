@@ -2,7 +2,33 @@
 
 This setup runs speech recognition and classification on your own machine. Model downloads are public and free; no hosted inference, API key, Ollama, or Modal deployment is needed. The application and model servers bind to `127.0.0.1`.
 
-The tested machine has Windows, Python 3.12.10, an RTX 3090 Ti with 24 GB VRAM, and 128 GB RAM. The Qwen3.8 and Qwen3.5 dense profiles use an 8,192-token context and all GPU layers. The earlier 35B-A3B measurement used four CPU expert layers and remains historical provenance; the current application requires CUDA inference with no CPU fallback. Run only one model server on this GPU. Model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed.
+The tested machine has Windows, an RTX 3090 Ti with **24 GB VRAM**, and 128 GB RAM. The current reviewed Qwen3.8 desktop profile and source launcher use a **32,768-token native context** and all GPU layers. Lower-VRAM configurations have not been validated; the weights and context must fit available GPU memory. The application requires CUDA inference with no CPU fallback.
+
+## Desktop package: download and select the model
+
+The desktop installer and portable package include llama.cpp and its CUDA runtime, but model weights are separate. No Python, Git, Ollama, API key, or paid service is needed for this path. Version 0.5.3 is currently an unpublished manual-review candidate; the [Windows guide](windows.md) describes its local build outputs.
+
+1. In your browser, [download the exact pinned Qwen3.8-27B Q4_K_M file](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/resolve/2c80088ea5e6033bed6a180e28a6573d98e8c0cf/Qwen3.8-27B-Q4_K_M.gguf). The free download is **17,106,775,008 bytes**, approximately **17.1 GB**. Save it in a permanent model folder, such as `D:\Models`, and allow additional disk space for speech weights and episodes.
+2. Verify the completed file with the PowerShell commands below, replacing the example path with its saved location. These commands only read the local file.
+3. Open the Castwell desktop launcher. Beside **Optional GGUF**, select **Browse**, choose the verified file, then select **Start**. The launcher verifies the file again and reports `reviewed-qwen3.8-cuda` when ready. Keep the file at that location for future starts.
+4. In the library's settings, use **Download model** to prepare the separate Whisper speech weights. A new reviewed-Qwen setup defaults to `large-v3`, experimental fast CUDA, and mandatory manual review. Run **Test AI connection**, then review proposed cuts before exporting.
+
+```powershell
+$castwellModel = 'D:\Models\Qwen3.8-27B-Q4_K_M.gguf'
+if ((Get-Item -LiteralPath $castwellModel).Length -ne 17106775008) {
+    throw 'The model download is incomplete or is a different file.'
+}
+if ((Get-FileHash -LiteralPath $castwellModel -Algorithm SHA256).Hash -ne '7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169') {
+    throw 'The model checksum does not match the tested file.'
+}
+'Model verified.'
+```
+
+The [upstream file page](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF/blob/2c80088ea5e6033bed6a180e28a6573d98e8c0cf/Qwen3.8-27B-Q4_K_M.gguf) publishes the matching SHA256. Selecting another GGUF uses the generic desktop profile with an 8,192-token context and does not establish equivalent detection quality. See the [Windows guide](windows.md#experimental-fast-settings) for the current fast profile's settings.
+
+## Source checkout setup
+
+The remaining commands prepare a source checkout or reproduce historical comparisons. Desktop users can continue with the [Windows guide](windows.md#start-listening). The tested source environment uses Python 3.12.10. Run only one model server on the shared GPU. Source model weights, environments, binaries, logs, and private evaluation artifacts live under ignored `.local/` and are not committed. Older 8,192-token profiles below are separate source-only configurations; the earlier 35B-A3B CPU-expert measurement is historical provenance, not a supported desktop inference mode.
 
 ## Application environment
 
@@ -24,7 +50,9 @@ Prepare the English speech model once. This downloads about 0.5 GB and does not 
 .venv\Scripts\python.exe -c "from faster_whisper.utils import download_model; download_model('small.en', cache_dir='.local/models/whisper', use_auth_token=False)"
 ```
 
-The app launcher uses this cache. Its default speech model is `small.en`; pass `-SpeechModel` to choose another installed model. The command resolves the publisher's current speech-model revision. For exact speech-model reproduction, download an explicit revision to a local directory and pass that directory with `-SpeechModel`; the tested small.en snapshot was `d1d751a5f8271d482d14ca55d9e2deeebbae577f`.
+The app launcher uses this cache and preserves saved speech choices. A new source library started with `-ReviewedProfile` or `-FastProfile` defaults to `large-v3`, which was used in the complete-recording CUDA test. Other new source profiles retain `small.en`; pass `-SpeechModel` to select any prepared model explicitly. To prepare the larger free model, replace `small.en` with `large-v3` in the command above. Startup never downloads it automatically. The command resolves the publisher's current speech-model revision. For exact speech-model reproduction, download an explicit revision to a local directory and pass that directory with `-SpeechModel`; the tested small.en snapshot was `d1d751a5f8271d482d14ca55d9e2deeebbae577f`, and the tested large-v3 snapshot was `edaa852ec7e145841d8ffdb056a99866b5f0a478`.
+
+`start_suite.ps1 -FastProfile` explicitly selects the experimental whole-episode Qwen detector with the pinned CUDA server and a 32,768-token context. This flag saves manual review as enabled and speech batch size as 8, overriding those two saved preferences while preserving speech-model selection. `-ReviewedProfile` keeps the earlier scene detector and its existing preference rules. See the [source profile instructions](production.md#start-the-suite-on-windows) before switching a running service.
 
 ## Prepare native llama.cpp
 
@@ -61,7 +89,7 @@ This profile uses the published [Unsloth Qwen3.8-27B GGUF](https://huggingface.c
 | Size | 17,106,775,008 bytes, approximately 17.1 GB |
 | SHA256 | `7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b6c6fe169` |
 
-Prepare and verify the file, then start the model after stopping any other listener on port 8081:
+For a source checkout, prepare and verify the file, then start the model after stopping any other listener on port 8081. Desktop users should use the browser download and launcher steps above instead:
 
 ```powershell
 .venv\Scripts\python.exe scripts\setup_qwen38_dense_local.py
@@ -70,9 +98,9 @@ Prepare and verify the file, then start the model after stopping any other liste
 
 Use `--verify-only` with the setup helper to check the existing file without downloads or writes. Use `-ValidateOnly` with the launcher to verify its model and runtime arguments without starting a process. Existing models and incomplete downloads are preserved.
 
-The launcher uses llama.cpp b11146, loopback port 8081, alias `castwell-local`, 8,192 context tokens, one request slot and all GPU layers. All 66 layers loaded on the tested RTX 3090 Ti. It verifies the exact model and server hashes before loading. Its command options match the earlier dense launcher.
+The current source launcher uses llama.cpp b11146, loopback port 8081, alias `castwell-local`, **32,768 context tokens**, one request slot and all GPU layers, with automatic fitting disabled. All 66 layers loaded on the tested RTX 3090 Ti. It verifies the exact model and server hashes before loading. The reviewed desktop launcher uses the same native context size; the historical Qwen3.5 and smaller source profiles below retain 8,192 tokens.
 
-In Castwell, enable **Use local Qwen reasoning** and **Require my approval for every cut**. The application explicitly requests thinking with a 1,024-token reasoning budget, 4,096-token output allowance, temperature 1, top-p .95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1 and seed 42. The request overrides the server's nonthinking default. A running model server alone does not enable this client setting.
+To reproduce the earlier verified source detector, enable **Use local Qwen reasoning** and **Require my approval for every cut**. That detector explicitly requests thinking with a 1,024-token reasoning budget, 4,096-token output allowance, temperature 1, top-p .95, top-k 20, min-p 0, presence penalty 1.5, repetition penalty 1 and seed 42. The request overrides the server's nonthinking default. A running model server alone does not enable this client setting. The current experimental fast detector instead manages its own whole-episode and boundary reasoning settings; see the [current fast settings](windows.md#experimental-fast-settings).
 
 The matched comparison and [later policy pilot](policy-pilot-2026-10-09.md) use the same model file and request settings. The pilot retained the existing v8 policy after v9 caused a regression. Their results remain limited by provisional transcript timing and reference labels; model confidence does not establish safe unattended cuts.
 

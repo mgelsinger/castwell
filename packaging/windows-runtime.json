@@ -1,9 +1,23 @@
 {
   "ffmpeg": {
-    "url": "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-8.1.2-essentials_build.zip",
-    "sha256": "db580001caa24ac104c8cb856cd113a87b0a443f7bdf47d8c12b1d740584a2ec",
+    "kind": "source-build",
+    "url": "https://ffmpeg.org/releases/ffmpeg-8.1.2.tar.xz",
+    "sha256": "464beb5e7bf0c311e68b45ae2f04e9cc2af88851abb4082231742a74d97b524c",
     "source": "https://github.com/FFmpeg/FFmpeg/tree/n8.1.2",
-    "license": "GPL-3.0-or-later"
+    "license": "LGPL-2.1-or-later",
+    "recipe": "scripts/build_windows_media.py",
+    "source_lock": "packaging/windows-media.lock.json",
+    "profile": "castwell-audio1"
+  },
+  "pyav": {
+    "kind": "source-build",
+    "url": "https://files.pythonhosted.org/packages/78/cd/3a83ffbc3cc25b39721d174487fb0d51a76582f4a1703f98e46170ce83d4/av-16.1.0.tar.gz",
+    "sha256": "a094b4fd87a3721dacf02794d3d2c82b8d712c85b9534437e82a8a978c175ffd",
+    "source": "https://github.com/PyAV-Org/PyAV/tree/v16.1.0",
+    "license": "BSD-3-Clause wrapper; controlled LGPL-2.1-or-later FFmpeg libraries",
+    "recipe": "scripts/build_windows_pyav.py",
+    "source_lock": "packaging/windows-pyav.lock.json",
+    "version": "16.1.0+castwell1"
   },
   "llama": {
     "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11146/llama-b11146-bin-win-cuda-12.4-x64.zip",
@@ -55,5 +69,238 @@
     "sha256": "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
     "source": "https://github.com/jrsoftware/issrc/tree/is-6_7_3",
     "license": "Inno Setup License"
+  },
+  "notice-intel-openmp-2025-3-0-eula-txt": {
+    "kind": "notice",
+    "filename": "Intel-OpenMP-2025.3.0-EULA.txt",
+    "repository_path": "packaging/notices/Intel-OpenMP-2025.3.0-EULA.txt",
+    "url": "https://files.pythonhosted.org/packages/79/69/05addedd727061b61a85b4fd989754edb628b5be1cd5d161727f98cf4d86/intel_openmp-2025.3.0-py2.py3-none-win_amd64.whl",
+    "sha256": "febfb69a5b058f55892dc7f341108a9ca29d50e9fe85723a57eebbb826436958",
+    "source": "https://files.pythonhosted.org/packages/79/69/05addedd727061b61a85b4fd989754edb628b5be1cd5d161727f98cf4d86/intel_openmp-2025.3.0-py2.py3-none-win_amd64.whl",
+    "license": "See preserved upstream notice for Intel OpenMP 2025.3.0"
+  },
+  "notice-tcl-8-6-15-license-terms": {
+    "kind": "notice",
+    "filename": "Tcl-8.6.15-license.terms",
+    "repository_path": "packaging/notices/Tcl-8.6.15-license.terms",
+    "url": "https://raw.githubusercontent.com/python/cpython-source-deps/tcl-core-8.6.15.0/license.terms",
+    "sha256": "c0a69a2bfd757361ec7e6143973b103c90409316b49e9c88db26ad6388e79f16",
+    "source": "https://raw.githubusercontent.com/python/cpython-source-deps/tcl-core-8.6.15.0/license.terms",
+    "license": "See preserved upstream notice for Tcl 8.6.15"
+  },
+  "notice-openssl-3-0-16-license-txt": {
+    "kind": "notice",
+    "filename": "OpenSSL-3.0.16-LICENSE.txt",
+    "repository_path": "packaging/notices/OpenSSL-3.0.16-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/openssl/openssl/openssl-3.0.16/LICENSE.txt",
+    "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "source": "https://raw.githubusercontent.com/openssl/openssl/openssl-3.0.16/LICENSE.txt",
+    "license": "See preserved upstream notice for OpenSSL 3.0.16"
+  },
+  "notice-onednn-3-1-1-license-txt": {
+    "kind": "notice",
+    "filename": "oneDNN-3.1.1-LICENSE.txt",
+    "repository_path": "packaging/notices/oneDNN-3.1.1-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/uxlfoundation/oneDNN/v3.1.1/LICENSE",
+    "sha256": "dd12452e1ae11e3282271aa5895d8175296b83e936a027209f9399d26a407d0f",
+    "source": "https://raw.githubusercontent.com/uxlfoundation/oneDNN/v3.1.1/LICENSE",
+    "license": "See preserved upstream notice for oneDNN 3.1.1 static dependency selected by CTranslate2 Windows recipe"
+  },
+  "notice-onednn-3-1-1-third-party-programs-txt": {
+    "kind": "notice",
+    "filename": "oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+    "repository_path": "packaging/notices/oneDNN-3.1.1-THIRD-PARTY-PROGRAMS.txt",
+    "url": "https://raw.githubusercontent.com/uxlfoundation/oneDNN/v3.1.1/THIRD-PARTY-PROGRAMS",
+    "sha256": "9117585dfc6b5cd0fafc063312f28a86ec82eb97bf68316dcefcaaa7fc11428e",
+    "source": "https://raw.githubusercontent.com/uxlfoundation/oneDNN/v3.1.1/THIRD-PARTY-PROGRAMS",
+    "license": "See preserved upstream notice for oneDNN 3.1.1 static dependency selected by CTranslate2 Windows recipe"
+  },
+  "notice-ctranslate2-cpu_features-license-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-cpu_features-LICENSE.txt",
+    "repository_path": "packaging/notices/CTranslate2-cpu_features-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/google/cpu_features/8a494eb1e158ec2050e5f699a504fbc9b896a43b/LICENSE",
+    "sha256": "af272c1b4dd08dd61d43e001d3134119d03ca7a2b057a64f7355fdf27fbea3dd",
+    "source": "https://raw.githubusercontent.com/google/cpu_features/8a494eb1e158ec2050e5f699a504fbc9b896a43b/LICENSE",
+    "license": "See preserved upstream notice for CTranslate2 vendored cpu_features"
+  },
+  "notice-ctranslate2-spdlog-license-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-spdlog-LICENSE.txt",
+    "repository_path": "packaging/notices/CTranslate2-spdlog-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/LICENSE",
+    "sha256": "a7241a379cb98d37788f82c2fc2e484c3ae85dae881fd3406f0637644850926f",
+    "source": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/LICENSE",
+    "license": "See preserved upstream notice for CTranslate2 vendored spdlog"
+  },
+  "notice-ctranslate2-thrust-license-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-thrust-LICENSE.txt",
+    "repository_path": "packaging/notices/CTranslate2-thrust-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/LICENSE",
+    "sha256": "01b767dcd7d36f42efb608076741cf83f154a995e198028cb698aadc3a43b63b",
+    "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/LICENSE",
+    "license": "See preserved upstream notice for CTranslate2 vendored thrust"
+  },
+  "notice-ctranslate2-thrust-thrust-license-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-thrust-thrust-LICENSE.txt",
+    "repository_path": "packaging/notices/CTranslate2-thrust-thrust-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/thrust/LICENSE",
+    "sha256": "9e42656b2b02223cee05e2344fee5673d9d5b731ac686ad1e3e543ace6ea6b95",
+    "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/thrust/LICENSE",
+    "license": "See preserved upstream notice for CTranslate2 vendored thrust"
+  },
+  "notice-ctranslate2-thrust-libcudacxx-license-txt-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+    "repository_path": "packaging/notices/CTranslate2-thrust-libcudacxx-LICENSE.TXT.txt",
+    "url": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/libcudacxx/LICENSE.TXT",
+    "sha256": "f2905be651fc32d33ad754a74e318e0a19eae7a134a23b1b1a4eb7496bfc1d93",
+    "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/libcudacxx/LICENSE.TXT",
+    "license": "See preserved upstream notice for CTranslate2 vendored thrust"
+  },
+  "notice-ctranslate2-cutlass-license-txt-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-cutlass-LICENSE.txt.txt",
+    "repository_path": "packaging/notices/CTranslate2-cutlass-LICENSE.txt.txt",
+    "url": "https://raw.githubusercontent.com/NVIDIA/cutlass/bbe579a9e3beb6ea6626d9227ec32d0dae119a49/LICENSE.txt",
+    "sha256": "6fc6ad419e4d26571a14c7c4d26b65345865c20dd8686ddcf5e8673f54d3d233",
+    "source": "https://raw.githubusercontent.com/NVIDIA/cutlass/bbe579a9e3beb6ea6626d9227ec32d0dae119a49/LICENSE.txt",
+    "license": "See preserved upstream notice for CTranslate2 vendored cutlass"
+  },
+  "notice-ctranslate2-thrust-cub-license-txt-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-thrust-cub-LICENSE.TXT.txt",
+    "repository_path": "packaging/notices/CTranslate2-thrust-cub-LICENSE.TXT.txt",
+    "url": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/cub/LICENSE.TXT",
+    "sha256": "2e15eba2e130f3e80d9e91724c7dce3781ce99316324681ff54b00c1fc9759b3",
+    "source": "https://raw.githubusercontent.com/NVIDIA/cccl/b5fe509fd11a925f90d6495176707cc1184eed9d/cub/LICENSE.TXT",
+    "license": "See preserved upstream notice for CTranslate2 vendored thrust"
+  },
+  "notice-ctranslate2-fmt-license-txt": {
+    "kind": "notice",
+    "filename": "CTranslate2-fmt-LICENSE.txt",
+    "repository_path": "packaging/notices/CTranslate2-fmt-LICENSE.txt",
+    "url": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/include/spdlog/fmt/bundled/format.h",
+    "sha256": "2a342daf2271890c957fbff5f0803476cb50dad0d2771ae9c85f749112476037",
+    "source": "https://raw.githubusercontent.com/gabime/spdlog/76fb40d95455f249bd70824ecfcae7a8f0930fa3/include/spdlog/fmt/bundled/format.h",
+    "license": "See preserved upstream notice for fmt bundled by spdlog"
+  },
+  "notice-llama-b11146-cpp-httplib-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-cpp-httplib-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-cpp-httplib-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "4b45cbe16d7b71b89ae6127e26e0d90a029198ca5e958ad8e3d0b8bbed364d8b",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor cpp-httplib"
+  },
+  "notice-llama-b11146-hash-sha256-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-hash-sha256-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-hash-sha256-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "b81d0022ca6367918c67b57e9647d3513ee58809fd4b0ef0b3492f1356bced25",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor hash"
+  },
+  "notice-llama-b11146-hash-xxhash-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-hash-xxhash-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-hash-xxhash-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "6ffedbc0f7878612d2b23589f1ff2ab15633e1df7963a5d9fc750ec5500c7e7a",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor hash"
+  },
+  "notice-llama-b11146-miniaudio-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-miniaudio-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-miniaudio-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "3a0fd41237bf8341d1e4cdd89a52ff4a96228c4fad26e272840ed0ee03efcaf7",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor miniaudio"
+  },
+  "notice-llama-b11146-subprocess-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-subprocess-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-subprocess-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "1c7b71e03e1be684d51dfeb56d6358cc728097d844cfd72484f28835ff4c091b",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor subprocess.h"
+  },
+  "notice-llama-b11146-stb-license-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-stb-LICENSE.txt",
+    "repository_path": "packaging/notices/llama-b11146-stb-LICENSE.txt",
+    "url": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "sha256": "7587efcca32db8f95bf5860dea6dfa4be410ee723e1964db3689c8ddf2a2e4a9",
+    "source": "https://codeload.github.com/ggml-org/llama.cpp/tar.gz/refs/tags/b11146",
+    "license": "See preserved upstream notice for llama.cpp vendor stb"
+  },
+  "notice-llama-b11146-nlohmann-json-license-mit-txt": {
+    "kind": "notice",
+    "filename": "llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+    "repository_path": "packaging/notices/llama-b11146-nlohmann-json-LICENSE.MIT.txt",
+    "url": "https://raw.githubusercontent.com/nlohmann/json/v3.12.0/LICENSE.MIT",
+    "sha256": "46a65cffd1ea955132d95a8dd921640714a8d6b537d2e4e482d31145ae95b603",
+    "source": "https://raw.githubusercontent.com/nlohmann/json/v3.12.0/LICENSE.MIT",
+    "license": "See preserved upstream notice for nlohmann JSON 3.12.0"
+  },
+  "notice-intel-onemkl-2025-3-0-license-txt": {
+    "kind": "notice",
+    "filename": "Intel-oneMKL-2025.3.0-LICENSE.txt",
+    "repository_path": "packaging/notices/Intel-oneMKL-2025.3.0-LICENSE.txt",
+    "url": "https://files.pythonhosted.org/packages/75/0e/b863a60889643e21d5d8d6b619f913703257878979b1df22d344a56276d0/mkl-2025.3.0-py2.py3-none-win_amd64.whl",
+    "sha256": "7721633d0ddff43fae25ebfd405f8166a0ce730cbcec44f2f3ad9d5eb8ac9a6f",
+    "source": "https://files.pythonhosted.org/packages/75/0e/b863a60889643e21d5d8d6b619f913703257878979b1df22d344a56276d0/mkl-2025.3.0-py2.py3-none-win_amd64.whl",
+    "license": "See preserved upstream notice for oneMKL2025.3.0 static backend selected by upstream CTranslate2 Windows recipe with default WITH_MKL=ON"
+  },
+  "vc-runtime": {
+    "kind": "runtime-archive",
+    "url": "https://download.visualstudio.microsoft.com/download/pr/45d3b8dd-bced-4b37-9974-142f748d710c/4aaf54db0bfc9435f7c3660e1a00237a4b556042bfeea64bde44c2e0194e6ee5/Microsoft.VC.14.44.17.14.CRT.Redist.X64.base.vsix",
+    "sha256": "4aaf54db0bfc9435f7c3660e1a00237a4b556042bfeea64bde44c2e0194e6ee5",
+    "bytes": 3224191,
+    "source": "https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution",
+    "license": "Microsoft Visual Studio 2022 Distributable Code terms",
+    "version": "14.44.35211.0",
+    "binaries": [
+      {
+        "name": "vcruntime140.dll",
+        "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+        "bytes": 124544,
+        "archive_member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/vcruntime140.dll"
+      },
+      {
+        "name": "msvcp140.dll",
+        "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+        "bytes": 557728,
+        "archive_member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/msvcp140.dll"
+      },
+      {
+        "name": "vcruntime140_1.dll",
+        "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+        "bytes": 49792,
+        "archive_member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/vcruntime140_1.dll"
+      },
+      {
+        "name": "msvcp140_1.dll",
+        "sha256": "bfad5aef4c63a669e3c140655cdfdf395b6c979b400a447bd5dcb65ed8826c3d",
+        "bytes": 35952,
+        "archive_member": "Contents/VC/Redist/MSVC/14.44.35112/x64/Microsoft.VC143.CRT/msvcp140_1.dll"
+      }
+    ]
+  },
+  "notice-microsoft-visual-c-runtime-2015-2022-license-txt": {
+    "kind": "notice",
+    "filename": "Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+    "repository_path": "packaging/notices/Microsoft-Visual-C-Runtime-2015-2022-License.txt",
+    "url": "https://visualstudio.microsoft.com/wp-content/uploads/2021/09/Visual-C-Runtime-2015-2022-License-1.docx",
+    "sha256": "2dd434a15fb5f9d28c33211a5af471eb719acba5db65e5103e0db95e7869a2fb",
+    "source": "https://visualstudio.microsoft.com/wp-content/uploads/2021/09/Visual-C-Runtime-2015-2022-License-1.docx",
+    "license": "See preserved upstream notice for Microsoft Visual C++2015-2022 runtime14.44.35211.0"
   }
 }

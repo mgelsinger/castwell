@@ -42,7 +42,7 @@ REVIEWED_QWEN_SHA256 = "7e78da5d7e3ae28d178121f58646953305f3e5bd3cb46f4a75584e8b
 _DLL_HANDLES = []
 _ENV_KEYS = ("CASTWELL_AI_KEY", "CASTWELL_AI_BASE_URL", "CASTWELL_AI_MODEL",
              "CASTWELL_AI_POLICY", "CASTWELL_TRANSCRIPTION_MODEL", "CASTWELL_MODEL_CACHE",
-             "CASTWELL_DATA_DIR")
+             "CASTWELL_DATA_DIR", "CASTWELL_CLASSIFIER_SLEEP_ADDRESS")
 
 
 class DesktopError(RuntimeError):
@@ -369,19 +369,46 @@ def install_local_processing_guards(classifier_address: str | None = None, *, re
 
     def desktop_settings(self):
         values = original_get(self)
-        values.update(review_only=True, ai_policy="verified", auto_approve_threshold=0.90)
+        values.update(ai_policy="scene" if reviewed_qwen and classifier_address else "verified", auto_approve_threshold=0.90)
+        if reviewed_qwen and classifier_address:
+            saved = self.library.get_settings()
+            saved_policy = saved.get("desktop_ai_policy", saved.get("ai_policy"))
+            values["ai_policy"] = saved_policy if saved_policy in {"scene", "fast"} else "fast"
+            values["ai_policy_options"] = ["scene", "fast"]
+            values["env_overrides"] = [name for name in values.get("env_overrides", []) if name != "ai_policy"]
+            # Removal acceptance has not passed. New profiles require review,
+            # while an explicit saved preference remains the user's choice.
+            values["review_only"] = (values["ai_policy"] == "fast"
+                                     or saved.get("review_only", True))
+            if values["ai_policy"] == "fast" and "transcription_batch_size" not in saved:
+                values["transcription_batch_size"] = 8
+            if ("transcription_model" not in saved
+                    and "transcription_model" not in values.get("env_overrides", [])):
+                values["transcription_model"] = "large-v3"
+        else:
+            values["review_only"] = True
+            values["ai_policy_options"] = ["verified"]
         if classifier_address:
-            values.update(ai_reasoning=bool(reviewed_qwen), detector="ai")
+            values.update(ai_reasoning=False, detector="ai")
         return values
 
     def desktop_update(self, values):
         # Environment profile fields are session choices, not a replacement for
         # an existing API configuration saved in this user's library.
         selected = dict(values)
+        local_policy = selected.get("ai_policy") if reviewed_qwen and classifier_address else None
+        if local_policy is not None and local_policy not in {"scene", "fast"}:
+            raise ValueError("This local Qwen profile supports scene review or experimental fast review.")
         if classifier_address:
             for key in ("ai_base_url", "ai_model", "ai_policy", "ai_reasoning", "detector"):
                 selected.pop(key, None)
-        return original_update(self, selected)
+        result = original_update(self, selected)
+        if local_policy is not None:
+            # This explicit desktop preference does not replace the user's
+            # saved provider policy used outside the managed local session.
+            self.library.update_settings({"desktop_ai_policy": local_policy})
+            result = self.get()
+        return result
 
     def local_transcribe(audio, model="small.en", *args, **kwargs):
         model_cache = kwargs.get("model_cache") or os.environ.get("CASTWELL_MODEL_CACHE", "")
@@ -391,14 +418,19 @@ def install_local_processing_guards(classifier_address: str | None = None, *, re
         return original_transcribe(audio, str(directory), *args, **kwargs)
 
     def local_detect(transcript, detector="auto", *, config=None, **kwargs):
-        selected = config or {}
+        selected = dict(config or {})
         address = selected.get("ai_base_url", os.environ.get("CASTWELL_AI_BASE_URL", ""))
+        if selected.get("ai_key", os.environ.get("CASTWELL_AI_KEY", "")):
+            raise processing.ProcessingError("This desktop profile does not use API keys.")
         if detector != "heuristic" and address and not owned_classifier(address):
             raise processing.ProcessingError("This desktop release uses its own local CUDA models only. Select a GGUF in the launcher. The saved provider configuration is preserved but is not used by this desktop profile.")
-        return original_detect(transcript, detector, config=config, **kwargs)
+        selected.update(ai_allow_redirects=False, ai_trust_env=False)
+        return original_detect(transcript, detector, config=selected, **kwargs)
 
     def local_test(settings):
         selected = config._configuration(settings)
+        if selected.get("ai_key", os.environ.get("CASTWELL_AI_KEY", "")):
+            raise ValueError("This desktop profile does not use API keys.")
         if selected.get("ai_base_url") and not owned_classifier(selected["ai_base_url"]):
             raise ValueError("The desktop release only permits its own CUDA classifier. Select a GGUF in the launcher.")
         return original_test(settings)
@@ -445,9 +477,12 @@ def serve(args) -> int:
             from .library import Library
             from .config import Settings
             library = Library(directory)
-            selected = {"review_only": True, "ai_policy": "verified", "auto_approve_threshold": 0.90}
-            if "transcription_model" not in library.get_settings():
-                selected["transcription_model"] = "small.en"
+            saved = library.get_settings()
+            selected = {"auto_approve_threshold": 0.90}
+            if "review_only" not in saved:
+                selected["review_only"] = True
+            if "transcription_model" not in saved:
+                selected["transcription_model"] = "large-v3" if args.reviewed_qwen and args.classifier_port else "small.en"
             Settings(library).update(selected)
             if speech:
                 os.environ["CASTWELL_TRANSCRIPTION_MODEL"] = str(speech)
@@ -455,7 +490,8 @@ def serve(args) -> int:
             if classifier_address:
                 os.environ["CASTWELL_AI_BASE_URL"] = classifier_address
                 os.environ["CASTWELL_AI_MODEL"] = "castwell-local"
-                os.environ["CASTWELL_AI_POLICY"] = "verified"
+                os.environ["CASTWELL_AI_POLICY"] = "scene" if args.reviewed_qwen else "verified"
+                os.environ["CASTWELL_CLASSIFIER_SLEEP_ADDRESS"] = classifier_address
             install_local_processing_guards(classifier_address, reviewed_qwen=args.reviewed_qwen)
             from .app import create_app
             app = create_app(directory)
@@ -612,6 +648,8 @@ class DesktopController:
         environment = dict(os.environ)
         for name in _ENV_KEYS:
             environment.pop(name, None)
+        if self.model_port:
+            environment["CASTWELL_CLASSIFIER_SLEEP_ADDRESS"] = f"http://127.0.0.1:{self.model_port}/v1"
         environment["ORT_DISABLE_TELEMETRY"] = "1"
         environment["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
         return environment
@@ -738,18 +776,20 @@ class DesktopController:
                 if self.model_port == self.port:
                     self.model_port = available_port(0)
                 model = native_paths()["llama"]
+                context_size = "32768" if self.reviewed_qwen else "8192"
                 command = [str(model), "--model", str(selected), "--alias", "castwell-local", "--offline",
-                           "--host", "127.0.0.1", "--port", str(self.model_port), "--ctx-size", "8192",
-                           "--n-gpu-layers", "all", "--fit", "off", "--parallel", "1", "--verbosity", "4"]
+                           "--host", "127.0.0.1", "--port", str(self.model_port), "--ctx-size", context_size,
+                           "--n-gpu-layers", "all", "--fit", "off", "--parallel", "1", "--verbosity", "4",
+                           "--sleep-idle-seconds", "1"]
                 if self.reviewed_qwen:
-                    # Match the tested request profile, keeping server defaults
-                    # bounded. Individual review requests enable thinking with
-                    # their own 1024 token budget through the verified policy.
+                    # Match the tested all-GPU context capacity. Each detection
+                    # policy sends its own bounded reasoning/output profile;
+                    # these server defaults do not change saved user choices.
                     command += ["--batch-size", "512", "--ubatch-size", "128", "--flash-attn", "on",
                                 "--jinja", "--reasoning", "off", "--reasoning-format", "deepseek",
-                                "--reasoning-budget", "1024", "--n-predict", "4096",
-                                "--temp", "1.0", "--top-p", "0.95", "--top-k", "20", "--min-p", "0",
-                                "--presence-penalty", "1.5", "--repeat-penalty", "1.0", "--seed", "42"]
+                                "--reasoning-budget", "0", "--n-predict", "2048",
+                                "--temp", "0.7", "--top-p", "0.8", "--top-k", "20", "--min-p", "0",
+                                "--presence-penalty", "0", "--repeat-penalty", "1.0", "--seed", "42"]
                 log_path = self.runtime / "classifier.log"
                 self.model_log_offset = log_path.stat().st_size if log_path.exists() else 0
                 self.model_process = self._launch(command, "classifier.log")
