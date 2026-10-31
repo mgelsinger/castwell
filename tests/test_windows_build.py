@@ -65,6 +65,19 @@ class WindowsArtifactTests(unittest.TestCase):
                 self.build.managed_remove(directory)
             self.assertEqual(sentinel.read_text(encoding='utf-8'), 'preserve')
 
+    def test_versioned_build_workspace_stays_inside_managed_tree(self):
+        with tempfile.TemporaryDirectory() as root:
+            directory = Path(root)
+            workspace = directory / '.local' / 'windows-build'
+            with mock.patch.object(self.build, 'ROOT', directory):
+                self.assertEqual(self.build.managed_build_directory(workspace), workspace.resolve())
+                isolated = workspace / 'candidate-0.5.6'
+                self.assertEqual(self.build.managed_build_directory(isolated), isolated.resolve())
+                for outside in (directory, directory / 'data', workspace / '..' / 'library'):
+                    with self.subTest(path=outside), self.assertRaisesRegex(ValueError, 'within .local/windows-build'):
+                        self.build.managed_build_directory(outside)
+            self.assertFalse(workspace.exists())
+
     def test_source_fingerprint_detects_changes_without_reading_library(self):
         with tempfile.TemporaryDirectory() as root:
             directory = Path(root)

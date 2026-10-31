@@ -37,7 +37,9 @@ BUNDLED_GUIDES = ('ad-removal-production-plan.md',
                  'evaluations/2026-10-13-five-minute-cuda.json',
                  'evaluations/2026-10-13-saved-cut-validation.json',
                  'evaluations/2026-10-14-tolerance-comparison.md',
-                 'evaluations/2026-10-14-tolerance-comparison.json')
+                 'evaluations/2026-10-14-tolerance-comparison.json',
+                 'evaluations/2026-10-31-listening-corrections.md',
+                 'evaluations/2026-10-31-listening-corrections.json')
 RELEASE_INPUTS = ('castwell', 'pyproject.toml', 'README.md', 'LICENSE', 'NOTICE',
                   'packaging', 'scripts/build_windows.py', 'scripts/desktop_entry.py',
                   'scripts/bundle_dependency_sources.py', 'scripts/build_windows_media.py',
@@ -119,6 +121,15 @@ def managed_remove(path: Path) -> None:
         raise ValueError(f'Refusing to replace unmanaged build path: {path}')
     if resolved.exists():
         shutil.rmtree(resolved)
+
+
+def managed_build_directory(path: Path) -> Path:
+    """Keep isolated freezes under the existing build workspace."""
+    resolved = path.resolve()
+    workspace = (ROOT / '.local' / 'windows-build').resolve()
+    if not resolved.is_relative_to(workspace):
+        raise ValueError('Build directory must stay within .local/windows-build')
+    return resolved
 
 
 def native_files(directory: Path, names: set[str]) -> list[Path]:
@@ -441,6 +452,8 @@ def main() -> int:
     parser.add_argument('--venv', type=Path, default=ROOT / '.local' / 'windows-build-venv')
     parser.add_argument('--wheelhouse', type=Path, default=ROOT / '.local' / 'windows-wheelhouse')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'dist' / 'windows')
+    parser.add_argument('--build-dir', type=Path, default=ROOT / '.local' / 'windows-build',
+                        help='Managed freeze workspace under .local/windows-build; use a versioned subdirectory to preserve prior freezes')
     parser.add_argument('--skip-installer', action='store_true', help='Build portable archive only')
     parser.add_argument('--dependency-source-bundle', type=Path,
                         help='Separate source archive verified against the locked inventory and frozen binaries')
@@ -493,7 +506,7 @@ def main() -> int:
     version = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']['version']
     if not re.fullmatch(r'\d+\.\d+\.\d+', version):
         parser.error('Windows version must contain three numeric components')
-    build = ROOT / '.local' / 'windows-build'
+    build = managed_build_directory(args.build_dir)
     build.mkdir(parents=True, exist_ok=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     args.wheelhouse.mkdir(parents=True, exist_ok=True)

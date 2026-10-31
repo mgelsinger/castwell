@@ -8,7 +8,7 @@ The tested configuration uses an **NVIDIA RTX 3090 Ti with 24 GB VRAM** and 128 
 
 ## Choose a distribution
 
-**October 17 source update:** the next build removes genuine promos for other podcasts as well as sponsor/product reads, while preserving fake ads, unpaid jokes and show speech. The existing 0.5.5 packages below still use the earlier sponsor/product-only rule. They have not been rebuilt for this policy change; updated listening output and package validation remain pending.
+**Version 0.5.6 source candidate:** the updated detector removes genuine promos for other podcasts and network catalogue invitations as well as sponsor/product reads, while preserving fake ads, unpaid jokes and show speech. Both corrected listening excerpts were accepted on October 31; see the [listening results](evaluations/2026-10-31-listening-corrections.md). Fresh full-episode timing, the complete fake-rutabaga sketch check and package validation remain separate requirements. The existing 0.5.5 packages below retain the earlier sponsor/product-only rule.
 
 Version **0.5.5 is built and locally validated as a manual-review candidate** with whole-episode CUDA detection, batched speech recognition, and bounded **Hear start / Hear end** previews. Its default detector retains the current two-pass review policy. The owner now accepts up to five seconds of residual ads per audio hour while prioritizing preservation of the show; a faster alternative remains an experiment until a final tradeoff is selected. See the [paired comparison](evaluations/2026-10-14-tolerance-comparison.md) for the current measurements and limitations.
 
@@ -155,13 +155,15 @@ The fetcher runs [the media recipe](../scripts/build_windows_media.py) and [the 
 
 Downloads, source trees, object files and logs stay under the build directory. Reuse an existing verified build with the fetcher's `--media-build <media-directory>` and `--pyav-build-manifest <receipt.json>` options. Changed recipes, headers, binaries, licenses or wheel bytes reject reuse. The fetcher emits paths for FFmpeg, llama.cpp, CUDA, Microsoft runtime files, notices and the PyAV receipt in `vendor-manifest.json`; it does not activate them in the current shell.
 
+The 0.5.6 source inventory reuses the exact controlled dependency binaries reviewed for 0.5.5. Its release label changes, but the native source pins and binary bindings do not. Build verification must still check every binding against the new frozen application. A versioned `--build-dir` below preserves the earlier frozen application for comparison; this directory must stay inside `.local/windows-build`.
+
 Collect the exact pinned source and notice archive from the reviewed [dependency-source inventory](third-party-sources.md):
 
 ```powershell
 python scripts/bundle_dependency_sources.py `
   --lock packaging/windows-sources.lock.json `
   --cache .local/dependency-source-cache `
-  --output .local/source-release/Castwell-0.5.5-Dependency-Sources.zip `
+  --output .local/source-release/Castwell-0.5.6-Dependency-Sources.zip `
   --download --require-complete
 if ($LASTEXITCODE -ne 0) { throw 'Dependency source collection is incomplete' }
 ```
@@ -179,18 +181,20 @@ python scripts/build_windows.py `
   --pyav-build-manifest $vendor.pyav_build_manifest `
   --notices-dir $vendor.notices_dir `
   --inno-path .local/windows-tools/inno/ISCC.exe `
-  --dependency-source-bundle .local/source-release/Castwell-0.5.5-Dependency-Sources.zip `
+  --dependency-source-bundle .local/source-release/Castwell-0.5.6-Dependency-Sources.zip `
   --require-dependency-sources `
-  --output-dir dist/windows/candidate-0.5.5
+  --build-dir .local/windows-build/candidate-0.5.6 `
+  --output-dir dist/windows/candidate-0.5.6
 if ($LASTEXITCODE -ne 0) { throw 'Windows packaging failed' }
 ```
 
 The builder checks the source archive against the frozen application's bound binaries before producing the portable ZIP, installer, manifest and checksums. It copies the matching source archive alongside them. Preserve and distribute those exact matching files together after all release holds are resolved. A complete source-collection flag does not grant Microsoft redistribution rights or establish audible ad-removal acceptance.
 
-Export the application source separately from the exact revision in the build manifest. Disable working-tree newline conversion for this export so archive files match their committed Git blobs. For the validated 0.5.5 candidate:
+Export the application source separately from the exact revision in the build manifest. Disable working-tree newline conversion for this export so archive files match their committed Git blobs:
 
 ```powershell
-git -c core.autocrlf=false -c core.eol=lf archive --format=zip --prefix=Castwell-0.5.5-Source/ --output=dist/windows/candidate-0.5.5/Castwell-0.5.5-Source.zip 3d72dcac3929d9f77f220db1ac43565334660848
+$castwellBuild = Get-Content dist/windows/candidate-0.5.6/Castwell-0.5.6-Windows-x64-manifest.json | ConvertFrom-Json
+git -c core.autocrlf=false -c core.eol=lf archive --format=zip --prefix=Castwell-0.5.6-Source/ --output=dist/windows/candidate-0.5.6/Castwell-0.5.6-Source.zip $castwellBuild.application_source_revision
 if ($LASTEXITCODE -ne 0) { throw 'Application source export failed' }
 ```
 
